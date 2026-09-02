@@ -37,7 +37,7 @@ Two businesses, one link:
 | `classes/VeleiroSync.cls` | **Pull** path. `syncClients()` upserts Veleiro clients into Accounts by external id. |
 | `classes/VeleiroInsightService.cls` | **Velly** — health scoring + next-best-action. `getBriefing()` (dashboard), `getInsightForAccount()` (Account page). Rules in `score()`. |
 | `classes/VeleiroDashboardController.cls` | `getOverview()` — clients + projects + completion, aggregated per client. |
-| `classes/VeleiroMappingController.cls` | `getMappings()` — active field mappings for the console. |
+| `classes/VeleiroMappingController.cls` | Backend for the interactive mapping **builder**: `getObjects`/`getFields` (pickers), `getMappingsFor`, `defaultTemplate` (auto-fill known pairs), `saveMappings`, `getMappings`. Maps any object → `client`/`project`. |
 | `classes/VeleiroSeed.cls` | `seed()` — inserts the 6 default field mappings (idempotent). |
 | `classes/VeleiroApiMock.cls` | `@isTest` HttpCalloutMock + `seedConfig()`. Use it in new tests. |
 | `lwc/veleiroPanel` / `veleiroOppPanel` | Branded panel on Account / Opportunity record pages (sync + status + "Open in Veleiro"; the Opp one shows live progress). |

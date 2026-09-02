@@ -4,41 +4,115 @@
             <img src={logoUrl} class="hero-logo" alt="Veleiro" />
             <div class="hero-text">
                 <h1>Field Mappings</h1>
-                <p>Standard fields are connected out of the box. Map your custom fields to Veleiro
-                   to keep your CRM and the Veleiro platform in sync.</p>
+                <p>Map any Salesforce object to a Veleiro <strong>client</strong> or <strong>project</strong>.
+                   Known combinations (Account → client, Opportunity → project) auto-fill their defaults;
+                   anything else you define by hand.</p>
             </div>
             <img src={mascotUrl} class="hero-mascot" alt="Velly" />
         </div>
 
-        <template if:true={error}>
-            <div class="veleiro-error">Could not load mappings.</div>
-        </template>
+        <!-- Builder -->
+        <div class="veleiro-card">
+            <div class="veleiro-pickers">
+                <lightning-combobox
+                    label="Salesforce object"
+                    placeholder="Select an object…"
+                    options={objectOptions}
+                    value={selectedObject}
+                    onchange={handleObjectChange}
+                    class="veleiro-picker">
+                </lightning-combobox>
+                <div class="veleiro-arrow">→</div>
+                <lightning-combobox
+                    label="Veleiro entity"
+                    placeholder="client / project"
+                    options={entityOptions}
+                    value={selectedEntity}
+                    onchange={handleEntityChange}
+                    class="veleiro-picker">
+                </lightning-combobox>
+            </div>
 
-        <template for:each={groups} for:item="g">
-            <div key={g.object} class="veleiro-group">
-                <div class="veleiro-group-head">
-                    <lightning-icon icon-name={g.icon} size="small"></lightning-icon>
-                    <span class="veleiro-group-name">{g.object}</span>
-                    <span class="veleiro-group-count">{g.count} field(s)</span>
-                </div>
+            <template if:true={canEdit}>
+                <template if:true={hint}>
+                    <div class="veleiro-hint">🧭&nbsp;{hint}</div>
+                </template>
 
                 <div class="veleiro-map-table">
                     <div class="veleiro-map-row veleiro-map-header">
-                        <span class="col-src">Salesforce field</span>
-                        <span class="col-arrow"></span>
-                        <span class="col-tgt">Veleiro target</span>
-                        <span class="col-type">Type</span>
+                        <span>Salesforce field</span>
+                        <span></span>
+                        <span>Veleiro target</span>
+                        <span>Type</span>
+                        <span></span>
                     </div>
-                    <template for:each={g.rows} for:item="r">
-                        <div key={r.id} class="veleiro-map-row">
-                            <span class="col-src"><code>{r.sfField}</code></span>
-                            <span class="col-arrow">&#8594;</span>
-                            <span class="col-tgt"><code>{r.target}</code></span>
-                            <span class="col-type"><span class={r.typeClass}>{r.type}</span></span>
+                    <template for:each={rows} for:item="row">
+                        <div key={row.key} class="veleiro-map-row">
+                            <lightning-combobox
+                                variant="label-hidden"
+                                placeholder="Field…"
+                                options={fieldOptions}
+                                value={row.sfField}
+                                data-key={row.key}
+                                onchange={handleFieldChange}>
+                            </lightning-combobox>
+                            <span class="veleiro-arrow-sm">→</span>
+                            <lightning-input
+                                variant="label-hidden"
+                                placeholder="e.g. name or sf_amount"
+                                value={row.target}
+                                data-key={row.key}
+                                onchange={handleTargetChange}>
+                            </lightning-input>
+                            <lightning-combobox
+                                variant="label-hidden"
+                                options={typeOptions}
+                                value={row.type}
+                                data-key={row.key}
+                                onchange={handleTypeChange}>
+                            </lightning-combobox>
+                            <lightning-button-icon
+                                icon-name="utility:delete"
+                                variant="bare"
+                                alternative-text="Remove"
+                                data-key={row.key}
+                                onclick={removeRow}>
+                            </lightning-button-icon>
                         </div>
                     </template>
                 </div>
-            </div>
+
+                <div class="veleiro-actions">
+                    <lightning-button label="Add field" icon-name="utility:add" onclick={addRow}></lightning-button>
+                    <lightning-button variant="brand" label="Save mapping" onclick={handleSave}
+                        disabled={saveDisabled} class="veleiro-brand-btn"></lightning-button>
+                </div>
+            </template>
+
+            <template if:false={canEdit}>
+                <p class="veleiro-empty-hint">Pick an object and a Veleiro entity to start mapping.</p>
+            </template>
+        </div>
+
+        <!-- Resumen de lo configurado -->
+        <template if:true={hasSummary}>
+            <div class="veleiro-section-head">Configured mappings</div>
+            <template for:each={summary} for:item="g">
+                <div key={g.key} class="veleiro-group">
+                    <div class="veleiro-group-head">
+                        <span class="veleiro-group-name">{g.object}</span>
+                        <span class="veleiro-arrow-sm">→</span>
+                        <span class="veleiro-badge">{g.entity}</span>
+                        <span class="veleiro-group-count">{g.rows.length} field(s)</span>
+                    </div>
+                    <template for:each={g.rows} for:item="r">
+                        <div key={r.key} class="veleiro-sum-row">
+                            <code>{r.sfField}</code><span class="veleiro-arrow-sm">→</span><code>{r.target}</code>
+                            <span class="veleiro-type">{r.type}</span>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </template>
     </div>
 </template>

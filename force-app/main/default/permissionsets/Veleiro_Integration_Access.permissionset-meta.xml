@@ -12,6 +12,9 @@
     <fieldPermissions><field>Veleiro_Field_Mapping__c.Target_Type__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Veleiro_Field_Mapping__c.Is_Standard__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Veleiro_Field_Mapping__c.Active__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Entity__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Opportunity.Veleiro_Project_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Opportunity.Veleiro_Project_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <objectPermissions>
         <object>Veleiro_Field_Mapping__c</object>
         <allowCreate>true</allowCreate><allowRead>true</allowRead><allowEdit>true</allowEdit><allowDelete>true</allowDelete>

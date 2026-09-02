@@ -94,6 +94,10 @@ The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out
 - **Flow** — `Create_Veleiro_Project_On_Closed_Won` (record-triggered, async callout).
 - **Objects** — custom fields on Account & Opportunity, `Veleiro_Config__c`, `Veleiro_Field_Mapping__c`.
 
+## Branding — included, zero setup
+
+The Veleiro logo and the **Velly** mascot ship as static resources (`VeleiroLogo`, `VeleiroMascot`) and every component already references them. When you deploy, the panels, dashboard, Velly insights, and mapping console render **exactly** like the product demo — the partner uploads nothing. Colors (navy `#040b25`, accent `#cfe6f8`) are baked into the LWC styles. To keep the look, just add the components/tabs to your pages as in [`docs/setup.md`](docs/setup.md).
+
 ## For coding agents 🤖
 
 [`AGENTS.md`](AGENTS.md) is a machine-readable guide: the component map, the Veleiro API contract, the mapping model, the Velly insight rules, and safety rails. It's written so a Claude can analyze this repo, install it in a partner org, and extend it safely.
