@@ -1,0 +1,103 @@
+<template>
+    <div class="veleiro-dash">
+        <!-- Hero -->
+        <div class="veleiro-hero">
+            <div class="veleiro-hero-left">
+                <img src={logoUrl} alt="Veleiro" class="veleiro-logo" />
+                <div>
+                    <h1 class="veleiro-h1">Delivery Overview</h1>
+                    <p class="veleiro-sub">Your clients &amp; projects, live from Veleiro</p>
+                </div>
+            </div>
+            <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh"
+                title="Refresh" variant="border-filled" onclick={handleRefresh} class="veleiro-refresh"></lightning-button-icon>
+        </div>
+
+        <template if:true={loading}>
+            <div class="veleiro-loading">
+                <lightning-spinner alternative-text="Loading Veleiro data..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={error}>
+            <div class="veleiro-error">{error}</div>
+        </template>
+
+        <!-- KPIs -->
+        <template if:true={overview}>
+            <div class="veleiro-kpis">
+                <div class="veleiro-kpi">
+                    <span class="veleiro-kpi-num">{overview.clientCount}</span>
+                    <span class="veleiro-kpi-lbl">Clients</span>
+                </div>
+                <div class="veleiro-kpi">
+                    <span class="veleiro-kpi-num">{overview.projectCount}</span>
+                    <span class="veleiro-kpi-lbl">Projects</span>
+                </div>
+                <div class="veleiro-kpi">
+                    <span class="veleiro-kpi-num">{overview.openProjectCount}</span>
+                    <span class="veleiro-kpi-lbl">Open</span>
+                </div>
+                <div class="veleiro-kpi">
+                    <span class="veleiro-kpi-num">{overview.completedProjectCount}</span>
+                    <span class="veleiro-kpi-lbl">Completed</span>
+                </div>
+                <div class="veleiro-kpi veleiro-kpi-accent">
+                    <span class="veleiro-kpi-num">{overview.avgProgress}%</span>
+                    <span class="veleiro-kpi-lbl">Avg. completion</span>
+                </div>
+            </div>
+        </template>
+
+        <!-- Empty -->
+        <template if:true={isEmpty}>
+            <div class="veleiro-empty">
+                <img src={mascotUrl} alt="Velly" class="veleiro-mascot-lg" />
+                <p>No clients or projects in Veleiro yet.</p>
+            </div>
+        </template>
+
+        <!-- Clients (accordion) -->
+        <template if:true={hasClients}>
+            <div class="veleiro-section-head">
+                <span>Clients</span>
+            </div>
+            <template for:each={clients} for:item="c">
+                <div key={c.id} class={c.cardClass}>
+                    <!-- Header clickeable -->
+                    <div class="veleiro-client-head" data-id={c.id} onclick={handleToggle}
+                        role="button" tabindex="0">
+                        <lightning-icon icon-name={c.iconName} size="x-small" class="veleiro-chev"></lightning-icon>
+                        <span class="veleiro-client-name">{c.name}</span>
+                        <span class="veleiro-badge">{c.projectCount}</span>
+                        <div class="veleiro-spacer"></div>
+                        <div class="veleiro-avg-wrap">
+                            <span class="veleiro-avg-pct">{c.avgProgress}%</span>
+                            <span class="veleiro-avg-lbl">avg</span>
+                        </div>
+                    </div>
+
+                    <!-- Cuerpo colapsable -->
+                    <div class={c.bodyClass}>
+                        <a href={c.url} target="_blank" rel="noopener" class="veleiro-openlink">
+                            Open client in Veleiro &#8599;
+                        </a>
+                        <template for:each={c.projects} for:item="p">
+                            <div key={p.id} class="veleiro-proj">
+                                <div class="veleiro-proj-row">
+                                    <a href={p.url} target="_blank" rel="noopener" class="veleiro-proj-name">{p.name}</a>
+                                    <span class="veleiro-proj-meta">
+                                        <span class="veleiro-proj-status">{p.status}</span>
+                                        <span class="veleiro-proj-pct">{p.progressLabel}</span>
+                                    </span>
+                                </div>
+                                <lightning-progress-bar value={p.progress} size="large" variant={p.barVariant}
+                                    class={p.barClass}></lightning-progress-bar>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

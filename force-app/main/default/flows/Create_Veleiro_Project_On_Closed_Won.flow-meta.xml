@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Crea (o actualiza) el project en Veleiro para la Opportunity ganada, via el invocable Apex.</description>
+        <name>Create_Project_In_Veleiro</name>
+        <label>Create Project in Veleiro</label>
+        <locationX>176</locationX>
+        <locationY>276</locationY>
+        <actionName>VeleiroSyncService</actionName>
+        <actionType>apex</actionType>
+        <faultConnector>
+            <targetReference>Handle_Fault</targetReference>
+        </faultConnector>
+        <flowTransactionModel>Automatic</flowTransactionModel>
+        <inputParameters>
+            <name>opportunityIds</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>VeleiroSyncService</nameSegment>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <assignments>
+        <description>Captura el error sin romper el guardado de la Opportunity (terminal).</description>
+        <name>Handle_Fault</name>
+        <label>Capturar Error</label>
+        <locationX>314</locationX>
+        <locationY>384</locationY>
+        <assignmentItems>
+            <assignToReference>varFaultMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <description>Cuando una Opportunity pasa a Closed Won (y aun no tiene project), crea automaticamente el project en la plataforma Veleiro ligado al client de la cuenta.</description>
+    <environments>Default</environments>
+    <interviewLabel>Create Veleiro Project On Closed Won {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Create Veleiro Project On Closed Won</label>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterFormula>AND(ISPICKVAL({!$Record.StageName}, "Closed Won"), ISBLANK({!$Record.Veleiro_Project_Id__c}))</filterFormula>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Create_Project_In_Veleiro</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>varFaultMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

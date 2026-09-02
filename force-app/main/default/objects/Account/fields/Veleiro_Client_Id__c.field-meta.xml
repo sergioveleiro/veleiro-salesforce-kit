@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Veleiro_Client_Id__c</fullName>
+    <label>Veleiro Client Id</label>
+    <type>Text</type>
+    <length>64</length>
+    <externalId>true</externalId>
+    <unique>true</unique>
+    <caseSensitive>true</caseSensitive>
+    <description>ID del client en la plataforma Veleiro (para ligar y hacer upsert).</description>
+</CustomField>

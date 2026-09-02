@@ -1,0 +1,57 @@
+<template>
+    <div class="velly-wrap">
+        <!-- Briefing de Velly -->
+        <div class="velly-brief">
+            <div class="velly-avatar-col">
+                <img src={mascotUrl} alt="Velly" class="velly-avatar" />
+                <span class="velly-name">Velly</span>
+            </div>
+            <div class="velly-bubble">
+                <div class="velly-bubble-head">
+                    <span class="velly-badge">AI insights</span>
+                    <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh"
+                        title="Refresh" size="x-small" variant="bare" onclick={handleRefresh}></lightning-button-icon>
+                </div>
+                <template if:true={loading}>
+                    <p class="velly-text velly-muted">Velly is reading your Veleiro delivery data…</p>
+                </template>
+                <template if:true={error}>
+                    <p class="velly-text velly-muted">{error}</p>
+                </template>
+                <template if:true={briefing}>
+                    <p class="velly-text">{briefing.headline}</p>
+                </template>
+            </div>
+        </div>
+
+        <!-- Colas -->
+        <template if:true={briefing}>
+            <div class="velly-cols">
+                <template for:each={columns} for:item="col">
+                    <div key={col.key} class="velly-col">
+                        <div class="velly-col-head">
+                            <span class="velly-col-icon">{col.icon}</span>
+                            <span class="velly-col-title">{col.title}</span>
+                            <span class="velly-col-count">{col.count}</span>
+                        </div>
+
+                        <template if:false={col.items.length}>
+                            <p class="velly-col-empty">Clear skies here ⛵</p>
+                        </template>
+
+                        <template for:each={col.items} for:item="ci">
+                            <div key={ci.clientId} class="velly-card">
+                                <div class="velly-card-top">
+                                    <span class={ci.scoreClass}>{ci.score}</span>
+                                    <a href={ci.url} target="_blank" rel="noopener" class="velly-card-name">{ci.name}</a>
+                                </div>
+                                <p class="velly-card-action">{ci.nextAction}</p>
+                                <span class="velly-chip">{ci.emoji}&nbsp;{ci.motionLabel}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+</template>

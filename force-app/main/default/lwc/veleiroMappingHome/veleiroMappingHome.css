@@ -1,0 +1,134 @@
+.veleiro-home {
+    padding: 4px;
+}
+.veleiro-hero {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: #ffffff;
+    border: 1px solid #e6eef7;
+    border-left: 6px solid #cfe6f8;
+    padding: 18px 24px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(4, 11, 37, 0.06);
+}
+.hero-logo {
+    height: 30px;
+    width: auto;
+    flex: none;
+}
+.hero-text {
+    flex: 1;
+}
+.hero-text h1 {
+    color: #040b25;
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+.hero-text p {
+    color: #5a6b82;
+    font-size: 0.9rem;
+    margin: 0;
+    max-width: 660px;
+    line-height: 1.5;
+}
+.hero-mascot {
+    height: 60px;
+    width: auto;
+    flex: none;
+}
+
+.veleiro-error {
+    color: #b3261e;
+    background: #fce8e6;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+}
+
+/* Group card per object */
+.veleiro-group {
+    background: #fff;
+    border: 1px solid #e7eef6;
+    border-radius: 14px;
+    padding: 14px 18px 16px;
+    margin-bottom: 14px;
+}
+.veleiro-group-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #eef3f8;
+}
+.veleiro-group-name {
+    color: #040b25;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+.veleiro-group-count {
+    color: #5a6b82;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+/* Mapping table */
+.veleiro-map-table {
+    display: flex;
+    flex-direction: column;
+}
+.veleiro-map-row {
+    display: grid;
+    grid-template-columns: 1fr 28px 1fr 160px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f2f6fa;
+}
+.veleiro-map-row:last-child {
+    border-bottom: none;
+}
+.veleiro-map-header {
+    color: #97a6bb;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+.col-arrow {
+    text-align: center;
+    color: #97a6bb;
+    font-weight: 700;
+}
+.veleiro-map-row code {
+    background: #f4f8fc;
+    border: 1px solid #e7eef6;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    color: #040b25;
+    font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+/* Type pill */
+.veleiro-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.veleiro-pill-standard {
+    background: #cfe6f8;
+    color: #04345e;
+}
+.veleiro-pill-custom {
+    background: #eae6fb;
+    color: #3a2b7a;
+}

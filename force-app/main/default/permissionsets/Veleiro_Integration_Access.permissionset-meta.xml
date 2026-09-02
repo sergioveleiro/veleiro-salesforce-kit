@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Veleiro Integration Access</label>
+    <hasActivationRequired>false</hasActivationRequired>
+    <fieldPermissions><field>Account.Veleiro_Client_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Account.Veleiro_Slug__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Account.Veleiro_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Account.Veleiro_Additional_Fields__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SObject__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SF_Field__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Target__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Target_Type__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Is_Standard__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Active__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <objectPermissions>
+        <object>Veleiro_Field_Mapping__c</object>
+        <allowCreate>true</allowCreate><allowRead>true</allowRead><allowEdit>true</allowEdit><allowDelete>true</allowDelete>
+        <viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords>
+    </objectPermissions>
+    <tabSettings>
+        <tab>Veleiro_Home</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Veleiro_Mappings</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

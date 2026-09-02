@@ -1,0 +1,46 @@
+<template>
+    <lightning-card>
+        <div slot="title" class="velly-title">
+            <img src={mascotUrl} alt="Velly" class="velly-title-avatar" />
+            <span>Velly’s take</span>
+            <span class="velly-title-badge">AI</span>
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <template if:true={loading}>
+                <lightning-spinner alternative-text="Velly is thinking..." size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={notSynced}>
+                <p class="velly-muted">Sync this account to Veleiro and Velly will start reading its delivery health.</p>
+            </template>
+
+            <template if:true={hasInsight}>
+                <div class="velly-head">
+                    <div class={scoreClass}>
+                        <span class="velly-score-num">{insight.score}</span>
+                        <span class="velly-score-lbl">health</span>
+                    </div>
+                    <div class="velly-head-txt">
+                        <span class="velly-label">{insight.emoji}&nbsp;{insight.healthLabel}</span>
+                        <span class="velly-chip">{insight.motionLabel}</span>
+                    </div>
+                </div>
+
+                <p class="velly-narrative">“{insight.narrative}”</p>
+
+                <div class="velly-action">
+                    <span class="velly-action-lbl">Next best action</span>
+                    <p class="velly-action-txt">{insight.nextAction}</p>
+                </div>
+
+                <div class="velly-metrics">
+                    <div class="velly-metric"><span class="m-num">{insight.avgProgress}%</span><span class="m-lbl">avg progress</span></div>
+                    <div class="velly-metric"><span class="m-num">{insight.projectCount}</span><span class="m-lbl">projects</span></div>
+                    <div class="velly-metric"><span class="m-num">{insight.daysStalled}d</span><span class="m-lbl">since update</span></div>
+                    <div class="velly-metric"><span class="m-num">{insight.blockedTasks}</span><span class="m-lbl">blocked</span></div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

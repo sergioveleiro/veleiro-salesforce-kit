@@ -1,0 +1,56 @@
+<template>
+    <lightning-card>
+        <div slot="title" class="veleiro-title">
+            <img src={logoUrl} alt="Veleiro" class="veleiro-logo" />
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <div class="veleiro-accentbar"></div>
+
+            <template if:true={loading}>
+                <lightning-spinner alternative-text="Working..." size="small"></lightning-spinner>
+            </template>
+
+            <!-- Sincronizado: hay project ligado -->
+            <template if:true={synced}>
+                <p class="slds-text-body_small slds-m-bottom_small veleiro-ok">
+                    &#9679;&nbsp;Synced with Veleiro
+                </p>
+                <div class="veleiro-row"><span class="veleiro-label">Project</span><span class="veleiro-value">{summary.name}</span></div>
+                <div class="veleiro-row"><span class="veleiro-label">Project ID</span><span class="veleiro-value">{summary.projectId}</span></div>
+                <template if:true={statusLabel}>
+                    <div class="veleiro-row"><span class="veleiro-label">Status</span><span class="veleiro-value">{statusLabel}</span></div>
+                </template>
+
+                <!-- Barra de avance (completion) -->
+                <template if:true={hasProgress}>
+                    <div class="slds-m-top_medium veleiro-progress-wrap">
+                        <div class="veleiro-progress-head">
+                            <span class="veleiro-label">Completion</span>
+                            <span class="veleiro-pct">{progressValue}%</span>
+                        </div>
+                        <lightning-progress-bar value={progressValue} size="large" class="veleiro-progress"></lightning-progress-bar>
+                    </div>
+                </template>
+
+                <div class="slds-m-top_medium">
+                    <a href={summary.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
+                        Open in Veleiro &#8599;
+                    </a>
+                    <lightning-button label="Re-sync" onclick={handleSync} class="slds-m-left_small veleiro-brand-btn"></lightning-button>
+                </div>
+            </template>
+
+            <!-- No sincronizado -->
+            <template if:false={synced}>
+                <div class="veleiro-empty">
+                    <img src={mascotUrl} alt="Velly" class="veleiro-mascot" />
+                    <p class="slds-text-body_regular slds-text-color_weak">
+                        This opportunity isn't linked to a Veleiro project yet.
+                    </p>
+                </div>
+                <lightning-button variant="brand" label="Sync with Veleiro" onclick={handleSync} class="veleiro-brand-btn"></lightning-button>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,44 @@
+<template>
+    <div class="veleiro-home">
+        <div class="veleiro-hero">
+            <img src={logoUrl} class="hero-logo" alt="Veleiro" />
+            <div class="hero-text">
+                <h1>Field Mappings</h1>
+                <p>Standard fields are connected out of the box. Map your custom fields to Veleiro
+                   to keep your CRM and the Veleiro platform in sync.</p>
+            </div>
+            <img src={mascotUrl} class="hero-mascot" alt="Velly" />
+        </div>
+
+        <template if:true={error}>
+            <div class="veleiro-error">Could not load mappings.</div>
+        </template>
+
+        <template for:each={groups} for:item="g">
+            <div key={g.object} class="veleiro-group">
+                <div class="veleiro-group-head">
+                    <lightning-icon icon-name={g.icon} size="small"></lightning-icon>
+                    <span class="veleiro-group-name">{g.object}</span>
+                    <span class="veleiro-group-count">{g.count} field(s)</span>
+                </div>
+
+                <div class="veleiro-map-table">
+                    <div class="veleiro-map-row veleiro-map-header">
+                        <span class="col-src">Salesforce field</span>
+                        <span class="col-arrow"></span>
+                        <span class="col-tgt">Veleiro target</span>
+                        <span class="col-type">Type</span>
+                    </div>
+                    <template for:each={g.rows} for:item="r">
+                        <div key={r.id} class="veleiro-map-row">
+                            <span class="col-src"><code>{r.sfField}</code></span>
+                            <span class="col-arrow">&#8594;</span>
+                            <span class="col-tgt"><code>{r.target}</code></span>
+                            <span class="col-type"><span class={r.typeClass}>{r.type}</span></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

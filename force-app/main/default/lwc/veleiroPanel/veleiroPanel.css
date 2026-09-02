@@ -1,0 +1,81 @@
+:host {
+    --veleiro-navy: #040b25;
+    --veleiro-navy-hover: #0a1740;
+    --veleiro-accent: #cfe6f8;
+}
+
+.veleiro-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.veleiro-logo {
+    height: 22px;
+    width: auto;
+}
+
+/* Barra de acento con el color de marca */
+.veleiro-accentbar {
+    height: 4px;
+    background: var(--veleiro-accent);
+    border-radius: 2px;
+    margin: 0 0 12px 0;
+}
+
+.veleiro-ok {
+    color: var(--veleiro-navy);
+    font-weight: 600;
+}
+
+.veleiro-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid #eef3f8;
+    font-size: 0.85rem;
+}
+.veleiro-label {
+    color: #5a6b82;
+}
+.veleiro-value {
+    color: var(--veleiro-navy);
+    font-weight: 600;
+    text-align: right;
+    word-break: break-all;
+}
+
+/* Hipervinculo "Open in Veleiro" con el color de boton de marca */
+.veleiro-link {
+    display: inline-block;
+    padding: 7px 16px;
+    background: var(--veleiro-navy);
+    color: #fff !important;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.veleiro-link:hover {
+    background: var(--veleiro-navy-hover);
+}
+
+/* Boton "Sync with Veleiro" (lightning-button brand) con color de marca */
+.veleiro-brand-btn {
+    --slds-c-button-brand-color-background: var(--veleiro-navy);
+    --slds-c-button-brand-color-border: var(--veleiro-navy);
+    --slds-c-button-brand-color-background-hover: var(--veleiro-navy-hover);
+    --slds-c-button-brand-color-border-hover: var(--veleiro-navy-hover);
+}
+
+.veleiro-empty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.veleiro-mascot {
+    height: 44px;
+    width: auto;
+    flex: none;
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Veleiro_Version__c</fullName>
+    <label>Veleiro Version</label>
+    <type>Number</type>
+    <precision>9</precision>
+    <scale>0</scale>
+    <description>Version del registro en Veleiro (para escritura condicional con If-Match).</description>
+</CustomField>

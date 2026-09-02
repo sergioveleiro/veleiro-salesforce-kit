@@ -1,0 +1,143 @@
+:host {
+    --veleiro-navy: #040b25;
+    --veleiro-accent: #cfe6f8;
+    --veleiro-muted: #5a6b82;
+}
+
+.velly-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.velly-title-avatar {
+    height: 24px;
+    width: auto;
+}
+.velly-title-badge {
+    background: var(--veleiro-navy);
+    color: #fff;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.velly-muted {
+    color: var(--veleiro-muted);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+/* Header: score + label */
+.velly-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.velly-score {
+    flex: none;
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+.velly-score-good { background: linear-gradient(135deg, #38a169 0%, #2e844a 100%); }
+.velly-score-mid  { background: linear-gradient(135deg, #d9a200 0%, #b98a00 100%); }
+.velly-score-bad  { background: linear-gradient(135deg, #d63a2f 0%, #ba0517 100%); }
+.velly-score-num {
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.velly-score-lbl {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+}
+.velly-head-txt {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.velly-label {
+    color: var(--veleiro-navy);
+    font-weight: 700;
+    font-size: 1rem;
+}
+.velly-chip {
+    align-self: flex-start;
+    background: var(--veleiro-accent);
+    color: #04345e;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* Narrativa (lo que dice Velly) */
+.velly-narrative {
+    color: var(--veleiro-navy);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    font-style: italic;
+    background: #f7fafd;
+    border-left: 3px solid var(--veleiro-accent);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+/* Next best action */
+.velly-action {
+    background: var(--veleiro-navy);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+.velly-action-lbl {
+    color: var(--veleiro-accent);
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.velly-action-txt {
+    color: #fff;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    margin-top: 3px;
+}
+
+/* Metricas */
+.velly-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.velly-metric {
+    text-align: center;
+    background: #f7fafd;
+    border-radius: 8px;
+    padding: 8px 4px;
+}
+.m-num {
+    display: block;
+    color: var(--veleiro-navy);
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+.m-lbl {
+    display: block;
+    color: var(--veleiro-muted);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+}
