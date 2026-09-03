@@ -15,15 +15,22 @@ public with sharing class VeleiroApiClient {
         public Integer currentVersion; // presente en 409 version_conflict
     }
 
-    // Default de la URL humana del portal (para hipervinculos) si no se configura en Veleiro_Config__c.
+    // Defaults NO-secretos: el partner solo tiene que pegar su token; base URLs caen a estos.
+    private static final String DEFAULT_BASE = 'callout:Veleiro_API/api/v1'; // via Named Credential Veleiro_API
     private static final String DEFAULT_APP_BASE = 'https://app.beta.veleiro.dev';
 
+    // Lo UNICO obligatorio que el partner configura es el token (un secreto). Base_Url es opcional.
     private static Veleiro_Config__c cfg() {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
-        if (c == null || String.isBlank(c.Api_Token__c) || String.isBlank(c.Base_Url__c)) {
-            throw new VeleiroApiException('Veleiro_Config__c no configurado (falta Api_Token__c / Base_Url__c).');
+        if (c == null || String.isBlank(c.Api_Token__c)) {
+            throw new VeleiroApiException('Falta el token de Veleiro. Pega tu Api_Token__c en Setup > Custom Settings > Veleiro Config.');
         }
         return c;
+    }
+
+    // Base de la API: usa la configurada o cae al default (callout via Named Credential).
+    private static String baseUrl(Veleiro_Config__c c) {
+        return String.isNotBlank(c.Base_Url__c) ? c.Base_Url__c : DEFAULT_BASE;
     }
 
     // URL base humana del portal de Veleiro para los links "Open in Veleiro".
@@ -37,7 +44,7 @@ public with sharing class VeleiroApiClient {
     private static HttpRequest baseReq(String method, String path) {
         Veleiro_Config__c c = cfg();
         HttpRequest req = new HttpRequest();
-        req.setEndpoint(c.Base_Url__c + path); // el path NO lleva slash final
+        req.setEndpoint(baseUrl(c) + path); // el path NO lleva slash final
         req.setMethod(method);
         req.setHeader('Authorization', 'Bearer ' + c.Api_Token__c);
         req.setHeader('Accept', 'application/json');

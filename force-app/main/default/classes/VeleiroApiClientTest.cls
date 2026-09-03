@@ -74,7 +74,7 @@ private class VeleiroApiClientTest {
             VeleiroApiClient.doGet('/clients', null);
             System.assert(false, 'debio lanzar por config faltante');
         } catch (VeleiroApiClient.VeleiroApiException e) {
-            System.assert(e.getMessage().contains('Veleiro_Config__c'));
+            System.assert(e.getMessage().toLowerCase().contains('token'), 'debe pedir el token');
         }
         Test.stopTest();
     }
@@ -86,6 +86,19 @@ private class VeleiroApiClientTest {
         c.App_Base_Url__c = null;
         update c;
         System.assert(VeleiroApiClient.appBaseUrl().startsWith('https://'), 'devuelve un default valido');
+    }
+
+    @isTest
+    static void baseUrlFallsBackToDefault() {
+        // Con token pero sin Base_Url -> usa el default (callout via Named Credential).
+        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        c.Base_Url__c = null;
+        update c;
+        Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+        Test.startTest();
+        Map<String, Object> body = VeleiroApiClient.doGet('/clients', null);
+        Test.stopTest();
+        System.assert(body.containsKey('data'), 'funciona con Base_Url por default');
     }
 
     // Mock de dos paginas para ejercitar la paginacion por cursor.

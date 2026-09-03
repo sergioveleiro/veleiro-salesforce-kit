@@ -12,14 +12,16 @@ sf project deploy start -o <your-org> -d force-app -l RunLocalTests
 ```
 Production orgs run the tests during deploy (the package ships ≥75% coverage). Sandboxes/scratch orgs deploy the same way.
 
-## 2. Configure your token & URLs (as DATA — never in git)
-Edit a **local** copy of `scripts/apex/configure.apex`, paste your token, then:
-```bash
-sf apex run -o <your-org> -f scripts/apex/configure.apex
-```
-This writes `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c` into the `Veleiro_Config__c` org-default custom setting. To point at Veleiro production later, change `Base_Url__c` / `App_Base_Url__c`.
+## 2. Paste your Veleiro API token (the ONLY thing you configure — it's a secret)
+The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.beta.veleiro.dev`), so you don't have to set them.
 
-> You can also set these in **Setup → Custom Settings → Veleiro Config → Manage → Edit** instead of the script.
+**Recommended (UI, most secure):** Setup → **Custom Settings** → **Veleiro Config** → **Manage** → **New** (org default) → paste your token into **Api_Token__c** → Save.
+
+> The token is **per-partner** and **never** ships in the repo or gets set by anyone but you. Do not commit it, and don't let anyone hand it to you in a script.
+
+**Optional (CLI):** if you prefer, edit a **local** copy of `scripts/apex/configure.apex` (paste your token, run `sf apex run -f ...`), then discard the change. Only do this in your own org.
+
+To point at Veleiro production later, set `Base_Url__c` / `App_Base_Url__c` to the prod URLs (otherwise they default to beta).
 
 ## 3. Seed the default field mappings
 ```bash
