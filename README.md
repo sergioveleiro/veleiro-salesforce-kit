@@ -94,9 +94,11 @@ The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out
 - **Flow** — `Create_Veleiro_Project_On_Closed_Won` (record-triggered, async callout).
 - **Objects** — custom fields on Account & Opportunity, `Veleiro_Config__c`, `Veleiro_Field_Mapping__c`.
 
-## Branding — included, zero setup
+## Branding — included, zero setup, zero binaries
 
-The Veleiro logo and the **Velly** mascot ship as static resources (`VeleiroLogo`, `VeleiroMascot`) and every component already references them. When you deploy, the panels, dashboard, Velly insights, and mapping console render **exactly** like the product demo — the partner uploads nothing. Colors (navy `#040b25`, accent `#cfe6f8`) are baked into the LWC styles. To keep the look, just add the components/tabs to your pages as in [`docs/setup.md`](docs/setup.md).
+The Veleiro logo and the **Velly** mascot are **embedded as base64 data-URIs** in a shared LWC module (`c/veleiroBrand`) — there are **no static resources and no binary files** in this repo. That means the branding deploys as pure text/metadata through *any* tool (the `sf` CLI, a ZIP import, or Veleiro's own metadata push) and renders **exactly** like the product demo, with the partner uploading nothing. Colors (navy `#040b25`, accent `#cfe6f8`) are baked into the LWC styles.
+
+A ready-made **"Veleiro" Lightning app** (`applications/Veleiro`) ships too, wired to the Home/Mappings tabs — so it shows up in the App Launcher after deploy. It's brand-colored (no custom logo image, to stay 100% binary-free). Everything is additive; it never touches your existing apps, pages, layouts, or profiles.
 
 ## For coding agents 🤖
 

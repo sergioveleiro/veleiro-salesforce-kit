@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Veleiro</label>
+    <description>Veleiro delivery insights inside your CRM — dashboard, Velly AI, and field mapping.</description>
+    <navType>Standard</navType>
+    <uiType>Lightning</uiType>
+    <formFactors>Large</formFactors>
+    <brand>
+        <headerColor>#040B25</headerColor>
+        <shouldOverrideOrgTheme>true</shouldOverrideOrgTheme>
+    </brand>
+    <tabs>Veleiro_Home</tabs>
+    <tabs>Veleiro_Mappings</tabs>
+    <tabs>standard-Account</tabs>
+    <tabs>standard-Opportunity</tabs>
+    <tabs>standard-Contact</tabs>
+</CustomApplication>

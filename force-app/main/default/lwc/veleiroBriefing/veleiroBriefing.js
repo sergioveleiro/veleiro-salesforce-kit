@@ -1,5 +1,5 @@
 import { LightningElement } from 'lwc';
-import VELEIRO_MASCOT from '@salesforce/resourceUrl/VeleiroMascot';
+import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
 import getBriefing from '@salesforce/apex/VeleiroInsightService.getBriefing';
 
 const COLUMNS = [

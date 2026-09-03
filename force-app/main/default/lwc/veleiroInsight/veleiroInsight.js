@@ -1,5 +1,5 @@
 import { LightningElement, api } from 'lwc';
-import VELEIRO_MASCOT from '@salesforce/resourceUrl/VeleiroMascot';
+import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
 import getInsightForAccount from '@salesforce/apex/VeleiroInsightService.getInsightForAccount';
 
 export default class VeleiroInsight extends LightningElement {

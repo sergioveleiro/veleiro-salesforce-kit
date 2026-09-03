@@ -1,6 +1,6 @@
 import { LightningElement } from 'lwc';
-import VELEIRO_LOGO from '@salesforce/resourceUrl/VeleiroLogo';
-import VELEIRO_MASCOT from '@salesforce/resourceUrl/VeleiroMascot';
+import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
+import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
 import getOverview from '@salesforce/apex/VeleiroDashboardController.getOverview';
 
 export default class VeleiroDashboard extends LightningElement {

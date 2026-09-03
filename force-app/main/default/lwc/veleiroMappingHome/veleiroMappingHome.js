@@ -1,7 +1,7 @@
 import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import VELEIRO_LOGO from '@salesforce/resourceUrl/VeleiroLogo';
-import VELEIRO_MASCOT from '@salesforce/resourceUrl/VeleiroMascot';
+import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
+import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
 import getObjects from '@salesforce/apex/VeleiroMappingController.getObjects';
 import getFields from '@salesforce/apex/VeleiroMappingController.getFields';
 import getMappingsFor from '@salesforce/apex/VeleiroMappingController.getMappingsFor';
