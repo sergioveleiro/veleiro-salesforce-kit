@@ -10,7 +10,7 @@
  */
 
 String API_TOKEN   = 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN';   // e.g. vlr_...
-String BASE_URL     = 'https://app.beta.veleiro.dev/api/v1';    // API base, NO trailing slash
+String BASE_URL     = 'callout:Veleiro_API/api/v1';    // usa el Named Credential Veleiro_API (allowlist); NO la URL cruda
 String APP_BASE_URL = 'https://app.beta.veleiro.dev';           // human portal base for links
 
 if (API_TOKEN == 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN') {

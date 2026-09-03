@@ -2,7 +2,7 @@
 
 What the integration relies on. All of this is enforced by `VeleiroApiClient`; read it there before changing behavior.
 
-- **Base / auth.** `Base_Url__c` (e.g. `https://app.beta.veleiro.dev/api/v1`) + `Authorization: Bearer <token>`. Server-to-server only.
+- **Base / auth.** `Base_Url__c` = `callout:Veleiro_API/api/v1` — routes through the `Veleiro_API` Named Credential, which holds the host `https://app.beta.veleiro.dev` (the allowlist). Do NOT use a raw URL. Auth `Authorization: Bearer <token>`, server-to-server only.
 - **Envelope.** Payload under `{"data": …}`. Lists add `has_more` (bool) and `next_cursor` (string).
 - **Pagination.** Cursor-based, no offset. Follow `next_cursor` while `has_more`. Cursors expire (~24h). `VeleiroApiClient.listAll` handles it.
 - **No trailing slash.** Paths must not end in `/` (a trailing slash 301-redirects and drops the body).

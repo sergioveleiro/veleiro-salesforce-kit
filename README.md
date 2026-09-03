@@ -82,7 +82,7 @@ All config is **data** in the `Veleiro_Config__c` hierarchy custom setting (org 
 | Field | Purpose | Example |
 |---|---|---|
 | `Api_Token__c` | Your Veleiro API token (Bearer). **Never commit this.** | `vlr_…` |
-| `Base_Url__c` | API base (no trailing slash) | `https://app.beta.veleiro.dev/api/v1` |
+| `Base_Url__c` | API base via the Named Credential (not a raw URL) | `callout:Veleiro_API/api/v1` |
 | `App_Base_Url__c` | Human portal base for "Open in Veleiro" links | `https://app.beta.veleiro.dev` |
 
 The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out without a Remote Site Setting.
