@@ -11,7 +11,7 @@
 
 String API_TOKEN   = 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN';   // e.g. vlr_...
 String BASE_URL     = 'callout:Veleiro_API/api/v1';    // usa el Named Credential Veleiro_API (allowlist); NO la URL cruda
-String APP_BASE_URL = 'https://app.beta.veleiro.dev';           // human portal base for links
+String APP_BASE_URL = 'https://app.beta.veleiro.dev';  // BETA. Para produccion usa: https://app.veleiro.ai (y cambia el endpoint del Named Credential Veleiro_API)
 
 if (API_TOKEN == 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN') {
     throw new CalloutException('Edit configure.apex and set your API_TOKEN before running.');

@@ -23,6 +23,9 @@ The custom setting **structure** deploys with the package. The **only mandatory 
 
 To point at Veleiro production later, set `Base_Url__c` / `App_Base_Url__c` to the prod URLs (otherwise they default to beta).
 
+## 2b. Beta vs Production
+The kit defaults to Veleiro **beta**. For a **production** partner, change the Named Credential `Veleiro_API` endpoint and `App_Base_Url__c` from `https://app.beta.veleiro.dev` to `https://app.veleiro.ai`. Nothing else changes. See the README "Beta vs Production" table.
+
 ## 3. Seed the default field mappings
 ```bash
 sf apex run -o <your-org> -f scripts/apex/seedMappings.apex

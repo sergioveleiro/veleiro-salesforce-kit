@@ -87,6 +87,17 @@ All config is **data** in the `Veleiro_Config__c` hierarchy custom setting (org 
 
 The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out without a Remote Site Setting.
 
+### Beta vs Production
+
+The repo defaults to Veleiro **beta** (for testing). To point a partner org at **production**, change just two values in Setup — no code change, no second Named Credential:
+
+| | Beta (default) | Production |
+|---|---|---|
+| Named Credential `Veleiro_API` → endpoint | `https://app.beta.veleiro.dev` | `https://app.veleiro.ai` |
+| `App_Base_Url__c` (Veleiro Config) | `https://app.beta.veleiro.dev` | `https://app.veleiro.ai` |
+
+Everything else is identical: `Base_Url__c` stays `callout:Veleiro_API/api/v1` (it routes through whatever host the Named Credential points at), the token is per-partner data, and all code is unchanged. Same contract, same paths — only the host differs.
+
 ## Component reference
 
 - **Apex** — `VeleiroApiClient` (HTTP + contract), `VeleiroSyncService` (Account→client, Opp→project, `@InvocableMethod` for flows), `VeleiroSync` (pull), `VeleiroInsightService` (Velly), `VeleiroDashboardController`, `VeleiroMappingController`, `VeleiroSeed`. Each has a matching `*Test`.
