@@ -23,7 +23,8 @@ public with sharing class VeleiroMappingController {
     // ---- lectura para el UI ----
 
     // Todos los mapeos activos (para el resumen), agrupables por objeto+entidad.
-    @AuraEnabled(cacheable=true)
+    // NO cacheable: debe leer fresco tras cada Save (si no, la UI muestra data vieja).
+    @AuraEnabled
     public static List<Veleiro_Field_Mapping__c> getMappings() {
         return [
             SELECT Name, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c,
@@ -34,8 +35,8 @@ public with sharing class VeleiroMappingController {
         ];
     }
 
-    // Mapeos guardados para un par (objeto, entidad).
-    @AuraEnabled(cacheable=true)
+    // Mapeos guardados para un par (objeto, entidad). NO cacheable (lectura fresca tras Save).
+    @AuraEnabled
     public static List<Veleiro_Field_Mapping__c> getMappingsFor(String sobjectName, String entity) {
         return [
             SELECT Id, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c, Target_Type__c
