@@ -5,6 +5,6 @@
     <type>Text</type>
     <length>255</length>
     <required>false</required>
-    <description>Base URL humana del portal de Veleiro para los hipervinculos (ej. https://app.beta.veleiro.dev). Si se deja vacio, el codigo usa el default de beta. Cambiar a la URL de produccion de Veleiro cuando aplique.</description>
-    <inlineHelpText>URL del portal de Veleiro para los links "Open in Veleiro" (ej. https://app.beta.veleiro.dev).</inlineHelpText>
+    <description>Your Veleiro portal address, used for the Open in Veleiro hyperlinks (for example https://app.veleiro.ai). Set it to the same Veleiro environment your Named Credential points to. If blank, the code uses a default.</description>
+    <inlineHelpText>Your Veleiro portal address for the Open in Veleiro links, e.g. https://app.veleiro.ai. Use the same environment your Named Credential points to.</inlineHelpText>
 </CustomField>
