@@ -11,6 +11,28 @@
             <img src={mascotUrl} class="hero-mascot" alt="Velly" />
         </div>
 
+        <!-- 0) Conexion + estado en vivo -->
+        <div class="veleiro-card">
+            <div class={statusClass}>
+                <span class="veleiro-status-dot">{statusDot}</span>
+                <div class="veleiro-status-text">
+                    <span class="veleiro-status-label">{statusLabel}</span>
+                    <span class="veleiro-status-sub">{statusMessage}</span>
+                    <template if:true={nextRunText}>
+                        <span class="veleiro-status-sub">🕒&nbsp;{nextRunText}</span>
+                    </template>
+                </div>
+                <lightning-button-icon icon-name="utility:refresh" alternative-text="Re-check"
+                    title="Re-check connection" onclick={loadStatus} variant="border-filled"></lightning-button-icon>
+            </div>
+            <div class="veleiro-conn-row">
+                <lightning-input type="password" variant="label-hidden" placeholder={tokenPlaceholder}
+                    value={tokenInput} onchange={handleTokenChange} class="veleiro-conn-input"></lightning-input>
+                <lightning-button variant="brand" label={saveTokenLabel} onclick={handleSaveToken}
+                    disabled={checking} class="veleiro-brand-btn"></lightning-button>
+            </div>
+        </div>
+
         <!-- 1) Configuracion de la integracion (definir PRIMERO) -->
         <div class="veleiro-card">
             <div class="veleiro-section-head">1 · How the integration works</div>

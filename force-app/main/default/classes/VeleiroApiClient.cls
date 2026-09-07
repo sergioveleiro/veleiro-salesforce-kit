@@ -42,6 +42,12 @@ public with sharing class VeleiroApiClient {
         return found.isEmpty() ? c : found[0];
     }
 
+    // TRUE si hay un token configurado (en cualquier nivel). No expone el token.
+    public static Boolean hasToken() {
+        Veleiro_Config__c c = resolveConfig();
+        return c != null && String.isNotBlank(c.Api_Token__c);
+    }
+
     // Base de la API: usa la configurada si es valida; si viene vacia o malformada, cae al default.
     private static String baseUrl(Veleiro_Config__c c) {
         String u = (c != null) ? c.Base_Url__c : null;

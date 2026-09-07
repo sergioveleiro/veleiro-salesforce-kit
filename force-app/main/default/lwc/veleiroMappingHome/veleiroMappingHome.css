@@ -203,3 +203,23 @@
     color: var(--veleiro-muted);
 }
 .veleiro-empty-map p { margin-bottom: 12px; font-size: 0.9rem; }
+
+/* Conexion + estado */
+.veleiro-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--veleiro-line);
+}
+.veleiro-status-ok       { background: #eef8f1; border-color: #b6e0c4; }
+.veleiro-status-bad      { background: #fdecea; border-color: #f5c2bd; }
+.veleiro-status-checking { background: #f2f6fa; }
+.veleiro-status-dot { font-size: 1rem; flex: none; }
+.veleiro-status-text { display: flex; flex-direction: column; flex: 1; gap: 1px; }
+.veleiro-status-label { color: var(--veleiro-navy); font-weight: 700; font-size: 0.92rem; }
+.veleiro-status-sub { color: var(--veleiro-muted); font-size: 0.76rem; }
+.veleiro-conn-row { display: flex; gap: 10px; align-items: center; }
+.veleiro-conn-input { flex: 1; }

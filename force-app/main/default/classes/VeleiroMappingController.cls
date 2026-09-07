@@ -128,6 +128,54 @@ public with sharing class VeleiroMappingController {
         VeleiroSyncConfig.save(direction, winner, frequency);
     }
 
+    // ---- conexion: guardar token + verificar estado (para el panel) ----
+
+    // Guarda el token del cliente (a nivel Org Default). Lo pega el propio cliente en el panel.
+    @AuraEnabled
+    public static void saveToken(String token) {
+        if (String.isBlank(token)) return;
+        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        if (c == null || c.Id == null) {
+            c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
+        }
+        c.Api_Token__c = token.trim();
+        upsert c;
+    }
+
+    // Estado en vivo: token puesto? conectado (callout real)? frecuencia + proximo run.
+    @AuraEnabled
+    public static Map<String, String> getStatus() {
+        Map<String, String> s = new Map<String, String>();
+        Boolean tokenSet = VeleiroApiClient.hasToken();
+        s.put('tokenSet', String.valueOf(tokenSet));
+
+        if (tokenSet) {
+            try {
+                VeleiroApiClient.doGet('/clients', new Map<String, String>{ 'limit' => '1' });
+                s.put('connected', 'true');
+                s.put('message', 'Connected to Veleiro');
+            } catch (Exception e) {
+                s.put('connected', 'false');
+                s.put('message', e.getMessage());
+            }
+        } else {
+            s.put('connected', 'false');
+            s.put('message', 'No API token yet — paste it below to connect.');
+        }
+
+        s.put('frequency', VeleiroSyncConfig.frequency());
+        String nextRun = '';
+        for (CronTrigger ct : [
+            SELECT NextFireTime FROM CronTrigger
+            WHERE CronJobDetail.Name = :VeleiroSyncConfig.JOB_NAME AND NextFireTime != null
+            ORDER BY NextFireTime ASC LIMIT 1
+        ]) {
+            if (ct.NextFireTime != null) nextRun = ct.NextFireTime.format();
+        }
+        s.put('nextRun', nextRun);
+        return s;
+    }
+
     public class OptionComparator implements Comparator<Option> {
         public Integer compare(Option a, Option b) {
             return a.label.toLowerCase().compareTo(b.label.toLowerCase());

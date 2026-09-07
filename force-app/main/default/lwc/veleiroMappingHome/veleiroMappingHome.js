@@ -10,6 +10,8 @@ import getMappings from '@salesforce/apex/VeleiroMappingController.getMappings';
 import saveMappings from '@salesforce/apex/VeleiroMappingController.saveMappings';
 import getSyncConfig from '@salesforce/apex/VeleiroMappingController.getSyncConfig';
 import saveSyncConfig from '@salesforce/apex/VeleiroMappingController.saveSyncConfig';
+import getStatus from '@salesforce/apex/VeleiroMappingController.getStatus';
+import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
 
 const ENTITY_OPTIONS = [
     { label: 'Client', value: 'client' },
@@ -66,10 +68,78 @@ export default class VeleiroMappingHome extends LightningElement {
     syncFrequency = 'off';
     savingConfig = false;
 
+    // ---- connection status ----
+    connected = false;
+    tokenSet = false;
+    statusMessage = 'Checking connection…';
+    nextRun = '';
+    tokenInput = '';
+    checking = true;
+
     connectedCallback() {
         getObjects().then((r) => { this.objectOptions = r; }).catch(() => {});
         this.loadSummary(true);
         this.loadConfig();
+        this.loadStatus();
+    }
+
+    // ---- connection ----
+    loadStatus() {
+        this.checking = true;
+        return getStatus()
+            .then((s) => {
+                this.tokenSet = s.tokenSet === 'true';
+                this.connected = s.connected === 'true';
+                this.statusMessage = s.message || '';
+                this.nextRun = s.nextRun || '';
+            })
+            .catch(() => { this.connected = false; this.statusMessage = 'Could not check connection.'; })
+            .finally(() => { this.checking = false; });
+    }
+
+    handleTokenChange(event) { this.tokenInput = event.detail.value; }
+
+    handleSaveToken() {
+        this.checking = true;
+        const token = (this.tokenInput || '').trim();
+        const step = token ? saveToken({ token }) : Promise.resolve();
+        step
+            .then(() => {
+                this.tokenInput = '';
+                return this.loadStatus();
+            })
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: this.connected ? 'Connected to Veleiro' : 'Not connected',
+                    message: this.statusMessage,
+                    variant: this.connected ? 'success' : 'warning'
+                }));
+            })
+            .catch(() => { this.checking = false; });
+    }
+
+    get statusClass() {
+        if (this.checking) return 'veleiro-status veleiro-status-checking';
+        return this.connected ? 'veleiro-status veleiro-status-ok' : 'veleiro-status veleiro-status-bad';
+    }
+    get statusLabel() {
+        if (this.checking) return 'Checking connection…';
+        return this.connected ? 'Connected to Veleiro' : 'Not connected';
+    }
+    get statusDot() {
+        if (this.checking) return '⚪';
+        return this.connected ? '🟢' : '🔴';
+    }
+    get nextRunText() {
+        if (!this.connected) return '';
+        if (this.syncFrequency === 'off' || !this.nextRun) return 'Scheduled pull is off.';
+        return 'Next pull from Veleiro: ' + this.nextRun;
+    }
+    get tokenPlaceholder() {
+        return this.tokenSet ? 'Paste a new token to replace the current one' : 'Paste your Veleiro API token (starts with vlr_)';
+    }
+    get saveTokenLabel() {
+        return this.tokenSet ? 'Update & re-test' : 'Save & test connection';
     }
 
     // ---- vista ----
