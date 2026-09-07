@@ -30,11 +30,18 @@ public class VeleiroApiMock implements HttpCalloutMock {
     public Boolean failOnceWith409 = false;
     private Boolean already409 = false;
 
+    // Captura del ultimo body enviado (para aseverar el payload en los tests).
+    public String lastPostBody;
+    public String lastPatchBody;
+
     public HttpResponse respond(HttpRequest req) {
         HttpResponse res = new HttpResponse();
         res.setHeader('Content-Type', 'application/json');
         String url = req.getEndpoint();
         String m = req.getMethod();
+
+        if (m == 'POST') lastPostBody = req.getBody();
+        else if (m == 'PATCH') lastPatchBody = req.getBody();
 
         if (failOnceWith409 && m == 'PATCH' && !already409) {
             already409 = true;

@@ -36,8 +36,15 @@ Defined in `VeleiroSeed.defaultsFor(object, entity)` and served to the UI via `V
 - `saveMappings(object, entity, rows, deletedIds)` — upsert the pair's rows and delete removed ones.
 - `getMappings()` — all active mappings for the summary.
 
-## Making the write path fully mapping-driven
+## The write path is mapping-driven
 
-Today `VeleiroSyncService` writes a fixed set of `additional_fields` for Account/Opportunity. To honor arbitrary mappings, iterate the active `Veleiro_Field_Mapping__c` rows for the object+entity and build the payload from them (Standard → top-level key, Additional Field → into `additional_fields`). The mapping data model is ready for this; it's the natural next extension.
+`VeleiroSyncService` builds the outbound payload from the active `Veleiro_Field_Mapping__c` rows for the object+entity (`buildPayload`): **Standard** targets become top-level Veleiro keys (e.g. `name`), **Additional Field** targets go into `additional_fields`. It reads the mapped SF fields with a dynamic SOQL, so any field you configure in the panel is what gets pushed — nothing is hardcoded.
+
+Two rules on top of the mappings:
+
+- **System linkage always ships.** `sf_account_id` (Account→client) and `sf_opportunity_id` (Opportunity→project) are injected on every push regardless of the mapping — they are how Veleiro back-references the Salesforce record. You never need to map them by hand.
+- **`name` is guaranteed.** Veleiro requires it, so if the partner hasn't mapped anything to `name`, the record's `Name` is used as a fallback.
+
+If a pair has **no configured mappings**, the write falls back to `VeleiroSeed.defaultsFor(object, entity)` so the integration is never a no-op for an unconfigured partner.
 
 > Remember the `additional_fields` rule: PATCH replaces the whole object, so merge — never blind-overwrite (`patchClientWithMerge`).

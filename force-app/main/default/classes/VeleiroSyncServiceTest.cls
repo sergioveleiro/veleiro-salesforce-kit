@@ -131,6 +131,68 @@ private class VeleiroSyncServiceTest {
         System.assertEquals('planning', live.status, 'trae el status en vivo');
     }
 
+    private static Veleiro_Field_Mapping__c mapping(String obj, String entity, String sfField, String target, String type) {
+        return new Veleiro_Field_Mapping__c(
+            Name = (obj + ' ' + sfField).left(80),
+            SObject__c = obj, Veleiro_Entity__c = entity,
+            SF_Field__c = sfField, Veleiro_Target__c = target,
+            Target_Type__c = type, Is_Standard__c = false, Active__c = true
+        );
+    }
+
+    @isTest
+    static void pushHonorsConfiguredMappingOnly() {
+        // El partner mapea SOLO Name -> name. No mapea Website.
+        insert mapping('Account', 'client', 'Name', 'name', 'Standard');
+        Account a = newAccount(null); // tiene Website, pero NO esta mapeado
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncAccount(a.Id);
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+        Map<String, Object> af = (Map<String, Object>) body.get('additional_fields');
+        System.assertEquals('Acme', body.get('name'), 'name mapeado va top-level');
+        System.assertEquals(a.Id, af.get('sf_account_id'), 'la llave de sistema siempre va');
+        System.assert(!af.containsKey('sf_website'), 'Website NO fue mapeado -> no se empuja');
+    }
+
+    @isTest
+    static void pushSendsMappedAdditionalField() {
+        // El partner mapea un campo custom a un additional field arbitrario.
+        insert mapping('Account', 'client', 'Website', 'homepage', 'Additional Field');
+        Account a = newAccount(null);
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncAccount(a.Id);
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+        Map<String, Object> af = (Map<String, Object>) body.get('additional_fields');
+        System.assertEquals('https://acme.com', af.get('homepage'), 'el target configurado recibe el valor del campo mapeado');
+    }
+
+    @isTest
+    static void pushFallsBackToDefaultsWhenNoMappings() {
+        // Sin mapeos configurados -> usa el template default (Name, sf_account_id, sf_website).
+        Account a = newAccount(null);
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncAccount(a.Id);
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+        Map<String, Object> af = (Map<String, Object>) body.get('additional_fields');
+        System.assertEquals('Acme', body.get('name'));
+        System.assertEquals('https://acme.com', af.get('sf_website'), 'el default incluye Website');
+    }
+
     @isTest
     static void invocableCreatesProject() {
         Account a = newAccount('org_test');

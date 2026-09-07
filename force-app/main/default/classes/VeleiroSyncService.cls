@@ -2,12 +2,67 @@
  * Sincronizacion Salesforce -> Veleiro (write). Manual, desde el boton "Sync with Veleiro".
  * Account -> client de Veleiro. Crea si es nuevo; si ya existe, actualiza campos.
  * additional_fields se maneja read-modify-write (el PATCH lo reemplaza entero).
+ *
+ * El payload que se empuja lo DEFINEN los mapeos (Veleiro_Field_Mapping__c) que el
+ * partner configura en el panel de Veleiro Mappings. Si no hay mapeos para el par
+ * (objeto, entidad), se cae al template default (VeleiroSeed) para no quedar en no-op.
+ * La llave de correlacion de sistema (sf_account_id / sf_opportunity_id) SIEMPRE se
+ * envia, independientemente del mapeo, porque es como Veleiro referencia el registro.
  */
 public with sharing class VeleiroSyncService {
 
     // Base humana de la app Veleiro (para el hipervinculo). Configurable a futuro.
     // Base humana del portal de Veleiro (hipervinculos). Config: Veleiro_Config__c.App_Base_Url__c (default beta).
     private static String appBase() { return VeleiroApiClient.appBaseUrl(); }
+
+    // ===== Mapeo -> payload =====
+
+    // Payload derivado de los mapeos: campos top-level (Standard) vs additional_fields.
+    private class MappedPayload {
+        Map<String, Object> topLevel = new Map<String, Object>();
+        Map<String, Object> additional = new Map<String, Object>();
+        SObject record;
+    }
+
+    // Mapeos activos del par; si el partner no configuro ninguno, cae al template default.
+    private static List<Veleiro_Field_Mapping__c> mappingsFor(String sobjectName, String entity) {
+        List<Veleiro_Field_Mapping__c> maps = [
+            SELECT SF_Field__c, Veleiro_Target__c, Target_Type__c
+            FROM Veleiro_Field_Mapping__c
+            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
+        ];
+        if (maps.isEmpty()) maps = VeleiroSeed.defaultsFor(sobjectName, entity);
+        return maps;
+    }
+
+    // Consulta dinamica del registro con los campos mapeados (+ extra) y arma el payload.
+    private static MappedPayload buildPayload(String sobjectName, String entity, Id recordId, Set<String> extraFields) {
+        List<Veleiro_Field_Mapping__c> maps = mappingsFor(sobjectName, entity);
+
+        Set<String> fields = new Set<String>{ 'Id' };
+        if (extraFields != null) fields.addAll(extraFields);
+        for (Veleiro_Field_Mapping__c m : maps) {
+            if (String.isNotBlank(m.SF_Field__c)) fields.add(m.SF_Field__c);
+        }
+
+        String soql = 'SELECT ' + String.join(new List<String>(fields), ', ') +
+                      ' FROM ' + String.escapeSingleQuotes(sobjectName) + ' WHERE Id = :recordId LIMIT 1';
+        SObject rec = Database.query(soql);
+
+        MappedPayload p = new MappedPayload();
+        p.record = rec;
+        for (Veleiro_Field_Mapping__c m : maps) {
+            Object val = rec.get(m.SF_Field__c);
+            if (val == null) continue; // no pisamos con null (read-modify-write preserva lo existente)
+            if (val instanceof Date) val = String.valueOf((Date) val);
+            else if (val instanceof Datetime) val = ((Datetime) val).formatGMT('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
+            if (m.Target_Type__c == 'Standard') p.topLevel.put(m.Veleiro_Target__c, val);
+            else p.additional.put(m.Veleiro_Target__c, val);
+        }
+        return p;
+    }
+
+    // ===== Account -> Client =====
 
     // Resultado que consume el LWC / boton.
     public class ClientResult {
@@ -43,32 +98,30 @@ public with sharing class VeleiroSyncService {
         if (!VeleiroSyncConfig.pushEnabled()) {
             throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
         }
-        Account a = [
-            SELECT Id, Name, Website, Veleiro_Client_Id__c, Veleiro_Version__c
-            FROM Account WHERE Id = :accountId LIMIT 1
-        ];
 
-        // Campos "gestionados" que empujamos a additional_fields (Fase 1: linkage basico).
-        Map<String, Object> managed = new Map<String, Object>{
-            'sf_account_id' => a.Id,
-            'sf_account_name' => a.Name
-        };
-        if (String.isNotBlank(a.Website)) managed.put('sf_website', a.Website);
+        // El payload lo definen los mapeos configurados (Account -> client).
+        MappedPayload mp = buildPayload('Account', 'client', accountId,
+            new Set<String>{ 'Name', 'Veleiro_Client_Id__c', 'Veleiro_Version__c' });
+        Account a = (Account) mp.record;
+
+        // Llave de correlacion de sistema: siempre va (no depende del mapeo).
+        mp.additional.put('sf_account_id', a.Id);
+        // 'name' es obligatorio en Veleiro: si el partner no lo mapeo, cae al Name del registro.
+        if (!mp.topLevel.containsKey('name')) mp.topLevel.put('name', a.Name);
 
         Map<String, Object> result;
         Boolean created = false;
 
         if (String.isBlank(a.Veleiro_Client_Id__c)) {
             // CREATE
-            Map<String, Object> payload = new Map<String, Object>{
-                'name' => a.Name,
-                'additional_fields' => managed
-            };
+            Map<String, Object> payload = new Map<String, Object>();
+            payload.putAll(mp.topLevel);
+            payload.put('additional_fields', mp.additional);
             result = VeleiroApiClient.doPost('/clients', payload);
             created = true;
         } else {
             // UPDATE: read-modify-write de additional_fields + If-Match version.
-            result = patchClientWithMerge(a.Veleiro_Client_Id__c, a.Name, managed,
+            result = patchClientWithMerge(a.Veleiro_Client_Id__c, mp.topLevel, mp.additional,
                         a.Veleiro_Version__c != null ? Integer.valueOf(a.Veleiro_Version__c) : null);
         }
 
@@ -88,9 +141,9 @@ public with sharing class VeleiroSyncService {
         return r;
     }
 
-    // GET actual -> merge de las llaves gestionadas -> PATCH del additional_fields completo.
+    // GET actual -> merge de las llaves gestionadas -> PATCH del payload completo.
     // Reintenta una vez si hay 409 version_conflict usando detail.current_version.
-    private static Map<String, Object> patchClientWithMerge(String clientId, String name, Map<String, Object> managed, Integer knownVersion) {
+    private static Map<String, Object> patchClientWithMerge(String clientId, Map<String, Object> topLevel, Map<String, Object> managed, Integer knownVersion) {
         Map<String, Object> current = VeleiroApiClient.doGet('/clients/' + clientId, null);
         Map<String, Object> data = (Map<String, Object>) current.get('data');
         Integer version = (knownVersion != null) ? knownVersion
@@ -101,10 +154,9 @@ public with sharing class VeleiroSyncService {
         if (existingAf instanceof Map<String, Object>) af.putAll((Map<String, Object>) existingAf);
         af.putAll(managed); // sobreescribe solo nuestras llaves gestionadas, preserva el resto
 
-        Map<String, Object> payload = new Map<String, Object>{
-            'name' => name,
-            'additional_fields' => af
-        };
+        Map<String, Object> payload = new Map<String, Object>();
+        payload.putAll(topLevel);
+        payload.put('additional_fields', af);
         try {
             return VeleiroApiClient.doPatch('/clients/' + clientId, payload, version);
         } catch (VeleiroApiClient.VeleiroApiException e) {
@@ -160,45 +212,52 @@ public with sharing class VeleiroSyncService {
         if (!VeleiroSyncConfig.pushEnabled()) {
             throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
         }
-        Opportunity o = [
-            SELECT Id, Name, Amount, CloseDate, AccountId, Veleiro_Project_Id__c, Veleiro_Project_Version__c
-            FROM Opportunity WHERE Id = :opportunityId LIMIT 1
-        ];
+
+        // El payload del project lo definen los mapeos (Opportunity -> project).
+        MappedPayload mp = buildPayload('Opportunity', 'project', opportunityId,
+            new Set<String>{ 'Name', 'AccountId', 'Veleiro_Project_Id__c', 'Veleiro_Project_Version__c' });
+        Opportunity o = (Opportunity) mp.record;
         if (o.AccountId == null) {
             throw new VeleiroApiClient.VeleiroApiException('The Opportunity has no Account.');
         }
-        Account a = [
-            SELECT Id, Name, Website, Veleiro_Client_Id__c, Veleiro_Version__c
-            FROM Account WHERE Id = :o.AccountId LIMIT 1
-        ];
+
+        // Llave de correlacion de sistema + name obligatorio.
+        mp.additional.put('sf_opportunity_id', o.Id);
+        if (!mp.topLevel.containsKey('name')) mp.topLevel.put('name', o.Name);
 
         // Asegurar el client (crearlo si el Account aun no esta sincronizado) - callout
+        Account a = [
+            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c
+            FROM Account WHERE Id = :o.AccountId LIMIT 1
+        ];
         String clientId = a.Veleiro_Client_Id__c;
         Boolean accountNeedsUpdate = false;
         if (String.isBlank(clientId)) {
-            Map<String, Object> af = new Map<String, Object>{ 'sf_account_id' => a.Id, 'sf_account_name' => a.Name };
-            if (String.isNotBlank(a.Website)) af.put('sf_website', a.Website);
-            Map<String, Object> cRes = VeleiroApiClient.doPost('/clients',
-                new Map<String, Object>{ 'name' => a.Name, 'additional_fields' => af });
+            // Crea el client usando SUS propios mapeos (Account -> client).
+            MappedPayload amp = buildPayload('Account', 'client', a.Id, new Set<String>{ 'Name' });
+            amp.additional.put('sf_account_id', a.Id);
+            if (!amp.topLevel.containsKey('name')) amp.topLevel.put('name', a.Name);
+            Map<String, Object> cpayload = new Map<String, Object>();
+            cpayload.putAll(amp.topLevel);
+            cpayload.put('additional_fields', amp.additional);
+            Map<String, Object> cRes = VeleiroApiClient.doPost('/clients', cpayload);
             clientId = (String) cRes.get('id');
             a.Veleiro_Client_Id__c = clientId;
             if (cRes.get('version') != null) a.Veleiro_Version__c = Integer.valueOf(String.valueOf(cRes.get('version')));
             accountNeedsUpdate = true;
         }
 
-        // additional_fields del project
-        Map<String, Object> paf = new Map<String, Object>{ 'sf_opportunity_id' => o.Id };
-        if (o.Amount != null) paf.put('sf_amount', o.Amount);
-        if (o.CloseDate != null) paf.put('sf_close_date', String.valueOf(o.CloseDate));
-
         Map<String, Object> result;
         Boolean created = false;
         if (String.isBlank(o.Veleiro_Project_Id__c)) {
-            result = VeleiroApiClient.doPost('/projects',
-                new Map<String, Object>{ 'name' => o.Name, 'client_id' => clientId, 'additional_fields' => paf });
+            Map<String, Object> payload = new Map<String, Object>();
+            payload.putAll(mp.topLevel);
+            payload.put('client_id', clientId);
+            payload.put('additional_fields', mp.additional);
+            result = VeleiroApiClient.doPost('/projects', payload);
             created = true;
         } else {
-            result = patchProjectWithMerge(o.Veleiro_Project_Id__c, o.Name, paf,
+            result = patchProjectWithMerge(o.Veleiro_Project_Id__c, mp.topLevel, mp.additional,
                         o.Veleiro_Project_Version__c != null ? Integer.valueOf(o.Veleiro_Project_Version__c) : null);
         }
 
@@ -235,7 +294,7 @@ public with sharing class VeleiroSyncService {
         return r;
     }
 
-    private static Map<String, Object> patchProjectWithMerge(String projectId, String name, Map<String, Object> managed, Integer knownVersion) {
+    private static Map<String, Object> patchProjectWithMerge(String projectId, Map<String, Object> topLevel, Map<String, Object> managed, Integer knownVersion) {
         Map<String, Object> current = VeleiroApiClient.doGet('/projects/' + projectId, null);
         Map<String, Object> data = (Map<String, Object>) current.get('data');
         Integer version = (knownVersion != null) ? knownVersion
@@ -244,7 +303,9 @@ public with sharing class VeleiroSyncService {
         Object existingAf = data.get('additional_fields');
         if (existingAf instanceof Map<String, Object>) af.putAll((Map<String, Object>) existingAf);
         af.putAll(managed);
-        Map<String, Object> payload = new Map<String, Object>{ 'name' => name, 'additional_fields' => af };
+        Map<String, Object> payload = new Map<String, Object>();
+        payload.putAll(topLevel);
+        payload.put('additional_fields', af);
         try {
             return VeleiroApiClient.doPatch('/projects/' + projectId, payload, version);
         } catch (VeleiroApiClient.VeleiroApiException e) {
