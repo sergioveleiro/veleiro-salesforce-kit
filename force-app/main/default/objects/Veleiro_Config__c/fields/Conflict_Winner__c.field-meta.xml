@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Conflict_Winner__c</fullName>
+    <label>Conflict Winner</label>
+    <type>Text</type>
+    <length>32</length>
+    <required>false</required>
+    <description>Who wins when both sides changed the same record (version conflict). Values: salesforce | veleiro. Blank defaults to salesforce.</description>
+    <inlineHelpText>salesforce or veleiro. On a version conflict, this side wins. Best set from the Veleiro Mappings panel.</inlineHelpText>
+</CustomField>

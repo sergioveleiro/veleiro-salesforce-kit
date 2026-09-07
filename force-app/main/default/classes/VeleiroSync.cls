@@ -30,4 +30,43 @@ public with sharing class VeleiroSync {
         System.debug('VeleiroSync.syncClients -> ' + toUpsert.size() + ' clients');
         return toUpsert.size();
     }
+
+    /**
+     * PULL Veleiro -> Salesforce para el job programado (direccion bidirectional o veleiro_to_sf).
+     * Solo actualiza un Account cuando Veleiro tiene una VERSION MAS NUEVA que la guardada
+     * en SF -> esto previene ciclos (no re-aplica lo que ya teniamos ni re-dispara un push).
+     * Devuelve cuantos Accounts actualizo.
+     */
+    public static Integer pullUpdates() {
+        if (!VeleiroSyncConfig.pullEnabled()) return 0; // direccion sf_to_veleiro -> no jala
+
+        Map<String, Map<String, Object>> byId = new Map<String, Map<String, Object>>();
+        for (Object o : VeleiroApiClient.listAll('/clients', new Map<String, String>())) {
+            Map<String, Object> c = (Map<String, Object>) o;
+            byId.put((String) c.get('id'), c);
+        }
+
+        List<Account> toUpdate = new List<Account>();
+        for (Account a : [
+            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c, Veleiro_Additional_Fields__c
+            FROM Account WHERE Veleiro_Client_Id__c != null
+        ]) {
+            Map<String, Object> c = byId.get(a.Veleiro_Client_Id__c);
+            if (c == null) continue;
+            Integer vVer = (c.get('version') != null) ? Integer.valueOf(String.valueOf(c.get('version'))) : null;
+            Integer sfVer = (a.Veleiro_Version__c != null) ? Integer.valueOf(a.Veleiro_Version__c) : null;
+
+            // anti-ciclo: solo si Veleiro esta MAS adelantado que lo que ya tenemos
+            if (vVer != null && (sfVer == null || vVer > sfVer)) {
+                a.Name = (String) c.get('name');
+                Object af = c.get('additional_fields');
+                a.Veleiro_Additional_Fields__c = (af != null) ? JSON.serializePretty(af) : null;
+                a.Veleiro_Version__c = vVer;
+                toUpdate.add(a);
+            }
+        }
+        if (!toUpdate.isEmpty()) update toUpdate;
+        System.debug('VeleiroSync.pullUpdates -> ' + toUpdate.size() + ' accounts actualizados');
+        return toUpdate.size();
+    }
 }

@@ -112,3 +112,14 @@ Full manual: `docs/setup.md`.
 - Labels / user-facing messages may be in Spanish; API names and code are English. Follow the file you're editing.
 - One HTTP touchpoint: `VeleiroApiClient`. Don't scatter `HttpRequest`s.
 - Cacheable Apex (`@AuraEnabled(cacheable=true)`) **cannot** do callouts — those methods read local state only; anything that hits Veleiro is non-cacheable and called imperatively from the LWC.
+
+## Sync direction, conflict winner & scheduled pull (bidirectional)
+
+Configured globally in the **Veleiro Mappings** panel (stored in `Veleiro_Config__c`, read by `VeleiroSyncConfig`). This config **defines how the integration behaves** and should be set first.
+
+- **Direction** (`Sync_Direction__c`): `bidirectional` | `sf_to_veleiro` | `veleiro_to_sf`. Gates push (`VeleiroSyncConfig.pushEnabled()`) and pull (`pullEnabled()`). `syncAccount`/`syncOpportunity` refuse to push when direction is `veleiro_to_sf`.
+- **Conflict winner** (`Conflict_Winner__c`): `salesforce` | `veleiro`. On a `409 version_conflict` during a push, Salesforce-wins retries with `current_version` (overwrites); Veleiro-wins re-throws (Veleiro's value stands). This is Nico's concurrency pattern (`If-Match: veleiro_version` → 409 → GET/merge/retry), already in `patchClientWithMerge`/`patchProjectWithMerge`.
+- **Pull frequency** (`Pull_Frequency__c`): `off` | `hourly` | `daily`. There is no Veleiro webhook, so `VeleiroSyncConfig.save()` (re)schedules `VeleiroPullJob` (Schedulable) at the chosen cron. Scheduled Apex can't call out, so it enqueues `VeleiroPullQueueable` (Database.AllowsCallouts) → `VeleiroSync.pullUpdates()`.
+- **Cycle prevention**: `pullUpdates()` only writes an Account when Veleiro's `version` is strictly newer than the stored `Veleiro_Version__c` — so a pull never re-applies what SF already has, and never ping-pongs a push back.
+
+It's a **reference implementation** (per Veleiro's CTO) — partners can tune thresholds, add per-entity direction, etc.

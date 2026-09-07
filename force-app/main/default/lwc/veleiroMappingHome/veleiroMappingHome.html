@@ -11,8 +11,27 @@
             <img src={mascotUrl} class="hero-mascot" alt="Velly" />
         </div>
 
-        <!-- Builder -->
+        <!-- 1) Configuracion de la integracion (definir PRIMERO) -->
         <div class="veleiro-card">
+            <div class="veleiro-section-head">1 · How the integration works</div>
+            <div class="veleiro-pickers-3">
+                <lightning-combobox label="Direction" options={directionOptions}
+                    value={syncDirection} onchange={handleDirectionChange}></lightning-combobox>
+                <lightning-combobox label="On conflict, who wins" options={winnerOptions}
+                    value={syncWinner} onchange={handleWinnerChange}></lightning-combobox>
+                <lightning-combobox label="Pull from Veleiro (schedule)" options={frequencyOptions}
+                    value={syncFrequency} onchange={handleFrequencyChange}></lightning-combobox>
+            </div>
+            <div class="veleiro-actions">
+                <span class="veleiro-config-hint">🧭&nbsp;Set this first — it defines whether Salesforce pushes, pulls, or both, who wins a conflict, and how often we pull from Veleiro (no webhook yet).</span>
+                <lightning-button variant="brand" label="Save configuration" onclick={handleSaveConfig}
+                    disabled={savingConfig} class="veleiro-brand-btn"></lightning-button>
+            </div>
+        </div>
+
+        <!-- 2) Builder de mapeo de campos -->
+        <div class="veleiro-card">
+            <div class="veleiro-section-head">2 · Field mappings</div>
             <div class="veleiro-pickers">
                 <lightning-combobox
                     label="Salesforce object"

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pull_Frequency__c</fullName>
+    <label>Pull Frequency</label>
+    <type>Text</type>
+    <length>16</length>
+    <required>false</required>
+    <description>How often the scheduled job pulls updates from Veleiro (no webhook yet). Values: off | hourly | daily. Blank defaults to off. Set it from the Veleiro Mappings panel.</description>
+    <inlineHelpText>off, hourly, or daily. How often Salesforce pulls fresh data from Veleiro. Best set from the Veleiro Mappings panel.</inlineHelpText>
+</CustomField>

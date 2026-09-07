@@ -144,3 +144,17 @@
     font-family: "SFMono-Regular", Consolas, monospace;
 }
 .veleiro-type { margin-left: auto; color: var(--veleiro-muted); font-size: 0.72rem; }
+
+/* Config de integracion (3 pickers) */
+.veleiro-pickers-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.veleiro-config-hint {
+    color: var(--veleiro-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    max-width: 620px;
+}

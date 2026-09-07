@@ -8,6 +8,8 @@ import getMappingsFor from '@salesforce/apex/VeleiroMappingController.getMapping
 import defaultTemplate from '@salesforce/apex/VeleiroMappingController.defaultTemplate';
 import getMappings from '@salesforce/apex/VeleiroMappingController.getMappings';
 import saveMappings from '@salesforce/apex/VeleiroMappingController.saveMappings';
+import getSyncConfig from '@salesforce/apex/VeleiroMappingController.getSyncConfig';
+import saveSyncConfig from '@salesforce/apex/VeleiroMappingController.saveSyncConfig';
 
 const ENTITY_OPTIONS = [
     { label: 'Client', value: 'client' },
@@ -16,6 +18,20 @@ const ENTITY_OPTIONS = [
 const TYPE_OPTIONS = [
     { label: 'Standard', value: 'Standard' },
     { label: 'Additional Field', value: 'Additional Field' }
+];
+const DIRECTION_OPTIONS = [
+    { label: 'Bidirectional (both ways)', value: 'bidirectional' },
+    { label: 'Salesforce → Veleiro only', value: 'sf_to_veleiro' },
+    { label: 'Veleiro → Salesforce only', value: 'veleiro_to_sf' }
+];
+const WINNER_OPTIONS = [
+    { label: 'Salesforce wins', value: 'salesforce' },
+    { label: 'Veleiro wins', value: 'veleiro' }
+];
+const FREQUENCY_OPTIONS = [
+    { label: 'Off (no scheduled pull)', value: 'off' },
+    { label: 'Every hour', value: 'hourly' },
+    { label: 'Daily', value: 'daily' }
 ];
 
 export default class VeleiroMappingHome extends LightningElement {
@@ -36,9 +52,56 @@ export default class VeleiroMappingHome extends LightningElement {
     @track summary = [];
     _seq = 0;
 
+    // ---- integration config (global) ----
+    directionOptions = DIRECTION_OPTIONS;
+    winnerOptions = WINNER_OPTIONS;
+    frequencyOptions = FREQUENCY_OPTIONS;
+    syncDirection = 'bidirectional';
+    syncWinner = 'salesforce';
+    syncFrequency = 'off';
+    savingConfig = false;
+
     connectedCallback() {
         getObjects().then((r) => { this.objectOptions = r; }).catch(() => {});
         this.loadSummary();
+        this.loadConfig();
+    }
+
+    loadConfig() {
+        getSyncConfig()
+            .then((c) => {
+                if (c) {
+                    this.syncDirection = c.direction || 'bidirectional';
+                    this.syncWinner = c.winner || 'salesforce';
+                    this.syncFrequency = c.frequency || 'off';
+                }
+            })
+            .catch(() => {});
+    }
+
+    handleDirectionChange(event) { this.syncDirection = event.detail.value; }
+    handleWinnerChange(event) { this.syncWinner = event.detail.value; }
+    handleFrequencyChange(event) { this.syncFrequency = event.detail.value; }
+
+    handleSaveConfig() {
+        this.savingConfig = true;
+        saveSyncConfig({
+            direction: this.syncDirection,
+            winner: this.syncWinner,
+            frequency: this.syncFrequency
+        })
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'Integration configured',
+                    message: 'Direction, conflict winner and pull schedule saved.',
+                    variant: 'success'
+                }));
+            })
+            .catch((e) => {
+                const msg = e && e.body && e.body.message ? e.body.message : 'Could not save the integration config';
+                this.dispatchEvent(new ShowToastEvent({ title: 'Save failed', message: msg, variant: 'error' }));
+            })
+            .finally(() => { this.savingConfig = false; });
     }
 
     loadSummary() {

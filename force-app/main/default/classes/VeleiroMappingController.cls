@@ -112,6 +112,22 @@ public with sharing class VeleiroMappingController {
         if (!toUpsert.isEmpty()) upsert toUpsert;
     }
 
+    // ---- configuracion global de la integracion (direccion / quien manda / frecuencia) ----
+
+    @AuraEnabled
+    public static Map<String, String> getSyncConfig() {
+        return new Map<String, String>{
+            'direction' => VeleiroSyncConfig.direction(),
+            'winner'    => VeleiroSyncConfig.winner(),
+            'frequency' => VeleiroSyncConfig.frequency()
+        };
+    }
+
+    @AuraEnabled
+    public static void saveSyncConfig(String direction, String winner, String frequency) {
+        VeleiroSyncConfig.save(direction, winner, frequency);
+    }
+
     public class OptionComparator implements Comparator<Option> {
         public Integer compare(Option a, Option b) {
             return a.label.toLowerCase().compareTo(b.label.toLowerCase());

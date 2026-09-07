@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sync_Direction__c</fullName>
+    <label>Sync Direction</label>
+    <type>Text</type>
+    <length>32</length>
+    <required>false</required>
+    <description>How the integration syncs. Values: bidirectional | sf_to_veleiro | veleiro_to_sf. Blank defaults to bidirectional. Set it from the Veleiro Mappings panel.</description>
+    <inlineHelpText>bidirectional, sf_to_veleiro, or veleiro_to_sf. Controls whether Salesforce pushes, pulls, or both. Best set from the Veleiro Mappings panel.</inlineHelpText>
+</CustomField>

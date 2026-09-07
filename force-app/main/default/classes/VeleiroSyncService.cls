@@ -39,6 +39,10 @@ public with sharing class VeleiroSyncService {
 
     @AuraEnabled
     public static ClientResult syncAccount(Id accountId) {
+        // La direccion configurada define si Salesforce puede empujar a Veleiro.
+        if (!VeleiroSyncConfig.pushEnabled()) {
+            throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
+        }
         Account a = [
             SELECT Id, Name, Website, Veleiro_Client_Id__c, Veleiro_Version__c
             FROM Account WHERE Id = :accountId LIMIT 1
@@ -104,8 +108,9 @@ public with sharing class VeleiroSyncService {
         try {
             return VeleiroApiClient.doPatch('/clients/' + clientId, payload, version);
         } catch (VeleiroApiClient.VeleiroApiException e) {
-            if (e.code == 'version_conflict' && e.currentVersion != null) {
-                // re-leer + reintentar una vez con la version actual
+            if (e.code == 'version_conflict' && e.currentVersion != null && VeleiroSyncConfig.salesforceWins()) {
+                // Salesforce manda -> reintenta pisando con la version actual.
+                // (Si Veleiro manda, no pisamos: dejamos ganar el cambio de Veleiro y relanzamos.)
                 return VeleiroApiClient.doPatch('/clients/' + clientId, payload, e.currentVersion);
             }
             throw e;
@@ -152,6 +157,9 @@ public with sharing class VeleiroSyncService {
 
     @AuraEnabled
     public static ProjectResult syncOpportunity(Id opportunityId) {
+        if (!VeleiroSyncConfig.pushEnabled()) {
+            throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
+        }
         Opportunity o = [
             SELECT Id, Name, Amount, CloseDate, AccountId, Veleiro_Project_Id__c, Veleiro_Project_Version__c
             FROM Opportunity WHERE Id = :opportunityId LIMIT 1
@@ -240,7 +248,8 @@ public with sharing class VeleiroSyncService {
         try {
             return VeleiroApiClient.doPatch('/projects/' + projectId, payload, version);
         } catch (VeleiroApiClient.VeleiroApiException e) {
-            if (e.code == 'version_conflict' && e.currentVersion != null) {
+            if (e.code == 'version_conflict' && e.currentVersion != null && VeleiroSyncConfig.salesforceWins()) {
+                // Salesforce manda -> reintenta pisando; si Veleiro manda, relanza (Veleiro gana).
                 return VeleiroApiClient.doPatch('/projects/' + projectId, payload, e.currentVersion);
             }
             throw e;
