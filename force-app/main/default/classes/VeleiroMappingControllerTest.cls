@@ -63,10 +63,31 @@ private class VeleiroMappingControllerTest {
 
         System.assertEquals(2, saved.size(), 'guarda 2 (ignora la fila vacia)');
 
-        // borra una
+        // Reemplazo por par: reenviar solo r2 deja el par con 1 (r1 se elimina).
         VeleiroMappingController.saveMappings('Case', 'project',
-            new List<VeleiroMappingController.MappingRow>(), new List<Id>{ saved[0].Id });
-        System.assertEquals(1, VeleiroMappingController.getMappingsFor('Case', 'project').size(), 'quedo 1');
+            new List<VeleiroMappingController.MappingRow>{ r2 }, null);
+        List<Veleiro_Field_Mapping__c> after = VeleiroMappingController.getMappingsFor('Case', 'project');
+        System.assertEquals(1, after.size(), 'quedo 1');
+        System.assertEquals('Priority', after[0].SF_Field__c, 'quedo el reenviado, no el omitido');
+    }
+
+    @isTest
+    static void saveIsIdempotentNoDuplicates() {
+        VeleiroMappingController.MappingRow n = new VeleiroMappingController.MappingRow();
+        n.sfField = 'Name'; n.target = 'name';
+        VeleiroMappingController.MappingRow w = new VeleiroMappingController.MappingRow();
+        w.sfField = 'Website'; w.target = 'sf_website';
+
+        Test.startTest();
+        // Guardar el MISMO par tres veces no debe acumular duplicados.
+        for (Integer i = 0; i < 3; i++) {
+            VeleiroMappingController.saveMappings('Account', 'client',
+                new List<VeleiroMappingController.MappingRow>{ n, w }, null);
+        }
+        Test.stopTest();
+
+        System.assertEquals(2, VeleiroMappingController.getMappingsFor('Account', 'client').size(),
+            'reemplazo por par -> siempre 2, sin duplicar');
     }
 
     @isTest

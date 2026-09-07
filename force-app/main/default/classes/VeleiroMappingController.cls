@@ -128,21 +128,26 @@ public with sharing class VeleiroMappingController {
 
     // ---- escritura ----
 
-    // Reemplaza el conjunto de mapeos del par (objeto, entidad).
+    // Reemplaza el conjunto COMPLETO de mapeos del par (objeto, entidad): borra lo que
+    // existe y reinserta lo enviado. Asi el estado guardado == lo que manda la UI, sin
+    // depender de ids/deletedIds del cliente -> nunca duplica ni deja filas huerfanas.
+    // (El `deletedIds` se mantiene por compatibilidad de firma; ya no se usa.)
     @AuraEnabled
     public static void saveMappings(String sobjectName, String entity, List<MappingRow> rows, List<Id> deletedIds) {
-        if (deletedIds != null && !deletedIds.isEmpty()) {
-            delete [SELECT Id FROM Veleiro_Field_Mapping__c WHERE Id IN :deletedIds];
-        }
-        List<Veleiro_Field_Mapping__c> toUpsert = new List<Veleiro_Field_Mapping__c>();
+        delete [
+            SELECT Id FROM Veleiro_Field_Mapping__c
+            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
+        ];
+        List<Veleiro_Field_Mapping__c> toInsert = new List<Veleiro_Field_Mapping__c>();
+        Set<String> seenFields = new Set<String>();
         if (rows != null) {
             for (MappingRow r : rows) {
                 if (String.isBlank(r.sfField) || String.isBlank(r.target)) continue;
                 // Normaliza el target a una llave canonica (homologa nombres) e infiere el tipo.
                 String target = VeleiroTargets.normalize(r.target);
                 if (String.isBlank(target)) continue;
+                if (!seenFields.add(r.sfField)) continue; // un mismo campo SF, una sola vez por par
                 Veleiro_Field_Mapping__c m = new Veleiro_Field_Mapping__c();
-                if (String.isNotBlank(r.id)) m.Id = r.id;
                 m.Name = (sobjectName + ' ' + r.sfField).left(80);
                 m.SObject__c = sobjectName;
                 m.Veleiro_Entity__c = entity;
@@ -151,10 +156,10 @@ public with sharing class VeleiroMappingController {
                 m.Target_Type__c = VeleiroTargets.typeFor(entity, target);
                 m.Is_Standard__c = false;
                 m.Active__c = true;
-                toUpsert.add(m);
+                toInsert.add(m);
             }
         }
-        if (!toUpsert.isEmpty()) upsert toUpsert;
+        if (!toInsert.isEmpty()) insert toInsert;
     }
 
     // ---- configuracion global de la integracion (direccion / quien manda / frecuencia) ----

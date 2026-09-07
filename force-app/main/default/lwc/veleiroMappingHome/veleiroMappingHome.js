@@ -192,13 +192,13 @@ export default class VeleiroMappingHome extends LightningElement {
         return getMappings()
             .then((data) => {
                 const byPair = {};
-                (data || []).forEach((m) => {
+                (data || []).forEach((m, i) => {
                     const key = m.SObject__c + '|' + (m.Veleiro_Entity__c || '');
                     if (!byPair[key]) {
                         byPair[key] = { key, object: m.SObject__c, entity: m.Veleiro_Entity__c || '—', rows: [] };
                     }
                     byPair[key].rows.push({
-                        key: key + '|' + m.SF_Field__c,
+                        key: key + '|' + m.SF_Field__c + '|' + i, // indice: nunca colisiona aunque haya repetidos
                         sfField: m.SF_Field__c,
                         target: m.Veleiro_Target__c,
                         type: m.Target_Type__c
