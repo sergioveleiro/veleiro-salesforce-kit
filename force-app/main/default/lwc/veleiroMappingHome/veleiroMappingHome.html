@@ -48,9 +48,14 @@
                     options={entityOptions}
                     value={selectedEntity}
                     onchange={handleEntityChange}
+                    disabled={entityLocked}
+                    field-level-help="One Veleiro entity per Salesforce object. If the object is already mapped, its entity is fixed here."
                     class="veleiro-picker">
                 </lightning-combobox>
             </div>
+            <template if:true={entityLocked}>
+                <p class="veleiro-locked-hint">🔒&nbsp;{selectedObject} is already mapped to <strong>{selectedEntity}</strong> (one entity per object). Editing that mapping below.</p>
+            </template>
 
             <template if:true={canEdit}>
                 <template if:true={hint}>
@@ -118,11 +123,15 @@
             <div class="veleiro-section-head">Configured mappings</div>
             <template for:each={summary} for:item="g">
                 <div key={g.key} class="veleiro-group">
-                    <div class="veleiro-group-head">
+                    <div class="veleiro-group-head veleiro-group-clickable"
+                        data-object={g.object} data-entity={g.entity}
+                        onclick={editMapping} role="button" tabindex="0">
                         <span class="veleiro-group-name">{g.object}</span>
                         <span class="veleiro-arrow-sm">→</span>
                         <span class="veleiro-badge">{g.entity}</span>
                         <span class="veleiro-group-count">{g.rows.length} field(s)</span>
+                        <lightning-icon icon-name="utility:edit" size="x-small" alternative-text="Edit"
+                            class="veleiro-edit-icon"></lightning-icon>
                     </div>
                     <template for:each={g.rows} for:item="r">
                         <div key={r.key} class="veleiro-sum-row">

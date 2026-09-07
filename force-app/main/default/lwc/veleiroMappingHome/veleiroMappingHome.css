@@ -158,3 +158,26 @@
     line-height: 1.4;
     max-width: 620px;
 }
+
+/* Uno-a-uno + editar */
+.veleiro-locked-hint {
+    color: #04345e;
+    background: #f2f8ff;
+    border: 1px solid var(--veleiro-accent);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+}
+.veleiro-group-clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.12s ease;
+}
+.veleiro-group-clickable:hover {
+    background: #f7fafd;
+}
+.veleiro-edit-icon {
+    margin-left: 8px;
+    --sds-c-icon-color-foreground-default: var(--veleiro-muted);
+}

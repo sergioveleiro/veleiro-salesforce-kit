@@ -44,6 +44,7 @@ export default class VeleiroMappingHome extends LightningElement {
     fieldOptions = [];
     selectedObject;
     selectedEntity;
+    entityLocked = false; // true cuando el objeto ya tiene una entidad mapeada (uno-a-uno)
     @track rows = [];
     deletedIds = [];
     hint;
@@ -140,17 +141,49 @@ export default class VeleiroMappingHome extends LightningElement {
         return this.summary && this.summary.length > 0;
     }
 
+    // Devuelve la entidad ya mapeada para un objeto (uno-a-uno), o null si no existe.
+    existingEntityFor(object) {
+        const g = (this.summary || []).find((s) => s.object === object && s.entity !== '—');
+        return g ? g.entity : null;
+    }
+
     handleObjectChange(event) {
         this.selectedObject = event.detail.value;
         this.fieldOptions = [];
         getFields({ sobjectName: this.selectedObject })
             .then((r) => { this.fieldOptions = r; })
             .catch(() => {});
+        // uno-a-uno: si el objeto ya esta mapeado, fija su entidad y no deja elegir otra
+        const existing = this.existingEntityFor(this.selectedObject);
+        if (existing) {
+            this.selectedEntity = existing;
+            this.entityLocked = true;
+        } else {
+            this.selectedEntity = undefined;
+            this.entityLocked = false;
+            this.rows = [];
+            this.hint = undefined;
+        }
         this.maybeLoadPair();
     }
 
     handleEntityChange(event) {
+        if (this.entityLocked) return; // objeto ya mapeado -> entidad fija
         this.selectedEntity = event.detail.value;
+        this.maybeLoadPair();
+    }
+
+    // Click en una tarjeta de "Configured mappings" -> cargar arriba para editar.
+    editMapping(event) {
+        const obj = event.currentTarget.dataset.object;
+        const ent = event.currentTarget.dataset.entity;
+        this.selectedObject = obj;
+        this.fieldOptions = [];
+        getFields({ sobjectName: obj })
+            .then((r) => { this.fieldOptions = r; })
+            .catch(() => {});
+        this.selectedEntity = ent;
+        this.entityLocked = true;
         this.maybeLoadPair();
     }
 
