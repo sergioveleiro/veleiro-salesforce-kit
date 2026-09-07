@@ -21,22 +21,39 @@ public with sharing class VeleiroApiClient {
 
     // Lo UNICO obligatorio que el partner configura es el token (un secreto). Base_Url es opcional.
     private static Veleiro_Config__c cfg() {
-        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        Veleiro_Config__c c = resolveConfig();
         if (c == null || String.isBlank(c.Api_Token__c)) {
             throw new VeleiroApiException('Falta el token de Veleiro. Pega tu Api_Token__c en Setup > Custom Settings > Veleiro Config.');
         }
         return c;
     }
 
-    // Base de la API: usa la configurada o cae al default (callout via Named Credential).
-    private static String baseUrl(Veleiro_Config__c c) {
-        return String.isNotBlank(c.Base_Url__c) ? c.Base_Url__c : DEFAULT_BASE;
+    // Resuelve la config SIN importar el nivel/"Location" (Org Default, Perfil o Usuario):
+    // 1) getInstance() (jerarquia del usuario actual), 2) getOrgDefaults(), 3) cualquier registro con token.
+    private static Veleiro_Config__c resolveConfig() {
+        Veleiro_Config__c c = Veleiro_Config__c.getInstance();
+        if (c != null && String.isNotBlank(c.Api_Token__c)) return c;
+        c = Veleiro_Config__c.getOrgDefaults();
+        if (c != null && String.isNotBlank(c.Api_Token__c)) return c;
+        List<Veleiro_Config__c> found = [
+            SELECT Api_Token__c, Base_Url__c, App_Base_Url__c
+            FROM Veleiro_Config__c WHERE Api_Token__c != null LIMIT 1
+        ];
+        return found.isEmpty() ? c : found[0];
     }
 
-    // URL base humana del portal de Veleiro para los links "Open in Veleiro".
-    // Configurable en Veleiro_Config__c.App_Base_Url__c; si esta vacia, cae al default de beta.
+    // Base de la API: usa la configurada si es valida; si viene vacia o malformada, cae al default.
+    private static String baseUrl(Veleiro_Config__c c) {
+        String u = (c != null) ? c.Base_Url__c : null;
+        if (String.isNotBlank(u) && (u.startsWith('callout:') || u.startsWithIgnoreCase('http'))) {
+            return u;
+        }
+        return DEFAULT_BASE; // vacio o malformado (ej. sin el prefijo callout:) -> default correcto
+    }
+
+    // URL base humana del portal de Veleiro para los links "Open in Veleiro" (cualquier nivel de config).
     public static String appBaseUrl() {
-        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        Veleiro_Config__c c = resolveConfig();
         String u = (c != null) ? c.App_Base_Url__c : null;
         return String.isNotBlank(u) ? u.removeEnd('/') : DEFAULT_APP_BASE;
     }
