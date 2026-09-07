@@ -4,6 +4,7 @@ import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
 import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
 import getObjects from '@salesforce/apex/VeleiroMappingController.getObjects';
 import getFields from '@salesforce/apex/VeleiroMappingController.getFields';
+import getTargets from '@salesforce/apex/VeleiroMappingController.getTargets';
 import getMappingsFor from '@salesforce/apex/VeleiroMappingController.getMappingsFor';
 import defaultTemplate from '@salesforce/apex/VeleiroMappingController.defaultTemplate';
 import getMappings from '@salesforce/apex/VeleiroMappingController.getMappings';
@@ -16,10 +17,6 @@ import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
 const ENTITY_OPTIONS = [
     { label: 'Client', value: 'client' },
     { label: 'Project', value: 'project' }
-];
-const TYPE_OPTIONS = [
-    { label: 'Standard', value: 'Standard' },
-    { label: 'Additional Field', value: 'Additional Field' }
 ];
 const DIRECTION_OPTIONS = [
     { label: 'Bidirectional (both ways)', value: 'bidirectional' },
@@ -40,13 +37,13 @@ export default class VeleiroMappingHome extends LightningElement {
     logoUrl = VELEIRO_LOGO;
     mascotUrl = VELEIRO_MASCOT;
     entityOptions = ENTITY_OPTIONS;
-    typeOptions = TYPE_OPTIONS;
 
     // 'list' = ver mapeos configurados; 'editor' = crear/editar uno. Nunca los dos a la vez.
     mode = 'list';
 
     objectOptions = [];
     fieldOptions = [];
+    @track targetOptions = [];   // targets de Veleiro (picklist) para la entidad seleccionada
     selectedObject;
     selectedEntity;
     entityLocked = false; // al editar un objeto ya mapeado, su entidad es fija (uno-a-uno)
@@ -147,6 +144,11 @@ export default class VeleiroMappingHome extends LightningElement {
     get showList() { return this.mode === 'list'; }
     get hasSummary() { return this.summary && this.summary.length > 0; }
     get showEmpty() { return this.mode === 'list' && !this.hasSummary; }
+
+    // Filas con el valor calculado para el combobox de target (isCustom -> '__custom__').
+    get displayRows() {
+        return this.rows.map((r) => ({ ...r, comboValue: r.isCustom ? '__custom__' : r.target }));
+    }
 
     get canSave() { return this.selectedObject && this.selectedEntity; }
     get saveDisabled() { return this.saving || !this.canSave; }
@@ -277,10 +279,15 @@ export default class VeleiroMappingHome extends LightningElement {
     loadPair() {
         if (!this.canSave) return;
         this.hint = undefined;
-        getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity })
+        this.deletedIds = [];
+        // Carga primero los targets de Veleiro (para saber cuales son "custom") y luego las filas.
+        getTargets({ entity: this.selectedEntity })
+            .then((opts) => { this.targetOptions = opts || []; })
+            .catch(() => { this.targetOptions = []; })
+            .then(() => getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity }))
             .then((existing) => {
                 if (existing && existing.length) {
-                    this.rows = existing.map((m) => this.toRow(m.Id, m.SF_Field__c, m.Veleiro_Target__c, m.Target_Type__c));
+                    this.rows = existing.map((m) => this.toRow(m.Id, m.SF_Field__c, m.Veleiro_Target__c));
                     return null;
                 }
                 return defaultTemplate({ sobjectName: this.selectedObject, entity: this.selectedEntity });
@@ -288,29 +295,73 @@ export default class VeleiroMappingHome extends LightningElement {
             .then((tpl) => {
                 if (tpl === null) return;
                 if (tpl && tpl.length) {
-                    this.rows = tpl.map((m) => this.toRow(null, m.SF_Field__c, m.Veleiro_Target__c, m.Target_Type__c));
+                    this.rows = tpl.map((m) => this.toRow(null, m.SF_Field__c, m.Veleiro_Target__c));
                     this.hint = 'Default mapping auto-filled — review and Save.';
                 } else {
-                    this.rows = [this.toRow(null, '', '', 'Additional Field')];
-                    this.hint = 'No default for this combination — define the fields manually, then Save.';
+                    this.rows = [this.toRow(null, '', '')];
+                    this.hint = 'No default for this combination — pick fields and Save.';
                 }
             })
             .catch(() => {});
-        this.deletedIds = [];
     }
 
-    toRow(id, sfField, target, type) {
+    get targetValues() {
+        return new Set((this.targetOptions || []).map((o) => o.value));
+    }
+
+    // Sugerencia canonica desde el campo SF (espejo de VeleiroTargets.suggest en Apex).
+    suggestTarget(sfField) {
+        if (!sfField) return '';
+        let base = sfField;
+        if (/__c$/i.test(base)) base = base.slice(0, -3);
+        if (base.includes('__')) base = base.split('__').pop();
+        const norm = base.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        if (norm === 'name') return 'name';
+        return 'sf_' + norm;
+    }
+
+    // Fila del editor. isCustom = el target no esta en el catalogo (se edita a mano).
+    toRow(id, sfField, target) {
         this._seq += 1;
-        return { key: 'r' + this._seq, id, sfField, target, type: type || 'Additional Field' };
+        const isCustom = !!target && !this.targetValues.has(target);
+        return { key: 'r' + this._seq, id, sfField, target: target || '', isCustom };
     }
 
-    handleFieldChange(event) { this.updateRow(event.currentTarget.dataset.key, 'sfField', event.detail.value); }
-    handleTargetChange(event) { this.updateRow(event.currentTarget.dataset.key, 'target', event.detail.value); }
-    handleTypeChange(event) { this.updateRow(event.currentTarget.dataset.key, 'type', event.detail.value); }
+    // Al elegir el campo SF, autosugiere el target si aun esta vacio (homologa nombres).
+    handleFieldChange(event) {
+        const key = event.currentTarget.dataset.key;
+        const sfField = event.detail.value;
+        this.rows = this.rows.map((r) => {
+            if (r.key !== key) return r;
+            const next = { ...r, sfField };
+            if (!r.target) {
+                const sug = this.suggestTarget(sfField);
+                next.target = sug;
+                next.isCustom = !this.targetValues.has(sug);
+            }
+            return next;
+        });
+    }
+
+    // Combobox de target: '__custom__' abre el input libre; cualquier otro fija el valor.
+    handleTargetSelect(event) {
+        const key = event.currentTarget.dataset.key;
+        const value = event.detail.value;
+        this.rows = this.rows.map((r) => {
+            if (r.key !== key) return r;
+            if (value === '__custom__') return { ...r, isCustom: true };
+            return { ...r, isCustom: false, target: value };
+        });
+    }
+
+    handleCustomTargetChange(event) {
+        this.updateRow(event.currentTarget.dataset.key, 'target', event.detail.value);
+    }
+
     updateRow(key, prop, value) {
         this.rows = this.rows.map((r) => (r.key === key ? { ...r, [prop]: value } : r));
     }
-    addRow() { this.rows = [...this.rows, this.toRow(null, '', '', 'Additional Field')]; }
+    addRow() { this.rows = [...this.rows, this.toRow(null, '', '')]; }
     removeRow(event) {
         const key = event.currentTarget.dataset.key;
         const row = this.rows.find((r) => r.key === key);
@@ -320,7 +371,7 @@ export default class VeleiroMappingHome extends LightningElement {
 
     handleSave() {
         this.saving = true;
-        const payload = this.rows.map((r) => ({ id: r.id, sfField: r.sfField, target: r.target, type: r.type }));
+        const payload = this.rows.map((r) => ({ id: r.id, sfField: r.sfField, target: r.target }));
         saveMappings({
             sobjectName: this.selectedObject,
             entity: this.selectedEntity,

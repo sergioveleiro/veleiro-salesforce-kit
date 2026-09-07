@@ -28,9 +28,21 @@ Map **any** Salesforce object to a Veleiro **client** or **project**, and define
 
 Defined in `VeleiroSeed.defaultsFor(object, entity)` and served to the UI via `VeleiroMappingController.defaultTemplate(...)`.
 
+## Homologating the Veleiro side (no free-text sprawl)
+
+Veleiro's `additional_fields` has **no server-side schema** — any key you send is auto-created as a custom field. Left as free text, five people invent five keys for the same thing (`website` / `sf_website` / `web`…). The kit homologates this itself (`VeleiroTargets`):
+
+- **The target is a picklist, not free text** — `getTargets(entity)` offers the canonical `sf_*` catalog plus keys already in use on real Veleiro records, so people reuse instead of inventing. `Custom…` stays as an escape hatch.
+- **Auto-suggestion from the SF field.** Pick `Website` → the target defaults to `sf_website`. The same SF field yields the same Veleiro key in every partner's org (`VeleiroTargets.suggest`).
+- **Normalization on save.** Whatever is typed is canonicalized (`  Web Site ` → `web_site`) so casing/spacing variants collapse to one key (`VeleiroTargets.normalize`).
+- **Type is inferred, not chosen.** A known top-level target (`name`) → Standard; anything else → Additional Field (`VeleiroTargets.typeFor`).
+
+The ideal long-term fix is a Veleiro endpoint that registers/lists custom-field definitions, which would make the picklist authoritative from the server. Until then the kit-side catalog keeps things consistent.
+
 ## Controller API (`VeleiroMappingController`)
 
 - `getObjects()` / `getFields(sobjectName)` — populate the pickers.
+- `getTargets(entity)` — the Veleiro **target** picklist: top-level fields + the canonical `sf_*` catalog + keys already in use on live Veleiro records (best-effort callout) + a `Custom…` escape.
 - `getMappingsFor(object, entity)` — load a saved pair.
 - `defaultTemplate(object, entity)` — the known defaults (unsaved) for auto-fill.
 - `saveMappings(object, entity, rows, deletedIds)` — upsert the pair's rows and delete removed ones.

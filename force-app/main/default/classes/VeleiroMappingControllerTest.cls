@@ -89,4 +89,79 @@ private class VeleiroMappingControllerTest {
         System.assertEquals(1, after.size(), 'no duplica, actualiza');
         System.assertEquals('display_name', after[0].Veleiro_Target__c);
     }
+
+    @isTest
+    static void getTargetsReturnsCatalogWithCustom() {
+        // Sin token configurado -> no hay callout de descubrimiento; solo catalogo canonico.
+        Test.startTest();
+        List<VeleiroMappingController.Option> client = VeleiroMappingController.getTargets('client');
+        List<VeleiroMappingController.Option> project = VeleiroMappingController.getTargets('project');
+        Test.stopTest();
+
+        Set<String> cv = new Set<String>();
+        for (VeleiroMappingController.Option o : client) cv.add(o.value);
+        System.assert(cv.contains('name'), 'incluye el top-level name');
+        System.assert(cv.contains('sf_website'), 'incluye el catalogo canonico de client');
+        System.assert(cv.contains('__custom__'), 'incluye el escape Custom');
+
+        Set<String> pv = new Set<String>();
+        for (VeleiroMappingController.Option o : project) pv.add(o.value);
+        System.assert(pv.contains('sf_amount'), 'catalogo canonico de project');
+    }
+
+    @isTest
+    static void getTargetsDiscoversInUseKeys() {
+        VeleiroApiMock.seedConfig();
+        VeleiroApiMock mock = new VeleiroApiMock();
+        mock.clientsBody = '{"data":[{"id":"org_1","additional_fields":{"sf_custom_extra":"x"}}],"has_more":false}';
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        List<VeleiroMappingController.Option> client = VeleiroMappingController.getTargets('client');
+        Test.stopTest();
+
+        Set<String> cv = new Set<String>();
+        for (VeleiroMappingController.Option o : client) cv.add(o.value);
+        System.assert(cv.contains('sf_custom_extra'), 'descubre llaves ya en uso en Veleiro');
+    }
+
+    @isTest
+    static void statusTokenAndConfigRoundTrip() {
+        VeleiroApiMock.seedConfig(); // base https que el mock intercepta (callout: no resuelve en test)
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroMappingController.saveToken('vlr_test');
+        Map<String, String> st = VeleiroMappingController.getStatus();
+        VeleiroMappingController.saveSyncConfig('bidirectional', 'salesforce', 'off');
+        Map<String, String> cfg = VeleiroMappingController.getSyncConfig();
+        Test.stopTest();
+
+        System.assertEquals('true', st.get('tokenSet'), 'token guardado');
+        System.assert(st.containsKey('connected'), 'getStatus evalua la conexion');
+        System.assertEquals('bidirectional', cfg.get('direction'));
+    }
+
+    @isTest
+    static void saveNormalizesTargetAndInfersType() {
+        VeleiroMappingController.MappingRow messy = new VeleiroMappingController.MappingRow();
+        messy.sfField = 'Website'; messy.target = '  Web Site '; // se normaliza
+        VeleiroMappingController.MappingRow std = new VeleiroMappingController.MappingRow();
+        std.sfField = 'Name'; std.target = 'Name'; // top-level -> Standard
+
+        Test.startTest();
+        VeleiroMappingController.saveMappings('Account', 'client',
+            new List<VeleiroMappingController.MappingRow>{ messy, std }, null);
+        Test.stopTest();
+
+        Map<String, Veleiro_Field_Mapping__c> byField = new Map<String, Veleiro_Field_Mapping__c>();
+        for (Veleiro_Field_Mapping__c m : VeleiroMappingController.getMappingsFor('Account', 'client')) {
+            byField.put(m.SF_Field__c, m);
+        }
+        System.assertEquals('web_site', byField.get('Website').Veleiro_Target__c, 'target normalizado');
+        System.assertEquals('Additional Field', byField.get('Website').Target_Type__c);
+        System.assertEquals('name', byField.get('Name').Veleiro_Target__c);
+        System.assertEquals('Standard', byField.get('Name').Target_Type__c, 'name -> top-level Standard');
+    }
 }

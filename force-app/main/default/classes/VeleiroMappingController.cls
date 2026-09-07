@@ -69,6 +69,48 @@ public with sharing class VeleiroMappingController {
         return out;
     }
 
+    // Targets de Veleiro para el picklist: top-level + catalogo canonico + llaves ya en uso.
+    // NO cacheable: descubre las llaves en uso con un callout (best-effort).
+    @AuraEnabled
+    public static List<Option> getTargets(String entity) {
+        List<Option> out = new List<Option>();
+        Set<String> seen = new Set<String>();
+        for (String t : VeleiroTargets.topLevel(entity)) {
+            if (seen.add(t)) out.add(new Option(t, t + '  ·  standard'));
+        }
+        for (String t : VeleiroTargets.canonical(entity)) {
+            if (seen.add(t)) out.add(new Option(t, t));
+        }
+        // Llaves de additional_fields que YA existen en Veleiro -> reusar, no reinventar.
+        try {
+            for (String k : discoverKeys(entity)) {
+                if (seen.add(k)) out.add(new Option(k, k + '  ·  in use'));
+            }
+        } catch (Exception e) {
+            /* si el callout falla, el catalogo canonico sigue siendo util */
+        }
+        out.add(new Option('__custom__', 'Custom…'));
+        return out;
+    }
+
+    // Lee las llaves de additional_fields de unos registros de muestra en Veleiro.
+    private static List<String> discoverKeys(String entity) {
+        List<String> keys = new List<String>();
+        if (!VeleiroApiClient.hasToken()) return keys;
+        String path = (entity == 'project') ? '/projects' : '/clients';
+        Map<String, Object> res = VeleiroApiClient.doGet(path, new Map<String, String>{ 'limit' => '5' });
+        Object dataObj = (res != null) ? res.get('data') : null;
+        if (dataObj instanceof List<Object>) {
+            for (Object item : (List<Object>) dataObj) {
+                if (item instanceof Map<String, Object>) {
+                    Object af = ((Map<String, Object>) item).get('additional_fields');
+                    if (af instanceof Map<String, Object>) keys.addAll(((Map<String, Object>) af).keySet());
+                }
+            }
+        }
+        return keys;
+    }
+
     // Campos de un objeto (para el picklist de "Salesforce field").
     @AuraEnabled(cacheable=true)
     public static List<Option> getFields(String sobjectName) {
@@ -96,14 +138,17 @@ public with sharing class VeleiroMappingController {
         if (rows != null) {
             for (MappingRow r : rows) {
                 if (String.isBlank(r.sfField) || String.isBlank(r.target)) continue;
+                // Normaliza el target a una llave canonica (homologa nombres) e infiere el tipo.
+                String target = VeleiroTargets.normalize(r.target);
+                if (String.isBlank(target)) continue;
                 Veleiro_Field_Mapping__c m = new Veleiro_Field_Mapping__c();
                 if (String.isNotBlank(r.id)) m.Id = r.id;
                 m.Name = (sobjectName + ' ' + r.sfField).left(80);
                 m.SObject__c = sobjectName;
                 m.Veleiro_Entity__c = entity;
                 m.SF_Field__c = r.sfField;
-                m.Veleiro_Target__c = r.target;
-                m.Target_Type__c = String.isNotBlank(r.type) ? r.type : 'Additional Field';
+                m.Veleiro_Target__c = target;
+                m.Target_Type__c = VeleiroTargets.typeFor(entity, target);
                 m.Is_Standard__c = false;
                 m.Active__c = true;
                 toUpsert.add(m);

@@ -97,24 +97,30 @@
                             <span>Salesforce field</span>
                             <span></span>
                             <span>Veleiro target</span>
-                            <span>Type</span>
                             <span></span>
                         </div>
-                        <template for:each={rows} for:item="row">
+                        <template for:each={displayRows} for:item="row">
                             <div key={row.key} class="veleiro-map-row">
                                 <lightning-combobox variant="label-hidden" placeholder="Field…"
                                     options={fieldOptions} value={row.sfField}
                                     data-key={row.key} onchange={handleFieldChange}></lightning-combobox>
                                 <span class="veleiro-arrow-sm">→</span>
-                                <lightning-input variant="label-hidden" placeholder="e.g. name or sf_amount"
-                                    value={row.target} data-key={row.key} onchange={handleTargetChange}></lightning-input>
-                                <lightning-combobox variant="label-hidden" options={typeOptions}
-                                    value={row.type} data-key={row.key} onchange={handleTypeChange}></lightning-combobox>
+                                <div class="veleiro-target-cell">
+                                    <lightning-combobox variant="label-hidden" placeholder="Pick a Veleiro field…"
+                                        options={targetOptions} value={row.comboValue}
+                                        data-key={row.key} onchange={handleTargetSelect}></lightning-combobox>
+                                    <template if:true={row.isCustom}>
+                                        <lightning-input variant="label-hidden" placeholder="custom key (e.g. sf_region)"
+                                            value={row.target} data-key={row.key}
+                                            onchange={handleCustomTargetChange}></lightning-input>
+                                    </template>
+                                </div>
                                 <lightning-button-icon icon-name="utility:delete" variant="bare"
                                     alternative-text="Remove" data-key={row.key} onclick={removeRow}></lightning-button-icon>
                             </div>
                         </template>
                     </div>
+                    <p class="veleiro-target-note">The <strong>Type</strong> (standard vs additional field) and a consistent key are set automatically from the Veleiro target you pick — so the same field lands in the same place across everyone's org.</p>
                     <div class="veleiro-actions">
                         <lightning-button label="Add field" icon-name="utility:add" onclick={addRow}></lightning-button>
                         <div class="veleiro-actions-right">
