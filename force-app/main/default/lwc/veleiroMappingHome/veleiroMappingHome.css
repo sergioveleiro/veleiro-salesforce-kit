@@ -181,3 +181,25 @@
     margin-left: 8px;
     --sds-c-icon-color-foreground-default: var(--veleiro-muted);
 }
+
+/* Header de seccion con boton (Add mapping) */
+.veleiro-section-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.veleiro-section-head-row .veleiro-section-head { margin: 0; }
+.veleiro-editor-title {
+    color: var(--veleiro-navy);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+.veleiro-actions-right { display: flex; align-items: center; gap: 8px; }
+.veleiro-empty-map {
+    text-align: center;
+    padding: 22px 10px;
+    color: var(--veleiro-muted);
+}
+.veleiro-empty-map p { margin-bottom: 12px; font-size: 0.9rem; }

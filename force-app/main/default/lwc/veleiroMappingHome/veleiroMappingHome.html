@@ -29,118 +29,113 @@
             </div>
         </div>
 
-        <!-- 2) Builder de mapeo de campos -->
+        <!-- 2) Field mappings — una sola superficie: LISTA o EDITOR -->
         <div class="veleiro-card">
-            <div class="veleiro-section-head">2 · Field mappings</div>
-            <div class="veleiro-pickers">
-                <lightning-combobox
-                    label="Salesforce object"
-                    placeholder="Select an object…"
-                    options={objectOptions}
-                    value={selectedObject}
-                    onchange={handleObjectChange}
-                    class="veleiro-picker">
-                </lightning-combobox>
-                <div class="veleiro-arrow">→</div>
-                <lightning-combobox
-                    label="Veleiro entity"
-                    placeholder="client / project"
-                    options={entityOptions}
-                    value={selectedEntity}
-                    onchange={handleEntityChange}
-                    disabled={entityLocked}
-                    field-level-help="One Veleiro entity per Salesforce object. If the object is already mapped, its entity is fixed here."
-                    class="veleiro-picker">
-                </lightning-combobox>
+            <div class="veleiro-section-head-row">
+                <span class="veleiro-section-head">2 · Field mappings</span>
+                <template if:true={showList}>
+                    <lightning-button label="Add mapping" icon-name="utility:add" onclick={startNew}></lightning-button>
+                </template>
             </div>
-            <template if:true={entityLocked}>
-                <p class="veleiro-locked-hint">🔒&nbsp;{selectedObject} is already mapped to <strong>{selectedEntity}</strong> (one entity per object). Editing that mapping below.</p>
-            </template>
 
-            <template if:true={canEdit}>
-                <template if:true={hint}>
-                    <div class="veleiro-hint">🧭&nbsp;{hint}</div>
+            <!-- EDITOR (crear o editar) -->
+            <template if:true={showEditor}>
+                <p class="veleiro-editor-title">{editorTitle}</p>
+                <div class="veleiro-pickers">
+                    <lightning-combobox
+                        label="Salesforce object"
+                        placeholder="Select an object…"
+                        options={objectOptions}
+                        value={selectedObject}
+                        onchange={handleObjectChange}
+                        disabled={objectLocked}
+                        class="veleiro-picker">
+                    </lightning-combobox>
+                    <div class="veleiro-arrow">→</div>
+                    <lightning-combobox
+                        label="Veleiro entity"
+                        placeholder="client / project"
+                        options={entityOptions}
+                        value={selectedEntity}
+                        onchange={handleEntityChange}
+                        disabled={entityLocked}
+                        class="veleiro-picker">
+                    </lightning-combobox>
+                </div>
+                <template if:true={entityLocked}>
+                    <p class="veleiro-locked-hint">🔒&nbsp;One Veleiro entity per Salesforce object — this one is fixed.</p>
                 </template>
 
-                <div class="veleiro-map-table">
-                    <div class="veleiro-map-row veleiro-map-header">
-                        <span>Salesforce field</span>
-                        <span></span>
-                        <span>Veleiro target</span>
-                        <span>Type</span>
-                        <span></span>
-                    </div>
-                    <template for:each={rows} for:item="row">
-                        <div key={row.key} class="veleiro-map-row">
-                            <lightning-combobox
-                                variant="label-hidden"
-                                placeholder="Field…"
-                                options={fieldOptions}
-                                value={row.sfField}
-                                data-key={row.key}
-                                onchange={handleFieldChange}>
-                            </lightning-combobox>
-                            <span class="veleiro-arrow-sm">→</span>
-                            <lightning-input
-                                variant="label-hidden"
-                                placeholder="e.g. name or sf_amount"
-                                value={row.target}
-                                data-key={row.key}
-                                onchange={handleTargetChange}>
-                            </lightning-input>
-                            <lightning-combobox
-                                variant="label-hidden"
-                                options={typeOptions}
-                                value={row.type}
-                                data-key={row.key}
-                                onchange={handleTypeChange}>
-                            </lightning-combobox>
-                            <lightning-button-icon
-                                icon-name="utility:delete"
-                                variant="bare"
-                                alternative-text="Remove"
-                                data-key={row.key}
-                                onclick={removeRow}>
-                            </lightning-button-icon>
-                        </div>
+                <template if:true={canSave}>
+                    <template if:true={hint}>
+                        <div class="veleiro-hint">🧭&nbsp;{hint}</div>
                     </template>
-                </div>
-
-                <div class="veleiro-actions">
-                    <lightning-button label="Add field" icon-name="utility:add" onclick={addRow}></lightning-button>
-                    <lightning-button variant="brand" label="Save mapping" onclick={handleSave}
-                        disabled={saveDisabled} class="veleiro-brand-btn"></lightning-button>
-                </div>
+                    <div class="veleiro-map-table">
+                        <div class="veleiro-map-row veleiro-map-header">
+                            <span>Salesforce field</span>
+                            <span></span>
+                            <span>Veleiro target</span>
+                            <span>Type</span>
+                            <span></span>
+                        </div>
+                        <template for:each={rows} for:item="row">
+                            <div key={row.key} class="veleiro-map-row">
+                                <lightning-combobox variant="label-hidden" placeholder="Field…"
+                                    options={fieldOptions} value={row.sfField}
+                                    data-key={row.key} onchange={handleFieldChange}></lightning-combobox>
+                                <span class="veleiro-arrow-sm">→</span>
+                                <lightning-input variant="label-hidden" placeholder="e.g. name or sf_amount"
+                                    value={row.target} data-key={row.key} onchange={handleTargetChange}></lightning-input>
+                                <lightning-combobox variant="label-hidden" options={typeOptions}
+                                    value={row.type} data-key={row.key} onchange={handleTypeChange}></lightning-combobox>
+                                <lightning-button-icon icon-name="utility:delete" variant="bare"
+                                    alternative-text="Remove" data-key={row.key} onclick={removeRow}></lightning-button-icon>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="veleiro-actions">
+                        <lightning-button label="Add field" icon-name="utility:add" onclick={addRow}></lightning-button>
+                        <div class="veleiro-actions-right">
+                            <lightning-button label="Cancel" onclick={cancelEdit} class="slds-m-right_x-small"></lightning-button>
+                            <lightning-button variant="brand" label="Save mapping" onclick={handleSave}
+                                disabled={saveDisabled} class="veleiro-brand-btn"></lightning-button>
+                        </div>
+                    </div>
+                </template>
             </template>
 
-            <template if:false={canEdit}>
-                <p class="veleiro-empty-hint">Pick an object and a Veleiro entity to start mapping.</p>
+            <!-- LISTA (mapeos ya configurados) -->
+            <template if:true={showList}>
+                <template if:true={hasSummary}>
+                    <template for:each={summary} for:item="g">
+                        <div key={g.key} class="veleiro-group veleiro-group-clickable"
+                            data-object={g.object} data-entity={g.entity}
+                            onclick={editMapping} role="button" tabindex="0">
+                            <div class="veleiro-group-head">
+                                <span class="veleiro-group-name">{g.object}</span>
+                                <span class="veleiro-arrow-sm">→</span>
+                                <span class="veleiro-badge">{g.entity}</span>
+                                <span class="veleiro-group-count">{g.rows.length} field(s)</span>
+                                <lightning-icon icon-name="utility:edit" size="x-small"
+                                    alternative-text="Edit" class="veleiro-edit-icon"></lightning-icon>
+                            </div>
+                            <template for:each={g.rows} for:item="r">
+                                <div key={r.key} class="veleiro-sum-row">
+                                    <code>{r.sfField}</code><span class="veleiro-arrow-sm">→</span><code>{r.target}</code>
+                                    <span class="veleiro-type">{r.type}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+                <template if:true={showEmpty}>
+                    <div class="veleiro-empty-map">
+                        <p>No field mappings yet.</p>
+                        <lightning-button variant="brand" label="Add your first mapping" icon-name="utility:add"
+                            onclick={startNew} class="veleiro-brand-btn"></lightning-button>
+                    </div>
+                </template>
             </template>
         </div>
-
-        <!-- Resumen de lo configurado -->
-        <template if:true={hasSummary}>
-            <div class="veleiro-section-head">Configured mappings</div>
-            <template for:each={summary} for:item="g">
-                <div key={g.key} class="veleiro-group">
-                    <div class="veleiro-group-head veleiro-group-clickable"
-                        data-object={g.object} data-entity={g.entity}
-                        onclick={editMapping} role="button" tabindex="0">
-                        <span class="veleiro-group-name">{g.object}</span>
-                        <span class="veleiro-arrow-sm">→</span>
-                        <span class="veleiro-badge">{g.entity}</span>
-                        <span class="veleiro-group-count">{g.rows.length} field(s)</span>
-                        <lightning-icon icon-name="utility:edit" size="x-small" alternative-text="Edit"
-                            class="veleiro-edit-icon"></lightning-icon>
-                    </div>
-                    <template for:each={g.rows} for:item="r">
-                        <div key={r.key} class="veleiro-sum-row">
-                            <code>{r.sfField}</code><span class="veleiro-arrow-sm">→</span><code>{r.target}</code>
-                            <span class="veleiro-type">{r.type}</span>
-                        </div>
-                    </template>
-                </div>
-            </template>
-        </template>
     </div>
 </template>

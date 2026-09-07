@@ -40,11 +40,15 @@ export default class VeleiroMappingHome extends LightningElement {
     entityOptions = ENTITY_OPTIONS;
     typeOptions = TYPE_OPTIONS;
 
+    // 'list' = ver mapeos configurados; 'editor' = crear/editar uno. Nunca los dos a la vez.
+    mode = 'list';
+
     objectOptions = [];
     fieldOptions = [];
     selectedObject;
     selectedEntity;
-    entityLocked = false; // true cuando el objeto ya tiene una entidad mapeada (uno-a-uno)
+    entityLocked = false; // al editar un objeto ya mapeado, su entidad es fija (uno-a-uno)
+    objectLocked = false; // al editar, no se cambia el objeto
     @track rows = [];
     deletedIds = [];
     hint;
@@ -64,10 +68,21 @@ export default class VeleiroMappingHome extends LightningElement {
 
     connectedCallback() {
         getObjects().then((r) => { this.objectOptions = r; }).catch(() => {});
-        this.loadSummary();
+        this.loadSummary(true);
         this.loadConfig();
     }
 
+    // ---- vista ----
+    get showEditor() { return this.mode === 'editor'; }
+    get showList() { return this.mode === 'list'; }
+    get hasSummary() { return this.summary && this.summary.length > 0; }
+    get showEmpty() { return this.mode === 'list' && !this.hasSummary; }
+
+    get canSave() { return this.selectedObject && this.selectedEntity; }
+    get saveDisabled() { return this.saving || !this.canSave; }
+    get editorTitle() { return this.objectLocked ? 'Edit mapping' : 'New mapping'; }
+
+    // ---- integration config ----
     loadConfig() {
         getSyncConfig()
             .then((c) => {
@@ -79,18 +94,13 @@ export default class VeleiroMappingHome extends LightningElement {
             })
             .catch(() => {});
     }
-
     handleDirectionChange(event) { this.syncDirection = event.detail.value; }
     handleWinnerChange(event) { this.syncWinner = event.detail.value; }
     handleFrequencyChange(event) { this.syncFrequency = event.detail.value; }
 
     handleSaveConfig() {
         this.savingConfig = true;
-        saveSyncConfig({
-            direction: this.syncDirection,
-            winner: this.syncWinner,
-            frequency: this.syncFrequency
-        })
+        saveSyncConfig({ direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({
                     title: 'Integration configured',
@@ -105,19 +115,15 @@ export default class VeleiroMappingHome extends LightningElement {
             .finally(() => { this.savingConfig = false; });
     }
 
-    loadSummary() {
-        getMappings()
+    // ---- lista de mapeos ----
+    loadSummary(setInitialMode) {
+        return getMappings()
             .then((data) => {
                 const byPair = {};
                 (data || []).forEach((m) => {
                     const key = m.SObject__c + '|' + (m.Veleiro_Entity__c || '');
                     if (!byPair[key]) {
-                        byPair[key] = {
-                            key,
-                            object: m.SObject__c,
-                            entity: m.Veleiro_Entity__c || '—',
-                            rows: []
-                        };
+                        byPair[key] = { key, object: m.SObject__c, entity: m.Veleiro_Entity__c || '—', rows: [] };
                     }
                     byPair[key].rows.push({
                         key: key + '|' + m.SF_Field__c,
@@ -127,35 +133,60 @@ export default class VeleiroMappingHome extends LightningElement {
                     });
                 });
                 this.summary = Object.values(byPair);
+                if (setInitialMode) {
+                    // primera vez: si no hay nada, abre el editor para crear el primero
+                    if (this.summary.length) { this.mode = 'list'; }
+                    else { this.startNew(); }
+                }
             })
             .catch(() => {});
     }
 
-    get canEdit() {
-        return this.selectedObject && this.selectedEntity;
-    }
-    get saveDisabled() {
-        return this.saving || !this.canEdit;
-    }
-    get hasSummary() {
-        return this.summary && this.summary.length > 0;
-    }
-
-    // Devuelve la entidad ya mapeada para un objeto (uno-a-uno), o null si no existe.
     existingEntityFor(object) {
         const g = (this.summary || []).find((s) => s.object === object && s.entity !== '—');
         return g ? g.entity : null;
     }
 
+    // ---- entrar al editor ----
+    startNew() {
+        this.mode = 'editor';
+        this.objectLocked = false;
+        this.entityLocked = false;
+        this.selectedObject = undefined;
+        this.selectedEntity = undefined;
+        this.fieldOptions = [];
+        this.rows = [];
+        this.deletedIds = [];
+        this.hint = undefined;
+    }
+
+    editMapping(event) {
+        const obj = event.currentTarget.dataset.object;
+        const ent = event.currentTarget.dataset.entity;
+        this.mode = 'editor';
+        this.objectLocked = true;   // editando: objeto fijo
+        this.entityLocked = true;   // uno-a-uno: entidad fija
+        this.selectedObject = obj;
+        this.selectedEntity = ent;
+        this.fieldOptions = [];
+        getFields({ sobjectName: obj }).then((r) => { this.fieldOptions = r; }).catch(() => {});
+        this.loadPair();
+    }
+
+    cancelEdit() {
+        // si aun no hay mapeos, no hay lista a la que volver -> quedarse en editor vacio
+        this.mode = this.hasSummary ? 'list' : 'editor';
+        if (this.mode === 'editor') this.startNew();
+    }
+
+    // ---- editor: pickers ----
     handleObjectChange(event) {
         this.selectedObject = event.detail.value;
         this.fieldOptions = [];
-        getFields({ sobjectName: this.selectedObject })
-            .then((r) => { this.fieldOptions = r; })
-            .catch(() => {});
-        // uno-a-uno: si el objeto ya esta mapeado, fija su entidad y no deja elegir otra
+        getFields({ sobjectName: this.selectedObject }).then((r) => { this.fieldOptions = r; }).catch(() => {});
         const existing = this.existingEntityFor(this.selectedObject);
         if (existing) {
+            // ya existe -> uno-a-uno: fija entidad y carga para editar
             this.selectedEntity = existing;
             this.entityLocked = true;
         } else {
@@ -164,31 +195,17 @@ export default class VeleiroMappingHome extends LightningElement {
             this.rows = [];
             this.hint = undefined;
         }
-        this.maybeLoadPair();
+        this.loadPair();
     }
 
     handleEntityChange(event) {
-        if (this.entityLocked) return; // objeto ya mapeado -> entidad fija
+        if (this.entityLocked) return;
         this.selectedEntity = event.detail.value;
-        this.maybeLoadPair();
+        this.loadPair();
     }
 
-    // Click en una tarjeta de "Configured mappings" -> cargar arriba para editar.
-    editMapping(event) {
-        const obj = event.currentTarget.dataset.object;
-        const ent = event.currentTarget.dataset.entity;
-        this.selectedObject = obj;
-        this.fieldOptions = [];
-        getFields({ sobjectName: obj })
-            .then((r) => { this.fieldOptions = r; })
-            .catch(() => {});
-        this.selectedEntity = ent;
-        this.entityLocked = true;
-        this.maybeLoadPair();
-    }
-
-    maybeLoadPair() {
-        if (!this.canEdit) return;
+    loadPair() {
+        if (!this.canSave) return;
         this.hint = undefined;
         getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity })
             .then((existing) => {
@@ -196,15 +213,13 @@ export default class VeleiroMappingHome extends LightningElement {
                     this.rows = existing.map((m) => this.toRow(m.Id, m.SF_Field__c, m.Veleiro_Target__c, m.Target_Type__c));
                     return null;
                 }
-                // sin mapeos guardados -> intenta autopopular defaults conocidos
                 return defaultTemplate({ sobjectName: this.selectedObject, entity: this.selectedEntity });
             })
             .then((tpl) => {
-                if (tpl === null) return; // ya habia guardados
+                if (tpl === null) return;
                 if (tpl && tpl.length) {
                     this.rows = tpl.map((m) => this.toRow(null, m.SF_Field__c, m.Veleiro_Target__c, m.Target_Type__c));
-                    this.hint = 'Default mapping auto-filled for ' + this.selectedObject +
-                        ' → ' + this.selectedEntity + '. Review and Save.';
+                    this.hint = 'Default mapping auto-filled — review and Save.';
                 } else {
                     this.rows = [this.toRow(null, '', '', 'Additional Field')];
                     this.hint = 'No default for this combination — define the fields manually, then Save.';
@@ -219,22 +234,13 @@ export default class VeleiroMappingHome extends LightningElement {
         return { key: 'r' + this._seq, id, sfField, target, type: type || 'Additional Field' };
     }
 
-    handleFieldChange(event) {
-        this.updateRow(event.currentTarget.dataset.key, 'sfField', event.detail.value);
-    }
-    handleTargetChange(event) {
-        this.updateRow(event.currentTarget.dataset.key, 'target', event.detail.value);
-    }
-    handleTypeChange(event) {
-        this.updateRow(event.currentTarget.dataset.key, 'type', event.detail.value);
-    }
+    handleFieldChange(event) { this.updateRow(event.currentTarget.dataset.key, 'sfField', event.detail.value); }
+    handleTargetChange(event) { this.updateRow(event.currentTarget.dataset.key, 'target', event.detail.value); }
+    handleTypeChange(event) { this.updateRow(event.currentTarget.dataset.key, 'type', event.detail.value); }
     updateRow(key, prop, value) {
         this.rows = this.rows.map((r) => (r.key === key ? { ...r, [prop]: value } : r));
     }
-
-    addRow() {
-        this.rows = [...this.rows, this.toRow(null, '', '', 'Additional Field')];
-    }
+    addRow() { this.rows = [...this.rows, this.toRow(null, '', '', 'Additional Field')]; }
     removeRow(event) {
         const key = event.currentTarget.dataset.key;
         const row = this.rows.find((r) => r.key === key);
@@ -244,12 +250,7 @@ export default class VeleiroMappingHome extends LightningElement {
 
     handleSave() {
         this.saving = true;
-        const payload = this.rows.map((r) => ({
-            id: r.id,
-            sfField: r.sfField,
-            target: r.target,
-            type: r.type
-        }));
+        const payload = this.rows.map((r) => ({ id: r.id, sfField: r.sfField, target: r.target, type: r.type }));
         saveMappings({
             sobjectName: this.selectedObject,
             entity: this.selectedEntity,
@@ -263,9 +264,9 @@ export default class VeleiroMappingHome extends LightningElement {
                     variant: 'success'
                 }));
                 this.deletedIds = [];
-                this.loadSummary();
-                this.maybeLoadPair();
+                return this.loadSummary(false);
             })
+            .then(() => { this.mode = 'list'; })  // volver a la lista (una sola superficie)
             .catch((e) => {
                 const msg = e && e.body && e.body.message ? e.body.message : 'Could not save mapping';
                 this.dispatchEvent(new ShowToastEvent({ title: 'Save failed', message: msg, variant: 'error' }));
