@@ -9,9 +9,10 @@
  * Get your token + scopes (read/write on clients & projects) from the Veleiro app.
  */
 
+// Por defecto apunta a PRODUCCION. Lo UNICO que tienes que pegar es tu token.
 String API_TOKEN   = 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN';   // e.g. vlr_...
 String BASE_URL     = 'callout:Veleiro_API/api/v1';    // usa el Named Credential Veleiro_API (allowlist); NO la URL cruda
-String APP_BASE_URL = 'https://app.beta.veleiro.dev';  // BETA. Para produccion usa: https://app.veleiro.ai (y cambia el endpoint del Named Credential Veleiro_API)
+String APP_BASE_URL = 'https://app.veleiro.ai';  // PRODUCCION. Para beta usa https://app.beta.veleiro.dev (y apunta el Named Credential Veleiro_API a ese host)
 
 if (API_TOKEN == 'REPLACE_WITH_YOUR_VELEIRO_API_TOKEN') {
     throw new CalloutException('Edit configure.apex and set your API_TOKEN before running.');

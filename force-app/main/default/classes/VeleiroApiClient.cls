@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP para la API de Veleiro (https://app.beta.veleiro.dev/api/v1).
+ * Cliente HTTP para la API de Veleiro (https://app.veleiro.ai/api/v1 por defecto).
  * Server-to-server (Apex). Respeta el contrato:
  *  - rutas SIN slash final (trampa 1),
  *  - envelope {"data": ...} con has_more / next_cursor,
@@ -17,7 +17,7 @@ public with sharing class VeleiroApiClient {
 
     // Defaults NO-secretos: el partner solo tiene que pegar su token; base URLs caen a estos.
     private static final String DEFAULT_BASE = 'callout:Veleiro_API/api/v1'; // via Named Credential Veleiro_API
-    private static final String DEFAULT_APP_BASE = 'https://app.beta.veleiro.dev';
+    private static final String DEFAULT_APP_BASE = 'https://app.veleiro.ai'; // produccion por defecto (beta: app.beta.veleiro.dev)
 
     // Lo UNICO obligatorio que el partner configura es el token (un secreto). Base_Url es opcional.
     private static Veleiro_Config__c cfg() {

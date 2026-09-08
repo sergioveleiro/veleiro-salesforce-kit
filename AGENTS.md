@@ -50,7 +50,7 @@ Two businesses, one link:
 
 ## The Veleiro API contract (authoritative)
 
-Base: `Base_Url__c` (e.g. `https://app.beta.veleiro.dev/api/v1`). Auth: `Authorization: Bearer <token>`.
+Base: `Base_Url__c` = `callout:Veleiro_API/api/v1`, routed through the `Veleiro_API` Named Credential (host `https://app.veleiro.ai` by default; `https://app.beta.veleiro.dev` for beta). Auth: `Authorization: Bearer <token>`.
 
 - **Envelope.** Responses wrap payload in `{"data": …}`. Lists add `has_more` and `next_cursor`.
 - **Pagination is cursor-based** (no offset). Follow `next_cursor` while `has_more` is true. Cursors expire (~24h). `VeleiroApiClient.listAll` does this.

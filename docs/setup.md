@@ -13,7 +13,7 @@ sf project deploy start -o <your-org> -d force-app -l RunLocalTests
 Production orgs run the tests during deploy (the package ships ≥75% coverage). Sandboxes/scratch orgs deploy the same way.
 
 ## 2. Paste your Veleiro API token (the ONLY thing you configure — it's a secret)
-The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.beta.veleiro.dev`), so you don't have to set them.
+The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code to **production** (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.veleiro.ai`), so you don't have to set them.
 
 **Recommended (UI, most secure):** Setup → **Custom Settings** → **Veleiro Config** → **Manage** → **New** (org default) → paste your token into **Api_Token__c** → Save.
 
@@ -21,10 +21,10 @@ The custom setting **structure** deploys with the package. The **only mandatory 
 
 **Optional (CLI):** if you prefer, edit a **local** copy of `scripts/apex/configure.apex` (paste your token, run `sf apex run -f ...`), then discard the change. Only do this in your own org.
 
-To point at Veleiro production later, set `Base_Url__c` / `App_Base_Url__c` to the prod URLs (otherwise they default to beta).
+You're on **production** out of the box — no URL to set, just the token.
 
-## 2b. Beta vs Production
-The kit defaults to Veleiro **beta**. For a **production** partner, change the Named Credential `Veleiro_API` endpoint and `App_Base_Url__c` from `https://app.beta.veleiro.dev` to `https://app.veleiro.ai`. Nothing else changes. See the README "Beta vs Production" table.
+## 2b. Production by default (beta is opt-in)
+The kit defaults to Veleiro **production**. Only for **testing on beta**, change the Named Credential `Veleiro_API` endpoint and `App_Base_Url__c` from `https://app.veleiro.ai` to `https://app.beta.veleiro.dev`. Nothing else changes. See the README "Production by default" table.
 
 ## 3. Seed the default field mappings
 ```bash

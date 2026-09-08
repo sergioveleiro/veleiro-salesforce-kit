@@ -83,18 +83,18 @@ All config is **data** in the `Veleiro_Config__c` hierarchy custom setting (org 
 |---|---|---|
 | `Api_Token__c` | Your Veleiro API token (Bearer). **Never commit this.** | `vlr_…` |
 | `Base_Url__c` | API base via the Named Credential (not a raw URL) | `callout:Veleiro_API/api/v1` |
-| `App_Base_Url__c` | Human portal base for "Open in Veleiro" links | `https://app.beta.veleiro.dev` |
+| `App_Base_Url__c` | Human portal base for "Open in Veleiro" links | `https://app.veleiro.ai` |
 
 The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out without a Remote Site Setting.
 
-### Beta vs Production
+### Production by default (beta is opt-in)
 
-The repo defaults to Veleiro **beta** (for testing). To point a partner org at **production**, change just two values in Setup — no code change, no second Named Credential:
+The repo ships pointing at Veleiro **production** (`https://app.veleiro.ai`). A partner installs it and the **only** thing they set is their token — the host and portal URLs already default to production, no editing required. To point an org at **beta** for testing instead, change just two values in Setup — no code change, no second Named Credential:
 
-| | Beta (default) | Production |
+| | Production (default) | Beta (testing) |
 |---|---|---|
-| Named Credential `Veleiro_API` → endpoint | `https://app.beta.veleiro.dev` | `https://app.veleiro.ai` |
-| `App_Base_Url__c` (Veleiro Config) | `https://app.beta.veleiro.dev` | `https://app.veleiro.ai` |
+| Named Credential `Veleiro_API` → endpoint | `https://app.veleiro.ai` | `https://app.beta.veleiro.dev` |
+| `App_Base_Url__c` (Veleiro Config) | `https://app.veleiro.ai` | `https://app.beta.veleiro.dev` |
 
 Everything else is identical: `Base_Url__c` stays `callout:Veleiro_API/api/v1` (it routes through whatever host the Named Credential points at), the token is per-partner data, and all code is unchanged. Same contract, same paths — only the host differs.
 
