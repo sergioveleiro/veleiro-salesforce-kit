@@ -18,19 +18,47 @@
                 <div class="veleiro-status-text">
                     <span class="veleiro-status-label">{statusLabel}</span>
                     <span class="veleiro-status-sub">{statusMessage}</span>
+                    <template if:true={envText}>
+                        <span class="veleiro-status-sub">🌐&nbsp;{envText}</span>
+                    </template>
+                    <template if:true={showConnSummary}>
+                        <span class="veleiro-status-sub">🔑&nbsp;Token: ••••••••</span>
+                    </template>
                     <template if:true={nextRunText}>
                         <span class="veleiro-status-sub">🕒&nbsp;{nextRunText}</span>
                     </template>
                 </div>
-                <lightning-button-icon icon-name="utility:refresh" alternative-text="Re-check"
-                    title="Re-check connection" onclick={loadStatus} variant="border-filled"></lightning-button-icon>
+                <div class="veleiro-status-actions">
+                    <template if:true={showConnSummary}>
+                        <lightning-button-icon icon-name="utility:edit" alternative-text="Edit connection"
+                            title="Edit token / environment" onclick={startEditConn} variant="border-filled"></lightning-button-icon>
+                    </template>
+                    <lightning-button-icon icon-name="utility:refresh" alternative-text="Re-check"
+                        title="Re-check connection" onclick={loadStatus} variant="border-filled"></lightning-button-icon>
+                </div>
             </div>
-            <div class="veleiro-conn-row">
-                <lightning-input type="password" variant="label-hidden" placeholder={tokenPlaceholder}
-                    value={tokenInput} onchange={handleTokenChange} class="veleiro-conn-input"></lightning-input>
-                <lightning-button variant="brand" label={saveTokenLabel} onclick={handleSaveToken}
-                    disabled={checking} class="veleiro-brand-btn"></lightning-button>
-            </div>
+
+            <!-- Editor: solo primera vez (sin conexión) o al presionar Editar -->
+            <template if:true={showConnEditor}>
+                <div class="veleiro-conn-row">
+                    <lightning-input type="password" variant="label-hidden" placeholder={tokenPlaceholder}
+                        value={tokenInput} onchange={handleTokenChange} class="veleiro-conn-input"></lightning-input>
+                    <lightning-button variant="brand" label={saveTokenLabel} onclick={handleSaveToken}
+                        disabled={checking} class="veleiro-brand-btn"></lightning-button>
+                </div>
+                <div class="veleiro-conn-row">
+                    <lightning-combobox label="Environment"
+                        options={environmentOptions} value={selectedEnvironment}
+                        onchange={handleEnvironmentChange} disabled={savingEnv}
+                        field-level-help="Producción por defecto. Cámbialo a Beta solo para pruebas — reescribe Base URL y App URL por ti."
+                        class="veleiro-conn-input"></lightning-combobox>
+                </div>
+                <template if:true={connected}>
+                    <div class="veleiro-conn-row veleiro-conn-done">
+                        <lightning-button label="Done" icon-name="utility:check" onclick={doneEditConn}></lightning-button>
+                    </div>
+                </template>
+            </template>
         </div>
 
         <!-- 1) Configuracion de la integracion (definir PRIMERO) -->

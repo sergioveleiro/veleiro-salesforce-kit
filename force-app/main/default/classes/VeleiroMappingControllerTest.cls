@@ -57,7 +57,7 @@ private class VeleiroMappingControllerTest {
 
         Test.startTest();
         VeleiroMappingController.saveMappings('Case', 'project',
-            new List<VeleiroMappingController.MappingRow>{ r1, r2, blank }, null);
+            new List<VeleiroMappingController.MappingRow>{ r1, r2, blank }, null, null);
         List<Veleiro_Field_Mapping__c> saved = VeleiroMappingController.getMappingsFor('Case', 'project');
         Test.stopTest();
 
@@ -65,7 +65,7 @@ private class VeleiroMappingControllerTest {
 
         // Reemplazo por par: reenviar solo r2 deja el par con 1 (r1 se elimina).
         VeleiroMappingController.saveMappings('Case', 'project',
-            new List<VeleiroMappingController.MappingRow>{ r2 }, null);
+            new List<VeleiroMappingController.MappingRow>{ r2 }, null, null);
         List<Veleiro_Field_Mapping__c> after = VeleiroMappingController.getMappingsFor('Case', 'project');
         System.assertEquals(1, after.size(), 'quedo 1');
         System.assertEquals('Priority', after[0].SF_Field__c, 'quedo el reenviado, no el omitido');
@@ -82,7 +82,7 @@ private class VeleiroMappingControllerTest {
         // Guardar el MISMO par tres veces no debe acumular duplicados.
         for (Integer i = 0; i < 3; i++) {
             VeleiroMappingController.saveMappings('Account', 'client',
-                new List<VeleiroMappingController.MappingRow>{ n, w }, null);
+                new List<VeleiroMappingController.MappingRow>{ n, w }, null, null);
         }
         Test.stopTest();
 
@@ -95,7 +95,7 @@ private class VeleiroMappingControllerTest {
         VeleiroMappingController.MappingRow r = new VeleiroMappingController.MappingRow();
         r.sfField = 'Name'; r.target = 'name'; r.type = 'Standard';
         VeleiroMappingController.saveMappings('Account', 'client',
-            new List<VeleiroMappingController.MappingRow>{ r }, null);
+            new List<VeleiroMappingController.MappingRow>{ r }, null, null);
         Veleiro_Field_Mapping__c existing = VeleiroMappingController.getMappingsFor('Account', 'client')[0];
 
         VeleiroMappingController.MappingRow upd = new VeleiroMappingController.MappingRow();
@@ -103,7 +103,7 @@ private class VeleiroMappingControllerTest {
 
         Test.startTest();
         VeleiroMappingController.saveMappings('Account', 'client',
-            new List<VeleiroMappingController.MappingRow>{ upd }, null);
+            new List<VeleiroMappingController.MappingRow>{ upd }, null, null);
         Test.stopTest();
 
         List<Veleiro_Field_Mapping__c> after = VeleiroMappingController.getMappingsFor('Account', 'client');
@@ -173,7 +173,7 @@ private class VeleiroMappingControllerTest {
 
         Test.startTest();
         VeleiroMappingController.saveMappings('Account', 'client',
-            new List<VeleiroMappingController.MappingRow>{ messy, std }, null);
+            new List<VeleiroMappingController.MappingRow>{ messy, std }, null, null);
         Test.stopTest();
 
         Map<String, Veleiro_Field_Mapping__c> byField = new Map<String, Veleiro_Field_Mapping__c>();
@@ -184,5 +184,32 @@ private class VeleiroMappingControllerTest {
         System.assertEquals('Additional Field', byField.get('Website').Target_Type__c);
         System.assertEquals('name', byField.get('Name').Veleiro_Target__c);
         System.assertEquals('Standard', byField.get('Name').Target_Type__c, 'name -> top-level Standard');
+    }
+
+    @isTest
+    static void saveAllInvalidRowsThrowsAndPreservesExisting() {
+        // Existe un mapping valido.
+        VeleiroMappingController.MappingRow good = new VeleiroMappingController.MappingRow();
+        good.sfField = 'Name'; good.target = 'name';
+        VeleiroMappingController.saveMappings('Account', 'client',
+            new List<VeleiroMappingController.MappingRow>{ good }, null, null);
+        System.assertEquals(1, VeleiroMappingController.getMappingsFor('Account', 'client').size());
+
+        // Mando una fila con target basura ('###' pasa el filtro truthy del LWC pero normalize -> '').
+        VeleiroMappingController.MappingRow garbage = new VeleiroMappingController.MappingRow();
+        garbage.sfField = 'Name'; garbage.target = '###';
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            VeleiroMappingController.saveMappings('Account', 'client',
+                new List<VeleiroMappingController.MappingRow>{ garbage }, null, null);
+        } catch (Exception e) {
+            threw = true;
+        }
+        Test.stopTest();
+
+        System.assertEquals(true, threw, 'todas las filas invalidas -> lanza error, no guarda en silencio');
+        System.assertEquals(1, VeleiroMappingController.getMappingsFor('Account', 'client').size(),
+            'el mapping previo NO se destruye');
     }
 }

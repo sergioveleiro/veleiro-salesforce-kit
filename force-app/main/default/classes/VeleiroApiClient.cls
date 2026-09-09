@@ -64,6 +64,11 @@ public with sharing class VeleiroApiClient {
         return String.isNotBlank(u) ? u.removeEnd('/') : DEFAULT_APP_BASE;
     }
 
+    // Base de API configurada (el string callout:..., NO secreto). Para mostrar el entorno en el panel.
+    public static String apiBaseConfigured() {
+        return baseUrl(resolveConfig());
+    }
+
     private static HttpRequest baseReq(String method, String path) {
         Veleiro_Config__c c = cfg();
         HttpRequest req = new HttpRequest();

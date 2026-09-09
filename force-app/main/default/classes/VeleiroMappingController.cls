@@ -133,19 +133,23 @@ public with sharing class VeleiroMappingController {
     // depender de ids/deletedIds del cliente -> nunca duplica ni deja filas huerfanas.
     // (El `deletedIds` se mantiene por compatibilidad de firma; ya no se usa.)
     @AuraEnabled
-    public static void saveMappings(String sobjectName, String entity, List<MappingRow> rows, List<Id> deletedIds) {
-        delete [
-            SELECT Id FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
-        ];
+    public static void saveMappings(String sobjectName, String entity, List<MappingRow> rows, List<Id> deletedIds, String rowsJson) {
+        // La UI manda las filas como JSON string (rowsJson). Motivo: el marshaling de un array de
+        // objetos LWC hacia un parametro Apex tipado List<MappingRow> llega con TODOS los campos en
+        // null (gotcha conocido de Aura/LWC con listas de clases Apex), mientras que el String
+        // round-trips perfecto. Los tests Apex->Apex pasan `rows` tipado y rowsJson en blanco.
+        if (String.isNotBlank(rowsJson)) {
+            rows = (List<MappingRow>) JSON.deserialize(rowsJson, List<MappingRow>.class);
+        }
+        // 1) Construir PRIMERO (no borrar todavia). Normaliza el target y dedup por campo SF.
+        Integer submitted = (rows == null) ? 0 : rows.size();
         List<Veleiro_Field_Mapping__c> toInsert = new List<Veleiro_Field_Mapping__c>();
         Set<String> seenFields = new Set<String>();
         if (rows != null) {
             for (MappingRow r : rows) {
                 if (String.isBlank(r.sfField) || String.isBlank(r.target)) continue;
-                // Normaliza el target a una llave canonica (homologa nombres) e infiere el tipo.
                 String target = VeleiroTargets.normalize(r.target);
-                if (String.isBlank(target)) continue;
+                if (String.isBlank(target)) continue; // ej. un target de puro simbolo/espacio -> se descarta
                 if (!seenFields.add(r.sfField)) continue; // un mismo campo SF, una sola vez por par
                 Veleiro_Field_Mapping__c m = new Veleiro_Field_Mapping__c();
                 m.Name = (sobjectName + ' ' + r.sfField).left(80);
@@ -159,6 +163,17 @@ public with sharing class VeleiroMappingController {
                 toInsert.add(m);
             }
         }
+        // 2) Si mandaste filas pero TODAS se descartaron (targets invalidos), NO borres nada:
+        //    aborta con error para no destruir el mapeo existente ni reportar falso exito.
+        if (submitted > 0 && toInsert.isEmpty()) {
+            throw new AuraHandledException('No se guardo: cada fila necesita un campo de Salesforce y un target de Veleiro valido.');
+        }
+        // 3) Reemplazo del par: borrar + insertar juntos (atomico en la misma transaccion).
+        //    submitted == 0 (sin filas) => vaciar el par a proposito. Con filas validas => reemplazar.
+        delete [
+            SELECT Id FROM Veleiro_Field_Mapping__c
+            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
+        ];
         if (!toInsert.isEmpty()) insert toInsert;
     }
 
@@ -192,6 +207,24 @@ public with sharing class VeleiroMappingController {
         upsert c;
     }
 
+    // Cambia el entorno (Production / Beta) escribiendo Base_Url + App_Base_Url. NO toca el token.
+    // El host real lo enruta el Named Credential correspondiente (Veleiro_API / Veleiro_API_Beta).
+    @AuraEnabled
+    public static void saveEnvironment(String environment) {
+        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        if (c == null || c.Id == null) {
+            c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
+        }
+        if (environment == 'Beta') {
+            c.Base_Url__c = 'callout:Veleiro_API_Beta/api/v1';
+            c.App_Base_Url__c = 'https://app.beta.veleiro.dev';
+        } else { // Production (default)
+            c.Base_Url__c = 'callout:Veleiro_API/api/v1';
+            c.App_Base_Url__c = 'https://app.veleiro.ai';
+        }
+        upsert c;
+    }
+
     // Estado en vivo: token puesto? conectado (callout real)? frecuencia + proximo run.
     @AuraEnabled
     public static Map<String, String> getStatus() {
@@ -212,6 +245,14 @@ public with sharing class VeleiroMappingController {
             s.put('connected', 'false');
             s.put('message', 'No API token yet — paste it below to connect.');
         }
+
+        // Entorno actual (para que el panel muestre a donde esta conectado).
+        String app = VeleiroApiClient.appBaseUrl();
+        String env = app.containsIgnoreCase('beta') ? 'Beta'
+                   : (app.containsIgnoreCase('app.veleiro.ai') ? 'Production' : 'Custom');
+        s.put('appBase', app);
+        s.put('apiBase', VeleiroApiClient.apiBaseConfigured());
+        s.put('environment', env);
 
         s.put('frequency', VeleiroSyncConfig.frequency());
         String nextRun = '';

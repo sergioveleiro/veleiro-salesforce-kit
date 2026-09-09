@@ -13,6 +13,7 @@ import getSyncConfig from '@salesforce/apex/VeleiroMappingController.getSyncConf
 import saveSyncConfig from '@salesforce/apex/VeleiroMappingController.saveSyncConfig';
 import getStatus from '@salesforce/apex/VeleiroMappingController.getStatus';
 import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
+import saveEnvironment from '@salesforce/apex/VeleiroMappingController.saveEnvironment';
 
 const ENTITY_OPTIONS = [
     { label: 'Client', value: 'client' },
@@ -72,6 +73,15 @@ export default class VeleiroMappingHome extends LightningElement {
     nextRun = '';
     tokenInput = '';
     checking = true;
+    editingConn = false; // muestra los campos editables (token + entorno) solo bajo demanda
+    environment = '';
+    appBase = '';
+    selectedEnvironment = 'Production';
+    savingEnv = false;
+    environmentOptions = [
+        { label: 'Production (app.veleiro.ai)', value: 'Production' },
+        { label: 'Beta (app.beta.veleiro.dev)', value: 'Beta' }
+    ];
 
     connectedCallback() {
         getObjects().then((r) => { this.objectOptions = r; }).catch(() => {});
@@ -89,6 +99,11 @@ export default class VeleiroMappingHome extends LightningElement {
                 this.connected = s.connected === 'true';
                 this.statusMessage = s.message || '';
                 this.nextRun = s.nextRun || '';
+                this.environment = s.environment || '';
+                this.appBase = s.appBase || '';
+                if (s.environment === 'Production' || s.environment === 'Beta') {
+                    this.selectedEnvironment = s.environment;
+                }
             })
             .catch(() => { this.connected = false; this.statusMessage = 'Could not check connection.'; })
             .finally(() => { this.checking = false; });
@@ -106,6 +121,7 @@ export default class VeleiroMappingHome extends LightningElement {
                 return this.loadStatus();
             })
             .then(() => {
+                if (this.connected) this.editingConn = false; // conectó -> colapsa a la vista resumida
                 this.dispatchEvent(new ShowToastEvent({
                     title: this.connected ? 'Connected to Veleiro' : 'Not connected',
                     message: this.statusMessage,
@@ -113,6 +129,33 @@ export default class VeleiroMappingHome extends LightningElement {
                 }));
             })
             .catch(() => { this.checking = false; });
+    }
+
+    // Conexión: vista resumida (conectado) vs editor (primera vez o al editar).
+    get showConnSummary() { return this.connected && !this.editingConn; }
+    get showConnEditor() { return !this.connected || this.editingConn; }
+    startEditConn() { this.editingConn = true; }
+    doneEditConn() { this.editingConn = false; this.tokenInput = ''; }
+
+    handleEnvironmentChange(event) {
+        const env = event.detail.value;
+        this.selectedEnvironment = env;
+        this.savingEnv = true;
+        this.checking = true;
+        saveEnvironment({ environment: env })
+            .then(() => this.loadStatus())
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'Environment set to ' + env,
+                    message: this.connected ? 'Connected to ' + this.appBase : this.statusMessage,
+                    variant: this.connected ? 'success' : 'warning'
+                }));
+            })
+            .catch((e) => {
+                const msg = e && e.body && e.body.message ? e.body.message : 'Could not switch environment';
+                this.dispatchEvent(new ShowToastEvent({ title: 'Switch failed', message: msg, variant: 'error' }));
+            })
+            .finally(() => { this.savingEnv = false; });
     }
 
     get statusClass() {
@@ -131,6 +174,11 @@ export default class VeleiroMappingHome extends LightningElement {
         if (!this.connected) return '';
         if (this.syncFrequency === 'off' || !this.nextRun) return 'Scheduled pull is off.';
         return 'Next pull from Veleiro: ' + this.nextRun;
+    }
+    get envText() {
+        if (!this.environment) return '';
+        const host = this.appBase ? this.appBase.replace('https://', '') : '';
+        return host ? this.environment + ' · ' + host : this.environment;
     }
     get tokenPlaceholder() {
         return this.tokenSet ? 'Paste a new token to replace the current one' : 'Paste your Veleiro API token (starts with vlr_)';
@@ -280,11 +328,10 @@ export default class VeleiroMappingHome extends LightningElement {
         if (!this.canSave) return;
         this.hint = undefined;
         this.deletedIds = [];
-        // Carga primero los targets de Veleiro (para saber cuales son "custom") y luego las filas.
-        getTargets({ entity: this.selectedEntity })
-            .then((opts) => { this.targetOptions = opts || []; })
-            .catch(() => { this.targetOptions = []; })
-            .then(() => getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity }))
+
+        // 1) FILAS primero — rápido, SIN callout. Aparecen de inmediato (evita la carrera
+        //    donde se guardaba vacío si el usuario daba Save antes de que resolviera getTargets).
+        getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity })
             .then((existing) => {
                 if (existing && existing.length) {
                     this.rows = existing.map((m) => this.toRow(m.Id, m.SF_Field__c, m.Veleiro_Target__c));
@@ -303,6 +350,15 @@ export default class VeleiroMappingHome extends LightningElement {
                 }
             })
             .catch(() => {});
+
+        // 2) TARGETS (picklist) en paralelo — hace callout, NO bloquea las filas. Al llegar,
+        //    recalcula isCustom para que los defaults se vean como selección y no como texto libre.
+        getTargets({ entity: this.selectedEntity })
+            .then((opts) => {
+                this.targetOptions = opts || [];
+                this.rows = this.rows.map((r) => ({ ...r, isCustom: !!r.target && !this.targetValues.has(r.target) }));
+            })
+            .catch(() => { this.targetOptions = []; });
     }
 
     get targetValues() {
@@ -370,13 +426,25 @@ export default class VeleiroMappingHome extends LightningElement {
     }
 
     handleSave() {
+        // Solo filas completas (campo SF + target). Evita guardar vacío en silencio.
+        const payload = this.rows
+            .map((r) => ({ id: r.id, sfField: r.sfField, target: r.target }))
+            .filter((r) => r.sfField && r.target);
+        if (payload.length === 0) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Nothing to save yet',
+                message: 'Add at least one row with a Salesforce field and a Veleiro target before saving.',
+                variant: 'warning'
+            }));
+            return;
+        }
         this.saving = true;
-        const payload = this.rows.map((r) => ({ id: r.id, sfField: r.sfField, target: r.target }));
         saveMappings({
             sobjectName: this.selectedObject,
             entity: this.selectedEntity,
             rows: payload,
-            deletedIds: this.deletedIds
+            deletedIds: this.deletedIds,
+            rowsJson: JSON.stringify(payload) // el string round-trips; el array tipado llega null (gotcha LWC->Apex)
         })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({

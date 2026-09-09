@@ -229,5 +229,7 @@
 .veleiro-status-text { display: flex; flex-direction: column; flex: 1; gap: 1px; }
 .veleiro-status-label { color: var(--veleiro-navy); font-weight: 700; font-size: 0.92rem; }
 .veleiro-status-sub { color: var(--veleiro-muted); font-size: 0.76rem; }
-.veleiro-conn-row { display: flex; gap: 10px; align-items: center; }
+.veleiro-conn-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
 .veleiro-conn-input { flex: 1; }
+.veleiro-status-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+.veleiro-conn-done { justify-content: flex-end; }
