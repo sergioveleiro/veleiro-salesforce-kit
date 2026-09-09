@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sync_Trigger__c</fullName>
+    <label>Sync Trigger</label>
+    <type>Text</type>
+    <length>16</length>
+    <required>false</required>
+    <description>When Salesforce pushes to Veleiro: auto (on record create) | manual (only when the user clicks Sync). Blank defaults to manual. Set it from the Veleiro Mappings panel.</description>
+    <inlineHelpText>auto = sincroniza al crear Account/Opportunity; manual = solo al dar clic en el botón Sync. En blanco = manual.</inlineHelpText>
+</CustomField>

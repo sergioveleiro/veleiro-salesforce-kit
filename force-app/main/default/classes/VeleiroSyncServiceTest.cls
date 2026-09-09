@@ -206,4 +206,17 @@ private class VeleiroSyncServiceTest {
         Opportunity after = [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :o.Id];
         System.assertEquals('prjct_test', after.Veleiro_Project_Id__c);
     }
+
+    @isTest
+    static void invocableCreatesClient() {
+        Account a = newAccount(null);
+        Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+
+        Test.startTest();
+        VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a.Id });
+        Test.stopTest();
+
+        Account after = [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id];
+        System.assertEquals('org_test', after.Veleiro_Client_Id__c);
+    }
 }

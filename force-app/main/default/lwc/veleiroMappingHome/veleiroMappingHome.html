@@ -71,6 +71,9 @@
                     value={syncWinner} onchange={handleWinnerChange}></lightning-combobox>
                 <lightning-combobox label="Pull from Veleiro (schedule)" options={frequencyOptions}
                     value={syncFrequency} onchange={handleFrequencyChange}></lightning-combobox>
+                <lightning-combobox label="Sync to Veleiro (trigger)" options={triggerOptions}
+                    value={syncTrigger} onchange={handleTriggerChange}
+                    field-level-help="Automatic = sincroniza Account/Opportunity al crearlos. Manual = solo cuando das clic en Sync."></lightning-combobox>
             </div>
             <div class="veleiro-actions">
                 <span class="veleiro-config-hint">🧭&nbsp;Set this first — it defines whether Salesforce pushes, pulls, or both, who wins a conflict, and how often we pull from Veleiro (no webhook yet).</span>

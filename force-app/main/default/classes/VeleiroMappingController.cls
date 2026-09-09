@@ -184,13 +184,14 @@ public with sharing class VeleiroMappingController {
         return new Map<String, String>{
             'direction' => VeleiroSyncConfig.direction(),
             'winner'    => VeleiroSyncConfig.winner(),
-            'frequency' => VeleiroSyncConfig.frequency()
+            'frequency' => VeleiroSyncConfig.frequency(),
+            'trigger'   => VeleiroSyncConfig.syncTrigger()
         };
     }
 
     @AuraEnabled
-    public static void saveSyncConfig(String direction, String winner, String frequency) {
-        VeleiroSyncConfig.save(direction, winner, frequency);
+    public static void saveSyncConfig(String direction, String winner, String frequency, String triggerMode) {
+        VeleiroSyncConfig.save(direction, winner, frequency, triggerMode);
     }
 
     // ---- conexion: guardar token + verificar estado (para el panel) ----

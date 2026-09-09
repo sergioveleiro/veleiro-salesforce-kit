@@ -317,7 +317,8 @@ public with sharing class VeleiroSyncService {
         }
     }
 
-    // Invocable para el flow de Closed Won (crea el project; corre en la ruta async del flow).
+    // Invocable para los flows (Closed Won + auto-sync opp). Apex permite 1 invocable por clase;
+    // el de Account vive en VeleiroSyncAccountAction.
     @InvocableMethod(label='Sync Opportunity to Veleiro Project' callout=true)
     public static void syncOpportunitiesInvocable(List<Id> opportunityIds) {
         for (Id oid : opportunityIds) {

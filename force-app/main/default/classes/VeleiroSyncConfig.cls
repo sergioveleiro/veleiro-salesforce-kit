@@ -17,6 +17,8 @@ public with sharing class VeleiroSyncConfig {
     public static final String FREQ_OFF    = 'off';
     public static final String FREQ_HOURLY = 'hourly';
     public static final String FREQ_DAILY  = 'daily';
+    public static final String TRIG_AUTO   = 'auto';    // sincroniza al crear el registro
+    public static final String TRIG_MANUAL = 'manual';  // solo cuando el usuario da clic al boton
     public static final String JOB_NAME    = 'Veleiro Pull Job';
 
     // ---- lecturas (con defaults sensatos si no se ha configurado) ----
@@ -33,12 +35,19 @@ public with sharing class VeleiroSyncConfig {
         return String.isNotBlank(f) ? f : FREQ_OFF;
     }
 
+    public static String syncTrigger() {
+        String t = str(cfg() != null ? cfg().Sync_Trigger__c : null);
+        return String.isNotBlank(t) ? t : TRIG_MANUAL; // default seguro: manual (nada auto)
+    }
+
     public static Boolean pushEnabled()   { return direction() != DIR_VELEIRO; } // SF -> Veleiro permitido?
     public static Boolean pullEnabled()   { return direction() != DIR_SF; }      // Veleiro -> SF permitido?
     public static Boolean salesforceWins(){ return winner() != WIN_VELEIRO; }
+    // Auto-sincronizar al crear? solo si el trigger es 'auto' Y el push (SF->Veleiro) esta permitido.
+    public static Boolean autoSyncOnCreate() { return syncTrigger() == TRIG_AUTO && pushEnabled(); }
 
     // ---- escritura + (re)programacion del job ----
-    public static void save(String direction, String winner, String frequency) {
+    public static void save(String direction, String winner, String frequency, String triggerMode) {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
@@ -46,6 +55,7 @@ public with sharing class VeleiroSyncConfig {
         c.Sync_Direction__c = normalizeDir(direction);
         c.Conflict_Winner__c = (String.isNotBlank(winner) && winner.toLowerCase() == WIN_VELEIRO) ? WIN_VELEIRO : WIN_SF;
         c.Pull_Frequency__c = normalizeFreq(frequency);
+        c.Sync_Trigger__c = normalizeTrigger(triggerMode);
         upsert c;
         reschedule(c.Pull_Frequency__c);
     }
@@ -73,6 +83,9 @@ public with sharing class VeleiroSyncConfig {
         String v = str(f);
         if (v == FREQ_HOURLY || v == FREQ_DAILY) return v;
         return FREQ_OFF;
+    }
+    private static String normalizeTrigger(String tm) {
+        return str(tm) == TRIG_AUTO ? TRIG_AUTO : TRIG_MANUAL;
     }
     private static String str(String s) { return (s == null) ? null : s.trim().toLowerCase(); }
 

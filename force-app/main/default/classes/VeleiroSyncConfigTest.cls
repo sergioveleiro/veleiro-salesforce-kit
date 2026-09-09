@@ -23,7 +23,7 @@ private class VeleiroSyncConfigTest {
         // el job agendado corre en stopTest -> necesita mock para su callout
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
         Test.startTest();
-        VeleiroSyncConfig.save('veleiro_to_sf', 'veleiro', 'hourly');
+        VeleiroSyncConfig.save('veleiro_to_sf', 'veleiro', 'hourly', 'manual');
         Map<String, String> c = VeleiroMappingController.getSyncConfig();
         Test.stopTest();
 
@@ -41,16 +41,16 @@ private class VeleiroSyncConfigTest {
     static void scheduleOffAbortsJob() {
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
         Test.startTest();
-        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'daily');
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'daily', 'manual');
         System.assertEquals(1, [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name = :VeleiroSyncConfig.JOB_NAME]);
-        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off');
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'manual');
         Test.stopTest();
         System.assertEquals(0, [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name = :VeleiroSyncConfig.JOB_NAME], 'off aborta el job');
     }
 
     @isTest
     static void normalizesGarbageInput() {
-        VeleiroSyncConfig.save('nonsense', 'nonsense', 'nonsense');
+        VeleiroSyncConfig.save('nonsense', 'nonsense', 'nonsense', 'manual');
         System.assertEquals('bidirectional', VeleiroSyncConfig.direction());
         System.assertEquals('salesforce', VeleiroSyncConfig.winner());
         System.assertEquals('off', VeleiroSyncConfig.frequency());
@@ -92,7 +92,7 @@ private class VeleiroSyncConfigTest {
 
     @isTest
     static void pullDisabledWhenDirectionSfOnly() {
-        VeleiroSyncConfig.save('sf_to_veleiro', 'salesforce', 'off');
+        VeleiroSyncConfig.save('sf_to_veleiro', 'salesforce', 'off', 'manual');
         insert new Account(Name = 'X', Veleiro_Client_Id__c = 'org_x', Veleiro_Version__c = 1);
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
         Test.startTest();
@@ -103,7 +103,7 @@ private class VeleiroSyncConfigTest {
 
     @isTest
     static void pushBlockedWhenDirectionVeleiroOnly() {
-        VeleiroSyncConfig.save('veleiro_to_sf', 'salesforce', 'off');
+        VeleiroSyncConfig.save('veleiro_to_sf', 'salesforce', 'off', 'manual');
         Account a = new Account(Name = 'Acme');
         insert a;
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
@@ -125,5 +125,20 @@ private class VeleiroSyncConfigTest {
         Test.stopTest();
         // sin error = ok (no hay accounts, devuelve 0)
         System.assert(true);
+    }
+
+    @isTest
+    static void syncTriggerAndAutoOnCreate() {
+        System.assertEquals('manual', VeleiroSyncConfig.syncTrigger(), 'default es manual');
+
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto');
+        System.assertEquals('auto', VeleiroSyncConfig.syncTrigger());
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncOnCreate(), 'auto + push habilitado -> true');
+
+        VeleiroSyncConfig.save('veleiro_to_sf', 'salesforce', 'off', 'auto');
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOnCreate(), 'auto pero push deshabilitado -> false');
+
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'manual');
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOnCreate(), 'manual -> false');
     }
 }

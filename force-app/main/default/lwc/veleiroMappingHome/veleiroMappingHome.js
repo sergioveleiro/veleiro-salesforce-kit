@@ -33,6 +33,10 @@ const FREQUENCY_OPTIONS = [
     { label: 'Every hour', value: 'hourly' },
     { label: 'Daily', value: 'daily' }
 ];
+const TRIGGER_OPTIONS = [
+    { label: 'Manual (only when you click Sync)', value: 'manual' },
+    { label: 'Automatic on record create', value: 'auto' }
+];
 
 export default class VeleiroMappingHome extends LightningElement {
     logoUrl = VELEIRO_LOGO;
@@ -61,9 +65,11 @@ export default class VeleiroMappingHome extends LightningElement {
     directionOptions = DIRECTION_OPTIONS;
     winnerOptions = WINNER_OPTIONS;
     frequencyOptions = FREQUENCY_OPTIONS;
+    triggerOptions = TRIGGER_OPTIONS;
     syncDirection = 'bidirectional';
     syncWinner = 'salesforce';
     syncFrequency = 'off';
+    syncTrigger = 'manual';
     savingConfig = false;
 
     // ---- connection status ----
@@ -210,6 +216,7 @@ export default class VeleiroMappingHome extends LightningElement {
                     this.syncDirection = c.direction || 'bidirectional';
                     this.syncWinner = c.winner || 'salesforce';
                     this.syncFrequency = c.frequency || 'off';
+                    this.syncTrigger = c.trigger || 'manual';
                 }
             })
             .catch(() => {});
@@ -217,10 +224,11 @@ export default class VeleiroMappingHome extends LightningElement {
     handleDirectionChange(event) { this.syncDirection = event.detail.value; }
     handleWinnerChange(event) { this.syncWinner = event.detail.value; }
     handleFrequencyChange(event) { this.syncFrequency = event.detail.value; }
+    handleTriggerChange(event) { this.syncTrigger = event.detail.value; }
 
     handleSaveConfig() {
         this.savingConfig = true;
-        saveSyncConfig({ direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency })
+        saveSyncConfig({ direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency, triggerMode: this.syncTrigger })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({
                     title: 'Integration configured',
