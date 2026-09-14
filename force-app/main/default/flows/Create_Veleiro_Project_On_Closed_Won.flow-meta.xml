@@ -35,7 +35,7 @@
             </value>
         </assignmentItems>
     </assignments>
-    <description>Cuando una Opportunity pasa a Closed Won (y aun no tiene project), crea automaticamente el project en la plataforma Veleiro ligado al client de la cuenta.</description>
+    <description>Cuando una Opportunity pasa a Closed Won (y aun no tiene project), crea el project en Veleiro — PERO solo si Sync Trigger = auto y el push esta permitido. En modo manual no hace nada (ni al cerrar ni al importar opps historicas); el usuario sincroniza con el boton.</description>
     <environments>Default</environments>
     <interviewLabel>Create Veleiro Project On Closed Won {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Create Veleiro Project On Closed Won</label>
@@ -44,7 +44,7 @@
         <locationX>50</locationX>
         <locationY>0</locationY>
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
-        <filterFormula>AND(ISPICKVAL({!$Record.StageName}, "Closed Won"), ISBLANK({!$Record.Veleiro_Project_Id__c}))</filterFormula>
+        <filterFormula>AND({!$Setup.Veleiro_Config__c.Sync_Trigger__c} = "auto", NOT({!$Setup.Veleiro_Config__c.Sync_Direction__c} = "veleiro_to_sf"), ISPICKVAL({!$Record.StageName}, "Closed Won"), ISBLANK({!$Record.Veleiro_Project_Id__c}))</filterFormula>
         <object>Opportunity</object>
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <scheduledPaths>
