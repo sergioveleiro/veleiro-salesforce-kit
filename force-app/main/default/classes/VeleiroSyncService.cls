@@ -321,8 +321,14 @@ public with sharing class VeleiroSyncService {
     // el de Account vive en VeleiroSyncAccountAction.
     @InvocableMethod(label='Sync Opportunity to Veleiro Project' callout=true)
     public static void syncOpportunitiesInvocable(List<Id> opportunityIds) {
+        // Si el Account se creo en la misma operacion (conversion de Lead), su propio auto-sync
+        // esta creando el client: esperamos a ese en vez de crear un duplicado.
+        Set<Id> waiting = VeleiroOppSyncQueueable.waitingForAccountSync(opportunityIds);
         for (Id oid : opportunityIds) {
-            syncOpportunity(oid);
+            if (!waiting.contains(oid)) syncOpportunity(oid);
+        }
+        if (!waiting.isEmpty()) {
+            VeleiroOppSyncQueueable.defer(waiting, 1);
         }
     }
 }
