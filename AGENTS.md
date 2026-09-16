@@ -91,7 +91,7 @@ Queues: `expand`+`reference` → Expand; `protect`+`unblock` → At-risk; `onboa
 
 ## How to install in a partner org
 
-1. `sf project deploy start -o <org> -d force-app -l RunLocalTests` (production needs the tests to pass).
+1. `scripts/deploy.sh <org>` (use `--validate` first for production). It deploys with `RunSpecifiedTests` and runs only the kit's `*Test` classes. **Don't use `RunLocalTests`**: it runs every test in the partner's org, and unrelated failing tests there would block the install.
 2. Configure `Veleiro_Config__c` **as data** (never in git): set `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. Use `scripts/apex/configure.apex` (edit in a local copy, don't commit the token) or the Setup UI.
 3. `sf apex run -o <org> -f scripts/apex/seedMappings.apex` to seed default mappings.
 4. `sf org assign permset -o <org> -n Veleiro_Integration_Access`.

@@ -12,18 +12,17 @@ A public Salesforce (SFDX) package that you can deploy as-is. It links a partner
 - **All Veleiro calls are server-to-server from Apex, through `VeleiroApiClient` only.** The token never reaches an LWC.
 - **`additional_fields` is replaced whole on write**, so always read-modify-write (`VeleiroSyncService.patchClientWithMerge` / `patchProjectWithMerge`).
 - **Branch on the error `code`, never on `message`.** No trailing slash on API paths (it causes a 301 and the body is dropped).
-- **Production deploys need ≥75% coverage.** Every source class has a `*Test` that uses `VeleiroApiMock`. Add tests when you add Apex.
+- **Every source class needs ≥75% coverage on its own** (we deploy with `RunSpecifiedTests`). Every source class has a `*Test` that uses `VeleiroApiMock`. Add tests when you add Apex.
 - **Confirm before outward-facing actions**, such as a deploy to a partner's production org or creating/pushing public repos.
 
 ## Commands
 ```bash
-# Deploy (production runs tests)
-sf project deploy start -o <org> -d force-app -l RunLocalTests
-# Validate only, without saving the deploy
-sf project deploy validate -o <org> -d force-app -l RunLocalTests
+# Deploy / validate (RunSpecifiedTests with every *Test class in force-app/)
+scripts/deploy.sh <org>
+scripts/deploy.sh <org> --validate
 
-# All tests / one class / one method
-sf apex run test -o <org> -l RunLocalTests -w 30 -c -r human
+# Kit tests with coverage / one class / one method
+sf apex run test -o <org> -n $(ls force-app/main/default/classes/*Test.cls | xargs -n1 basename | sed 's/\.cls$//' | paste -sd, -) -w 30 -c -r human
 sf apex run test -o <org> -t VeleiroSyncServiceTest -w 10 -r human
 sf apex run test -o <org> -t VeleiroSyncServiceTest.<methodName> -w 10 -r human
 
@@ -33,6 +32,8 @@ sf apex run -o <org> -f scripts/apex/seedMappings.apex
 sf org assign permset -o <org> -n Veleiro_Integration_Access
 ```
 Org aliases live in the untracked `.sf/`.
+
+**Never deploy with `RunLocalTests`.** Partner orgs contain other teams' tests that we don't control (e.g. a failing `VeleiroEmailInsightsControllerTest` from another project blocked a production install). `RunSpecifiedTests` requires ≥75% coverage on **each** class in the deploy, not just overall. A new Apex class therefore needs a `*Test` that covers it directly or through a caller (e.g. `VeleiroPullQueueable` is covered through `VeleiroSyncConfigTest.scheduledJobRuns`).
 
 ## Architecture notes (not in AGENTS.md yet)
 - **Behavior is driven by `Veleiro_Config__c`**, a hierarchy custom setting that `VeleiroSyncConfig` reads and the Mappings panel writes:

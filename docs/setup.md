@@ -8,9 +8,10 @@ Step-by-step install of the Veleiro Salesforce Kit into your org.
 
 ## 1. Deploy the metadata
 ```bash
-sf project deploy start -o <your-org> -d force-app -l RunLocalTests
+scripts/deploy.sh <your-org> --validate   # optional dry run: runs tests, saves nothing
+scripts/deploy.sh <your-org>
 ```
-Production orgs run the tests during deploy (the package ships ≥75% coverage). Sandboxes/scratch orgs deploy the same way.
+The script deploys `force-app/` with `RunSpecifiedTests`, running **only the kit's own `*Test` classes** (discovered automatically). We avoid `RunLocalTests` on purpose: it runs *every* test in your org, so an unrelated failing test from other code would block the kit. With specified tests Salesforce requires ≥75% coverage on each class in the deploy, which the kit's tests provide. Sandboxes/scratch orgs deploy the same way.
 
 ## 2. Paste your Veleiro API token (the ONLY thing you configure — it's a secret)
 The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code to **production** (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.veleiro.ai`), so you don't have to set them.

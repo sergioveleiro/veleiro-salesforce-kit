@@ -60,8 +60,9 @@ Everything else — all code, the config structure, and the exact step-by-step �
 
 ```bash
 # 1) Deploy the metadata
-sf project deploy start -o <your-org> -d force-app \
-  -l RunLocalTests
+#    (runs only the kit's own tests, so unrelated tests in your org can't block it;
+#     add --validate for a dry run)
+scripts/deploy.sh <your-org>
 
 # 2) Configure your token + URLs (as data, not in git) — see docs/setup.md
 sf apex run -o <your-org> -f scripts/apex/configure.apex   # after editing it with your token
