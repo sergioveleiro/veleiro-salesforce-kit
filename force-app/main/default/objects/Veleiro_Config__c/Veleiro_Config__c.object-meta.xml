@@ -3,5 +3,5 @@
     <customSettingsType>Hierarchy</customSettingsType>
     <description>Config de la integracion con la API de Veleiro (token + base URL). El token se inserta como DATO, no va en git.</description>
     <label>Veleiro Config</label>
-    <visibility>Protected</visibility>
+    <visibility>Public</visibility>
 </CustomObject>

@@ -57,6 +57,6 @@ Then open an Account: the Veleiro panel should show "Synced", and Velly should s
 The flow **Create Veleiro Project On Closed Won** is included. Activate it (Setup → Flows) if it isn't active in your org — when an Opportunity reaches **Closed Won**, it creates the linked Veleiro project asynchronously.
 
 ## Hardening notes
-- The token is a protected custom setting value; keep the number of users with "Customize Application" / "View Setup" tight.
+- `Veleiro_Config__c` ships with **Public** visibility on purpose: Salesforce rejects `Protected` custom settings in production orgs (it is only allowed in developer/sandbox/scratch orgs, and only meaningful inside a namespaced managed package). Access to the token is governed by org permissions — keep the number of users with "Customize Application" / "View Setup and Configuration" tight.
 - All calls are server-to-server; the token is never sent to the browser.
 - If you fork this repo, keep it free of tokens — see `.gitignore`.
