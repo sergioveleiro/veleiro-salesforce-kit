@@ -64,6 +64,33 @@ public with sharing class VeleiroSyncService {
 
     // ===== Account -> Client =====
 
+    // Veleiro solo acepta website_url como URL http(s) absoluta sin espacios; si no, rechaza
+    // (400) la creacion completa. Completa el esquema faltante ('acme.com' -> 'https://acme.com')
+    // y devuelve null si no se puede arreglar (el client se crea igual, sin analisis).
+    @TestVisible
+    private static String researchWebsite(String raw) {
+        if (String.isBlank(raw)) return null;
+        String s = raw.trim();
+        if (!s.toLowerCase().startsWith('http://') && !s.toLowerCase().startsWith('https://')) {
+            s = 'https://' + s;
+        }
+        if (s.length() > 1000 || !Pattern.matches('(?i)https?://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]+)?([/?#]\\S*)?', s)) {
+            return null;
+        }
+        return s;
+    }
+
+    // Payload de CREATE del client. Con website_url, Veleiro lanza solo el analisis del client
+    // (client-info research); solo ocurre al crear, un PATCH no lo dispara.
+    private static Map<String, Object> newClientPayload(MappedPayload mp) {
+        Map<String, Object> payload = new Map<String, Object>();
+        payload.putAll(mp.topLevel);
+        payload.put('additional_fields', mp.additional);
+        String website = researchWebsite((String) mp.record.get('Website'));
+        if (website != null) payload.put('website_url', website);
+        return payload;
+    }
+
     // Resultado que consume el LWC / boton.
     public class ClientResult {
         @AuraEnabled public String clientId;
@@ -101,7 +128,7 @@ public with sharing class VeleiroSyncService {
 
         // El payload lo definen los mapeos configurados (Account -> client).
         MappedPayload mp = buildPayload('Account', 'client', accountId,
-            new Set<String>{ 'Name', 'Veleiro_Client_Id__c', 'Veleiro_Version__c' });
+            new Set<String>{ 'Name', 'Website', 'Veleiro_Client_Id__c', 'Veleiro_Version__c' });
         Account a = (Account) mp.record;
 
         // Llave de correlacion de sistema: siempre va (no depende del mapeo).
@@ -114,10 +141,7 @@ public with sharing class VeleiroSyncService {
 
         if (String.isBlank(a.Veleiro_Client_Id__c)) {
             // CREATE
-            Map<String, Object> payload = new Map<String, Object>();
-            payload.putAll(mp.topLevel);
-            payload.put('additional_fields', mp.additional);
-            result = VeleiroApiClient.doPost('/clients', payload);
+            result = VeleiroApiClient.doPost('/clients', newClientPayload(mp));
             created = true;
         } else {
             // UPDATE: read-modify-write de additional_fields + If-Match version.
@@ -234,13 +258,10 @@ public with sharing class VeleiroSyncService {
         Boolean accountNeedsUpdate = false;
         if (String.isBlank(clientId)) {
             // Crea el client usando SUS propios mapeos (Account -> client).
-            MappedPayload amp = buildPayload('Account', 'client', a.Id, new Set<String>{ 'Name' });
+            MappedPayload amp = buildPayload('Account', 'client', a.Id, new Set<String>{ 'Name', 'Website' });
             amp.additional.put('sf_account_id', a.Id);
             if (!amp.topLevel.containsKey('name')) amp.topLevel.put('name', a.Name);
-            Map<String, Object> cpayload = new Map<String, Object>();
-            cpayload.putAll(amp.topLevel);
-            cpayload.put('additional_fields', amp.additional);
-            Map<String, Object> cRes = VeleiroApiClient.doPost('/clients', cpayload);
+            Map<String, Object> cRes = VeleiroApiClient.doPost('/clients', newClientPayload(amp));
             clientId = (String) cRes.get('id');
             a.Veleiro_Client_Id__c = clientId;
             if (cRes.get('version') != null) a.Veleiro_Version__c = Integer.valueOf(String.valueOf(cRes.get('version')));

@@ -49,6 +49,45 @@ private class VeleiroSyncServiceTest {
     }
 
     @isTest
+    static void createSendsWebsiteUrlForResearch() {
+        Account a = newAccount(null); // Website = https://acme.com
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncAccount(a.Id);
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+        System.assertEquals('https://acme.com', body.get('website_url'), 'website_url dispara el analisis en Veleiro');
+    }
+
+    @isTest
+    static void updateDoesNotSendWebsiteUrl() {
+        Account a = newAccount('org_test');
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncAccount(a.Id);
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPatchBody);
+        System.assert(!body.containsKey('website_url'), 'el PATCH no toca el perfil del client');
+    }
+
+    @isTest
+    static void researchWebsiteNormalizes() {
+        System.assertEquals('https://acme.com', VeleiroSyncService.researchWebsite('  acme.com '));
+        System.assertEquals('http://acme.com/es?x=1', VeleiroSyncService.researchWebsite('http://acme.com/es?x=1'));
+        System.assertEquals('HTTPS://www.acme.co:8443/', VeleiroSyncService.researchWebsite('HTTPS://www.acme.co:8443/'), 'esquema en mayusculas es valido');
+        System.assertEquals(null, VeleiroSyncService.researchWebsite(null));
+        System.assertEquals(null, VeleiroSyncService.researchWebsite('acme dot com'), 'con espacios Veleiro lo rechaza');
+        System.assertEquals(null, VeleiroSyncService.researchWebsite('ftp://acme.com'));
+        System.assertEquals(null, VeleiroSyncService.researchWebsite('https://'));
+    }
+
+    @isTest
     static void syncAccountUpdatesExistingClient() {
         Account a = newAccount('org_test');
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());

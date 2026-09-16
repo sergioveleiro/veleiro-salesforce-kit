@@ -64,6 +64,7 @@ Base: `Base_Url__c` = `callout:Veleiro_API/api/v1`, routed through the `Veleiro_
 - **Rate limit:** ~600 req/min → `429` with `Retry-After`.
 - **CORS excludes `/api`** — server-to-server only (that's why the token lives in Apex, never the browser).
 - **Resources:** `/clients` (`org_…`), `/projects` (`prjct_…`, has `progress` 0–100, `status`, `client_id`, `additional_fields`), `/tasks` (has `status_id`, `client_id`, `project_id`), `/tasks/states` (catalog; `state_type` ∈ `initial|in_progress|blocked|review|done`), `/members` (`prtr_mem_…`).
+- **Client analysis ("client-info research") starts automatically on `POST /clients` when the body has a top-level `website_url`.** There is no endpoint to trigger it, and a `PATCH` that adds `website_url` does not start it. `website_url` must be an absolute `http(s)` URL with no whitespace, or Veleiro rejects the whole create with a 400. The kit sends `Account.Website` as `website_url` on every client create, normalized by `VeleiroSyncService.researchWebsite` (`acme.com` → `https://acme.com`; unfixable values are dropped). Reports created through the API come back in English.
 - **There is no workflow/automation API.** Veleiro exposes CRUD only — no outbound webhooks or triggers. Reactive automation must live on the Salesforce side (flows, scheduled Apex polling).
 
 ## Linkage model
