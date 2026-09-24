@@ -193,4 +193,66 @@ private class VeleiroLinkControllerTest {
         System.assertEquals(1, o.rows.size(), 'los clients se listan igual, sin candidatos');
         System.assert(o.rows[0].options.isEmpty());
     }
+
+    @isTest
+    static void linkAndSyncPushesTheMappedFields() {
+        Account a = new Account(Name = 'Acme', Website = 'https://acme.com', Phone = '+57 1 234');
+        insert a;
+        VeleiroApiMock mock = new VeleiroApiMock();
+        mock.singleClientBody = '{"data":{"id":"org_acme","name":"Acme","version":2,"additional_fields":{"otro":"no se pisa"}}}';
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAndSync(JSON.serialize(
+            new List<Map<String, String>>{ new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' } }));
+        Test.stopTest(); // el Queueable corre aqui
+
+        System.assertEquals(1, r.linked);
+        System.assertEquals(true, r.syncing);
+
+        Map<String, Object> sent = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPatchBody);
+        Map<String, Object> af = (Map<String, Object>) sent.get('additional_fields');
+        System.assertEquals('Acme', sent.get('name'));
+        System.assertEquals('https://acme.com', af.get('sf_website'), 'los campos mapeados viajan a Veleiro');
+        System.assertEquals(a.Id, af.get('sf_account_id'), 'y el vinculo queda del lado de Veleiro');
+        System.assertEquals('no se pisa', af.get('otro'), 'lo que ya tenia Veleiro se conserva');
+    }
+
+    @isTest
+    static void linkWithoutSyncDoesNotCallVeleiro() {
+        Account a = new Account(Name = 'Acme', Website = 'https://acme.com');
+        insert a;
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(
+            new List<Map<String, String>>{ new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' } }));
+        Test.stopTest();
+
+        System.assertEquals(1, r.linked);
+        System.assertEquals(false, r.syncing);
+        System.assertEquals(null, mock.lastPatchBody, 'vincular no habla con Veleiro');
+    }
+
+    @isTest
+    static void linkSyncQueueableSkipsWhatFailsAndKeepsGoing() {
+        Account ok = new Account(Name = 'Ok', Veleiro_Client_Id__c = 'org_ok');
+        Account broken = new Account(Name = 'Sin client');
+        insert new List<Account>{ ok, broken };
+        VeleiroLinkSyncQueueable.batchSize = 1; // segunda tanda: en test no se encadena
+
+        VeleiroApiMock mock = new VeleiroApiMock();
+        mock.overrideStatus = 404;
+        mock.overrideBody = '{"error":{"code":"not_found"}}';
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        System.enqueueJob(new VeleiroLinkSyncQueueable(new List<Id>{ ok.Id, broken.Id }));
+        Test.stopTest();
+
+        System.assertEquals('org_ok',
+            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :ok.Id].Veleiro_Client_Id__c,
+            'el error de Veleiro no rompe el lote ni borra el vinculo');
+    }
 }

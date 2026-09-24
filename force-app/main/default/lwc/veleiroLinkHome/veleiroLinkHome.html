@@ -40,8 +40,12 @@
                         checked={onlySuggested} onchange={handleToggleFilter}></lightning-input>
                     <div>
                         <lightning-button label="Clear" onclick={handleClear}></lightning-button>
-                        <lightning-button variant="brand" label={linkLabel} disabled={nothingToLink}
-                            onclick={handleLink} class="slds-m-left_x-small veleiro-brand-btn"></lightning-button>
+                        <lightning-button label={linkLabel} disabled={nothingToLink}
+                            onclick={handleLink} class="slds-m-left_x-small"
+                            title="Only writes the link. Mapped fields stay in Salesforce."></lightning-button>
+                        <lightning-button variant="brand" label={linkAndSyncLabel} disabled={nothingToLink}
+                            onclick={handleLinkAndSync} class="slds-m-left_x-small veleiro-brand-btn"
+                            title="Links and sends the mapped fields to each Veleiro client."></lightning-button>
                     </div>
                 </div>
 

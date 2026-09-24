@@ -150,6 +150,23 @@ public with sharing class VeleiroSyncService {
 
     // linkClientId != null -> vincular a ese client (sin crear) en esta misma transaccion.
     public static ClientResult syncAccount(Id accountId, Boolean autoLink, String linkClientId) {
+        PushOutcome o = pushAccount(accountId, autoLink, linkClientId);
+        update o.account;
+        return o.result;
+    }
+
+    // Empuja el Account a Veleiro SIN guardar en Salesforce: para procesar varias cuentas en
+    // una sola transaccion (un DML despues de todos los callouts, nunca entre medio).
+    public static Account pushAccountWithoutSaving(Id accountId) {
+        return pushAccount(accountId, false, null).account;
+    }
+
+    private class PushOutcome {
+        ClientResult result;
+        Account account; // con el id/version de Veleiro ya puestos, listo para guardar
+    }
+
+    private static PushOutcome pushAccount(Id accountId, Boolean autoLink, String linkClientId) {
         // La direccion configurada define si Salesforce puede empujar a Veleiro.
         if (!VeleiroSyncConfig.pushEnabled()) {
             throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
@@ -191,10 +208,9 @@ public with sharing class VeleiroSyncService {
                         a.Veleiro_Version__c != null ? Integer.valueOf(a.Veleiro_Version__c) : null);
         }
 
-        // Guardar id + version de vuelta en el Account.
+        // Id + version de Veleiro sobre el registro (el DML lo hace quien llama).
         a.Veleiro_Client_Id__c = (String) result.get('id');
         if (result.get('version') != null) a.Veleiro_Version__c = Integer.valueOf(String.valueOf(result.get('version')));
-        update a;
 
         ClientResult r = new ClientResult();
         r.clientId = (String) result.get('id');
@@ -204,7 +220,11 @@ public with sharing class VeleiroSyncService {
         r.created = created;
         r.synced = true;
         r.veleiroUrl = appBase() + '/a/partner-portal/organizations/' + r.clientId;
-        return r;
+
+        PushOutcome out = new PushOutcome();
+        out.result = r;
+        out.account = a;
+        return out;
     }
 
     // GET actual -> merge de las llaves gestionadas -> PATCH del payload completo.

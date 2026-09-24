@@ -93,8 +93,10 @@ Si esa org ya tenía Accounts en Salesforce y clients en Veleiro creados antes d
 
 1. La pantalla cruza los Accounts sin vincular contra los clients de Veleiro.
 2. Las coincidencias fuertes (mismo id de Account o mismo dominio) vienen marcadas; las de solo nombre hay que revisarlas.
-3. **Link selected** escribe el id en cada Account. No crea nada en Veleiro.
-4. Después sincroniza esas cuentas para que Veleiro también guarde el id de Salesforce.
+3. Dos formas de aplicar:
+   - **Link and sync** (recomendado): vincula y además manda a Veleiro los campos mapeados de cada cuenta y el id de Salesforce. Corre en segundo plano.
+   - **Link**: solo vincula, sin tocar Veleiro. Útil si aún no quieres enviar datos.
+4. Nada se crea en Veleiro: los clients ya existían.
 
 ## 8. Poner los componentes en las páginas (App Builder)
 

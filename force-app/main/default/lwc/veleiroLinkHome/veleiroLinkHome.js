@@ -3,6 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
 import getSuggestions from '@salesforce/apex/VeleiroLinkController.getSuggestions';
 import linkAll from '@salesforce/apex/VeleiroLinkController.linkAll';
+import linkAndSync from '@salesforce/apex/VeleiroLinkController.linkAndSync';
 
 export default class VeleiroLinkHome extends LightningElement {
     logoUrl = VELEIRO_LOGO;
@@ -108,6 +109,10 @@ export default class VeleiroLinkHome extends LightningElement {
         return `Link ${this.selectedCount} selected`;
     }
 
+    get linkAndSyncLabel() {
+        return `Link and sync ${this.selectedCount}`;
+    }
+
     get nothingToLink() {
         return this.selectedCount === 0;
     }
@@ -123,7 +128,16 @@ export default class VeleiroLinkHome extends LightningElement {
         return 'No Veleiro clients to show.';
     }
 
-    async handleLink() {
+    handleLink() {
+        return this.apply(false);
+    }
+
+    handleLinkAndSync() {
+        return this.apply(true);
+    }
+
+    // push=true tambien manda a Veleiro los campos mapeados de cada cuenta vinculada.
+    async apply(push) {
         const pairs = this.rows
             .filter((r) => r.selectedAccountId)
             .map((r) => ({ accountId: r.selectedAccountId, clientId: r.clientId }));
@@ -131,14 +145,16 @@ export default class VeleiroLinkHome extends LightningElement {
 
         this.loading = true;
         try {
-            const res = await linkAll({ pairsJson: JSON.stringify(pairs) });
-            const skipped = res.skipped
-                ? ` ${res.skipped} skipped: already linked.`
-                : '';
+            const args = { pairsJson: JSON.stringify(pairs) };
+            const res = push ? await linkAndSync(args) : await linkAll(args);
+            const skipped = res.skipped ? ` ${res.skipped} skipped: already linked.` : '';
+            const message = res.syncing
+                ? `Their mapped fields are being sent to Veleiro in the background.${skipped}`
+                : `Sync them when you want Veleiro to carry the mapped fields too.${skipped}`;
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: `${res.linked} account${res.linked === 1 ? '' : 's'} linked to Veleiro`,
-                    message: `Sync them when you want Veleiro to carry the Salesforce id too.${skipped}`,
+                    message,
                     variant: res.linked ? 'success' : 'warning'
                 })
             );

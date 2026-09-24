@@ -179,11 +179,22 @@ public with sharing class VeleiroLinkController {
     public class LinkResult {
         @AuraEnabled public Integer linked = 0;
         @AuraEnabled public Integer skipped = 0; // ya vinculados de un lado o del otro
+        @AuraEnabled public Boolean syncing = false; // se encolo el push de los campos mapeados
     }
 
     // Aplica las vinculaciones elegidas. pairsJson: [{"accountId":"001...","clientId":"org_..."}]
+    // Vincula y ademas empuja a Veleiro los campos mapeados de cada cuenta (en segundo plano).
+    @AuraEnabled
+    public static LinkResult linkAndSync(String pairsJson) {
+        return link(pairsJson, true);
+    }
+
     @AuraEnabled
     public static LinkResult linkAll(String pairsJson) {
+        return link(pairsJson, false);
+    }
+
+    private static LinkResult link(String pairsJson, Boolean pushAfter) {
         List<Object> rows = (List<Object>) JSON.deserializeUntyped(pairsJson);
         Map<Id, Account> toUpdate = new Map<Id, Account>();
         Set<String> alreadyUsed = new Set<String>();
@@ -211,6 +222,12 @@ public with sharing class VeleiroLinkController {
         }
         if (!toUpdate.isEmpty()) update toUpdate.values();
         result.linked = toUpdate.size();
+
+        // El push va aparte: hace callouts, y aqui acabamos de hacer DML.
+        if (pushAfter && !toUpdate.isEmpty() && VeleiroSyncConfig.pushEnabled()) {
+            System.enqueueJob(new VeleiroLinkSyncQueueable(new List<Id>(toUpdate.keySet())));
+            result.syncing = true;
+        }
         return result;
     }
 

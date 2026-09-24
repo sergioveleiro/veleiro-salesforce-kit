@@ -47,6 +47,7 @@ Two businesses, one link:
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
 | `flowDefinitions/*` | Pin each flow's active version. **Required**: production deploys leave flows inactive otherwise. |
+| `classes/VeleiroLinkSyncQueueable.cls` | Pushes the mapped fields of freshly linked accounts to Veleiro, 20 per transaction (callouts first, one DML at the end), chaining the rest. |
 | `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab: bulk-match unlinked Accounts against Veleiro clients and link the chosen pairs (field write only, no callouts). For orgs that had records on both sides before the kit. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
 | `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
