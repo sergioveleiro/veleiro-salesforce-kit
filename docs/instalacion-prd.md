@@ -24,7 +24,7 @@ Guía paso a paso, del ZIP a los flows activos. Escrita para quien instala el ki
 4. Pega esta lista de tests:
 
 ```
-VeleiroApiClientTest,VeleiroClientMatcherTest VeleiroConnectionTest,VeleiroDashboardControllerTest VeleiroInsightServiceTest,VeleiroLinkControllerTest VeleiroMappingControllerTest,VeleiroOppSyncQueueableTest VeleiroSeedTest,VeleiroSyncConfigTest VeleiroSyncServiceTest,VeleiroSyncTest VeleiroTargetsTest
+VeleiroApiClientTest, VeleiroClientMatcherTest, VeleiroConnectionTest, VeleiroDashboardControllerTest, VeleiroInsightServiceTest, VeleiroLinkControllerTest, VeleiroMappingControllerTest, VeleiroOppSyncQueueableTest, VeleiroSeedTest, VeleiroSyncConfigTest, VeleiroSyncServiceTest, VeleiroSyncTest, VeleiroTargetsTest
 ```
 
 5. Deja **Rollback on error** activado y **Deploy all metadata**.
