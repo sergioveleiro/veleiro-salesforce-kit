@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Vinculo entre un registro de Salesforce (cualquier objeto) y su client/project de Veleiro. Account y Opportunity siguen usando sus propios campos; este objeto cubre el resto.</description>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>false</enableSearch>
+    <label>Veleiro Link</label>
+    <nameField>
+        <displayFormat>VLNK-{0000}</displayFormat>
+        <label>Veleiro Link</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Veleiro Links</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+    <visibility>Public</visibility>
+</CustomObject>

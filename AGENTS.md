@@ -47,6 +47,8 @@ Two businesses, one link:
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
 | `flowDefinitions/*` | Pin each flow's active version. **Required**: production deploys leave flows inactive otherwise. |
+| `classes/VeleiroLinkStore.cls` | Where a record's Veleiro link lives: the native fields on Account/Opportunity, `Veleiro_Link__c` for every other object. |
+| `classes/VeleiroSyncRecordAction.cls` | Generic `@InvocableMethod` (record id + entity) so a partner automates any mapped object from their own flow. |
 | `classes/VeleiroLinkSyncQueueable.cls` | Pushes the mapped fields of freshly linked accounts to Veleiro, 20 per transaction (callouts first, one DML at the end), chaining the rest. |
 | `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab: bulk-match unlinked Accounts against Veleiro clients and link the chosen pairs (field write only, no callouts). For orgs that had records on both sides before the kit. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
@@ -111,7 +113,8 @@ Full manual: `docs/setup.md`.
 ## How to extend (common tasks)
 
 - **Map another field** → add a `Veleiro_Field_Mapping__c` row (or extend `VeleiroSeed`), then read it where you build the payload. Model: `docs/field-mapping.md`.
-- **Sync a new object** → mirror `VeleiroSyncService.syncAccount`: read the record, read-modify-write `additional_fields`, store the returned id/version back on an external-id field. Add a `*Test` with `VeleiroApiMock`.
+- **Sync any object** → map it in the Veleiro Mappings tab (`SObject__c` + `Veleiro_Entity__c`), then call `VeleiroSyncService.syncRecord(recordId, 'client'|'project')` from a button or a record-triggered flow (`VeleiroSyncRecordAction`). No Apex needed: the payload comes from the mappings, and the link is stored in `Veleiro_Link__c`. A project needs a client: map a field to `client_id`, or give the record an Account lookup.
+- **Sync a new object the old way** → mirror `VeleiroSyncService.syncAccount`: read the record, read-modify-write `additional_fields`, store the returned id/version back on an external-id field. Add a `*Test` with `VeleiroApiMock`.
 - **Add an insight rule** → edit `VeleiroInsightService.score()`; keep it deterministic and grounded in a real signal; add a coverage test in `VeleiroInsightServiceTest` (see the `oneProject(...)` helper).
 - **React to a Veleiro change** → there are no Veleiro webhooks; use scheduled Apex that calls `listAll` and diffs, then acts in Salesforce.
 

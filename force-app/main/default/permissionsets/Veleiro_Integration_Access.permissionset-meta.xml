@@ -19,6 +19,20 @@
     <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Entity__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Opportunity.Veleiro_Project_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Opportunity.Veleiro_Project_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Veleiro_Link__c.Veleiro_Version__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Veleiro_Link__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <objectPermissions>
         <object>Veleiro_Field_Mapping__c</object>
         <allowCreate>true</allowCreate><allowRead>true</allowRead><allowEdit>true</allowEdit><allowDelete>true</allowDelete>

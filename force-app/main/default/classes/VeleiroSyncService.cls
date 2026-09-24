@@ -400,6 +400,196 @@ public with sharing class VeleiroSyncService {
         }
     }
 
+    // ===== Generico: cualquier objeto mapeado -> client / project =====
+
+    public class RecordResult {
+        @AuraEnabled public String veleiroId;
+        @AuraEnabled public String name;
+        @AuraEnabled public String entity;
+        @AuraEnabled public Boolean created;
+        @AuraEnabled public Boolean synced;
+        @AuraEnabled public String veleiroUrl;
+    }
+
+    /**
+     * Sincroniza CUALQUIER registro cuyo objeto tenga mapeos configurados para esa entidad.
+     * Account->client y Opportunity->project conservan su ruta probada; el resto guarda el
+     * vinculo en Veleiro_Link__c. Sin mapeos para el par (objeto, entidad) no hace nada:
+     * lo que manda es lo configurado en el panel de Veleiro Mappings.
+     */
+    @AuraEnabled
+    public static RecordResult syncRecord(Id recordId, String entity) {
+        if (!VeleiroSyncConfig.pushEnabled()) {
+            throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
+        }
+        String ent = String.isBlank(entity) ? 'client' : entity.toLowerCase();
+        if (ent != 'client' && ent != 'project') {
+            throw new VeleiroApiClient.VeleiroApiException('Unknown Veleiro entity: ' + entity);
+        }
+        String obj = recordId.getSobjectType().getDescribe().getName();
+
+        // Pares nativos: se delega a los metodos ya probados.
+        String pair = VeleiroLinkStore.key(obj, ent);
+        if (pair == 'account|client') return asRecordResult(syncAccount(recordId), ent);
+        if (pair == 'opportunity|project') return asRecordResult(syncOpportunity(recordId), ent);
+
+        if (!hasMappings(obj, ent)) {
+            throw new VeleiroApiClient.VeleiroApiException(
+                'No Veleiro mapping for ' + obj + ' -> ' + ent + '. Configure it in the Veleiro Mappings tab first.');
+        }
+
+        MappedPayload mp = buildPayload(obj, ent, recordId, new Set<String>());
+        SObject rec = mp.record;
+        mp.additional.put('sf_record_id', String.valueOf(recordId));
+        mp.additional.put('sf_object', obj);
+        if (!mp.topLevel.containsKey('name')) {
+            String fallback = nameOf(rec, obj);
+            if (String.isBlank(fallback)) {
+                throw new VeleiroApiClient.VeleiroApiException(
+                    'Map a field of ' + obj + ' to "name": Veleiro needs a name.');
+            }
+            mp.topLevel.put('name', fallback);
+        }
+
+        VeleiroLinkStore.Link link = VeleiroLinkStore.read(rec, obj, ent);
+        Account parentToSave = null;
+        Map<String, Object> result;
+        Boolean created = false;
+
+        if (String.isBlank(link.veleiroId)) {
+            Map<String, Object> payload = new Map<String, Object>(mp.topLevel);
+            payload.put('additional_fields', mp.additional);
+            if (ent == 'project') {
+                // Todo project cuelga de un client: del mapeo, o del Account al que apunte el registro.
+                ClientForRecord c = clientFor(rec, obj, mp);
+                payload.put('client_id', c.clientId);
+                parentToSave = c.accountToSave;
+            }
+            result = VeleiroApiClient.doPost(ent == 'client' ? '/clients' : '/projects', payload);
+            created = true;
+        } else {
+            mp.topLevel.remove('client_id'); // el client no se cambia en un update
+            result = (ent == 'client')
+                ? patchClientWithMerge(link.veleiroId, mp.topLevel, mp.additional, link.version)
+                : patchProjectWithMerge(link.veleiroId, mp.topLevel, mp.additional, link.version);
+        }
+
+        Integer version = (result.get('version') != null)
+            ? Integer.valueOf(String.valueOf(result.get('version'))) : null;
+        SObject toSave = VeleiroLinkStore.apply(rec, obj, ent, (String) result.get('id'), version);
+
+        // DML al final, despues de todos los callouts.
+        if (toSave instanceof Veleiro_Link__c) {
+            Veleiro_Link__c row = (Veleiro_Link__c) toSave;
+            upsert row Link_Key__c;
+        } else {
+            update toSave;
+        }
+        if (parentToSave != null) update parentToSave;
+
+        RecordResult r = new RecordResult();
+        r.veleiroId = (String) result.get('id');
+        r.name = (String) result.get('name');
+        r.entity = ent;
+        r.created = created;
+        r.synced = true;
+        r.veleiroUrl = appBase() + (ent == 'client' ? '/a/partner-portal/organizations/' : '/a/partner-portal/projects/') + r.veleiroId;
+        return r;
+    }
+
+    public static Boolean hasMappings(String sobjectName, String entity) {
+        return [
+            SELECT COUNT() FROM Veleiro_Field_Mapping__c
+            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
+        ] > 0;
+    }
+
+    private class ClientForRecord {
+        String clientId;
+        Account accountToSave; // si hubo que crear el client del Account, se guarda al final
+    }
+
+    // client_id de un project: el mapeado, o el del Account al que apunte el registro.
+    private static ClientForRecord clientFor(SObject rec, String obj, MappedPayload mp) {
+        ClientForRecord out = new ClientForRecord();
+        if (mp.topLevel.get('client_id') != null) {
+            out.clientId = String.valueOf(mp.topLevel.remove('client_id'));
+            return out;
+        }
+        Id accountId = lookupAccountId(rec, obj);
+        if (accountId == null) {
+            throw new VeleiroApiClient.VeleiroApiException(
+                'A Veleiro project needs a client: map a field of ' + obj + ' to "client_id", or give the record an Account lookup.');
+        }
+        Account a = [SELECT Id, Name, Website, Veleiro_Client_Id__c, Veleiro_Version__c FROM Account WHERE Id = :accountId LIMIT 1];
+        if (String.isNotBlank(a.Veleiro_Client_Id__c)) {
+            out.clientId = a.Veleiro_Client_Id__c;
+            return out;
+        }
+        // El Account aun no tiene client: se crea sin guardar todavia (no hay DML entre callouts).
+        Account pushed = pushAccountWithoutSaving(a.Id);
+        out.clientId = pushed.Veleiro_Client_Id__c;
+        out.accountToSave = pushed;
+        return out;
+    }
+
+    // Primer lookup a Account del objeto (AccountId, o cualquier relacion a Account).
+    // Se consultan aparte: el registro se cargo con los campos del mapeo, no con estos.
+    private static Id lookupAccountId(SObject rec, String obj) {
+        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get(obj).getDescribe().fields.getMap();
+        String standard;
+        List<String> others = new List<String>();
+        for (String f : fields.keySet()) {
+            Schema.DescribeFieldResult d = fields.get(f).getDescribe();
+            if (d.getType() == Schema.DisplayType.REFERENCE
+                && d.getReferenceTo().size() == 1
+                && String.valueOf(d.getReferenceTo()[0]) == 'Account') {
+                // AccountId primero: es el estandar y el mas probable.
+                if (d.getName().equalsIgnoreCase('AccountId')) standard = d.getName();
+                else others.add(d.getName());
+            }
+        }
+        List<String> lookups = new List<String>();
+        if (standard != null) lookups.add(standard);
+        lookups.addAll(others);
+        if (lookups.isEmpty()) return null;
+
+        Id recId = rec.Id;
+        String soql = 'SELECT ' + String.join(lookups, ', ') +
+                      ' FROM ' + String.escapeSingleQuotes(obj) + ' WHERE Id = :recId LIMIT 1';
+        for (SObject row : Database.query(soql)) {
+            for (String f : lookups) {
+                Id value = (Id) row.get(f);
+                if (value != null) return value;
+            }
+        }
+        return null;
+    }
+
+    private static String nameOf(SObject rec, String obj) {
+        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get(obj).getDescribe().fields.getMap();
+        if (!fields.containsKey('name')) return null;
+        Id recId = rec.Id;
+        for (SObject row : Database.query('SELECT Name FROM ' + String.escapeSingleQuotes(obj) + ' WHERE Id = :recId LIMIT 1')) {
+            return (String) row.get('Name');
+        }
+        return null;
+    }
+
+    private static RecordResult asRecordResult(ClientResult c, String entity) {
+        RecordResult r = new RecordResult();
+        r.veleiroId = c.clientId; r.name = c.name; r.entity = entity;
+        r.created = c.created; r.synced = c.synced; r.veleiroUrl = c.veleiroUrl;
+        return r;
+    }
+
+    private static RecordResult asRecordResult(ProjectResult p, String entity) {
+        RecordResult r = new RecordResult();
+        r.veleiroId = p.projectId; r.name = p.name; r.entity = entity;
+        r.created = p.created; r.synced = p.synced; r.veleiroUrl = p.veleiroUrl;
+        return r;
+    }
+
     // Invocable para los flows (Closed Won + auto-sync opp). Apex permite 1 invocable por clase;
     // el de Account vive en VeleiroSyncAccountAction.
     @InvocableMethod(label='Sync Opportunity to Veleiro Project' callout=true)

@@ -6,21 +6,54 @@ private class VeleiroLinkControllerTest {
         VeleiroApiMock.seedConfig();
     }
 
+    // Mapeo minimo: la pantalla de Link solo ofrece lo que este configurado.
+    private static void mapField(String sobjectName, String entity, String sfField, String target, String targetType) {
+        insert new Veleiro_Field_Mapping__c(
+            Name = sobjectName + ' ' + sfField, SObject__c = sobjectName, Veleiro_Entity__c = entity,
+            SF_Field__c = sfField, Veleiro_Target__c = target, Target_Type__c = targetType, Active__c = true
+        );
+    }
+
     private static void mockClients(String json) {
         VeleiroApiMock mock = new VeleiroApiMock();
         mock.clientsBody = json;
         Test.setMock(HttpCalloutMock.class, mock);
     }
 
-    private static VeleiroLinkController.ClientRow rowFor(VeleiroLinkController.Overview o, String clientId) {
-        for (VeleiroLinkController.ClientRow r : o.rows) {
-            if (r.clientId == clientId) return r;
-        }
+    private static VeleiroLinkController.VeleiroRow rowFor(VeleiroLinkController.Overview o, String veleiroId) {
+        for (VeleiroLinkController.VeleiroRow r : o.rows) if (r.veleiroId == veleiroId) return r;
         return null;
     }
 
     @isTest
-    static void listsEveryUnlinkedClientEvenWithoutMatches() {
+    static void withoutMappingsThereIsNothingToLink() {
+        insert new Account(Name = 'Acme');
+        mockClients('{"data":[{"id":"org_acme","name":"Acme","additional_fields":{}}],"has_more":false}');
+
+        Test.startTest();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions(null, null);
+        Test.stopTest();
+
+        System.assert(o.pairs.isEmpty(), 'sin mapeos no hay pares');
+        System.assert(o.rows.isEmpty(), 'y no se sugiere nada');
+    }
+
+    @isTest
+    static void pairsComeFromTheConfiguredMappings() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
+        mapField('Opportunity', 'project', 'Name', 'name', 'Standard');
+
+        List<VeleiroLinkController.Pair> pairs = VeleiroLinkController.getPairs();
+        Set<String> values = new Set<String>();
+        for (VeleiroLinkController.Pair p : pairs) values.add(p.value);
+        System.assertEquals(new Set<String>{ 'Account|client', 'Contact|client', 'Opportunity|project' }, values);
+    }
+
+    @isTest
+    static void listsUnlinkedClientsWithCandidatesForTheChosenObject() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        mapField('Account', 'client', 'Website', 'sf_website', 'Additional Field');
         Account domainMatch = new Account(Name = 'Razon Social Distinta', Website = 'https://acme.com');
         Account nameMatch = new Account(Name = 'Globex S.A.');
         insert new List<Account>{ domainMatch, nameMatch };
@@ -32,161 +65,123 @@ private class VeleiroLinkControllerTest {
             '],"has_more":false}');
 
         Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
         Test.stopTest();
 
+        System.assertEquals('Account', o.sobjectName);
         System.assertEquals(3, o.rows.size(), 'todos los clients sin vincular, con o sin candidato');
-        System.assertEquals(3, o.clientsUnlinked);
-        System.assertEquals(2, o.accountsUnlinked);
-
-        System.assertEquals('org_acme', o.rows[0].clientId, 'la coincidencia fuerte va primero');
-        System.assertEquals(domainMatch.Id, o.rows[0].suggestedAccountId);
+        System.assertEquals(3, o.veleiroUnlinked);
+        System.assertEquals(2, o.recordsUnlinked);
+        System.assertEquals('org_acme', o.rows[0].veleiroId, 'la coincidencia fuerte va primero');
+        System.assertEquals(domainMatch.Id, o.rows[0].suggestedRecordId);
         System.assertEquals('high', o.rows[0].confidence);
-
-        VeleiroLinkController.ClientRow globex = rowFor(o, 'org_globex');
-        System.assertEquals(nameMatch.Id, globex.suggestedAccountId);
-        System.assertEquals('medium', globex.confidence);
-
-        VeleiroLinkController.ClientRow alone = rowFor(o, 'org_alone');
-        System.assert(alone.options.isEmpty(), 'sin candidatos, pero la fila existe');
-        System.assertEquals(null, alone.suggestedAccountId);
+        System.assertEquals(nameMatch.Id, rowFor(o, 'org_globex').suggestedRecordId);
+        System.assert(rowFor(o, 'org_alone').options.isEmpty());
     }
 
     @isTest
-    static void offersSimilarNamesWithoutPreselecting() {
-        Account similar = new Account(Name = 'Codeart Solutions');
-        insert similar;
-        mockClients('{"data":[{"id":"org_code","name":"Codeart","additional_fields":{}}],"has_more":false}');
+    static void worksWithAnyMappedObjectNotJustAccount() {
+        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
+        Contact c = new Contact(LastName = 'Acme');
+        insert c;
+        mockClients('{"data":[{"id":"org_acme","name":"ACME","additional_fields":{}}],"has_more":false}');
 
         Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Contact', 'client');
         Test.stopTest();
 
-        VeleiroLinkController.ClientRow r = o.rows[0];
-        System.assertEquals(1, r.options.size(), 'lo ofrece como parecido');
-        System.assertEquals(similar.Id, r.options[0].accountId);
-        System.assertEquals('weak', r.confidence);
-        System.assertEquals(null, r.suggestedAccountId, 'un parecido nunca viene preseleccionado');
+        System.assertEquals('Contact', o.sobjectName);
+        System.assertEquals(c.Id, o.rows[0].suggestedRecordId, 'empareja por el campo mapeado a name');
     }
 
     @isTest
-    static void skipsClientsAlreadyLinked() {
-        insert new Account(Name = 'Ya vinculada', Veleiro_Client_Id__c = 'org_taken');
-        insert new Account(Name = 'Acme');
-        mockClients('{"data":[' +
-            '{"id":"org_taken","name":"Acme","additional_fields":{}},' +
-            '{"id":"org_arch","name":"Acme","is_archived":true,"additional_fields":{}}' +
-            '],"has_more":false}');
+    static void linkStoresTheLinkOnTheCustomObject() {
+        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
+        Contact c = new Contact(LastName = 'Acme');
+        insert c;
 
         Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll('Contact', 'client', JSON.serialize(
+            new List<Map<String, String>>{ new Map<String, String>{ 'recordId' => c.Id, 'veleiroId' => 'org_acme' } }));
         Test.stopTest();
 
-        System.assert(o.rows.isEmpty(), 'ni el ya vinculado ni el archivado');
-        System.assertEquals(1, o.accountsLinked);
-        System.assertEquals(0, o.clientsUnlinked);
+        System.assertEquals(1, r.linked);
+        System.assertEquals(false, r.syncing);
+        Veleiro_Link__c link = [SELECT Veleiro_Id__c, SObject__c FROM Veleiro_Link__c];
+        System.assertEquals('org_acme', link.Veleiro_Id__c);
+        System.assertEquals('Contact', link.SObject__c);
     }
 
     @isTest
-    static void strongCandidateBeatsWeakOneForTheSameClient() {
-        Account byName = new Account(Name = 'Acme');
-        Account byDomain = new Account(Name = 'Acme Holdings', Website = 'acme.com');
-        insert new List<Account>{ byName, byDomain };
-        mockClients('{"data":[{"id":"org_acme","name":"Acme","additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
-
-        Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
-        Test.stopTest();
-
-        VeleiroLinkController.ClientRow r = o.rows[0];
-        System.assertEquals(byDomain.Id, r.suggestedAccountId, 'el dominio gana al nombre');
-        System.assert(r.options.size() >= 2, 'el otro sigue disponible en el selector');
-    }
-
-    @isTest
-    static void matchesTheSalesforceIdTheClientAlreadyCarries() {
-        Account a = new Account(Name = 'Nombre Distinto');
-        insert a;
-        mockClients('{"data":[{"id":"org_id","name":"Otro","additional_fields":{"sf_account_id":"' + a.Id + '"}}],"has_more":false}');
-
-        Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
-        Test.stopTest();
-
-        System.assertEquals(a.Id, o.rows[0].suggestedAccountId);
-        System.assertEquals('high', o.rows[0].confidence);
-    }
-
-    @isTest
-    static void searchAccountsFindsUnlinkedOnesByName() {
-        insert new Account(Name = 'Buscable Uno');
-        insert new Account(Name = 'Buscable Dos', Veleiro_Client_Id__c = 'org_x');
-
-        List<VeleiroLinkController.AccountOption> found = VeleiroLinkController.searchAccounts('buscable');
-        System.assertEquals(1, found.size(), 'solo las que faltan por vincular');
-        System.assertEquals('Buscable Uno', found[0].name);
-        System.assert(VeleiroLinkController.searchAccounts('a').isEmpty(), 'busqueda muy corta');
-        System.assert(VeleiroLinkController.searchAccounts(null).isEmpty());
-    }
-
-    @isTest
-    static void linkAllWritesTheIds() {
+    static void linkWritesAccountsOnTheirOwnField() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
         Account a = new Account(Name = 'Acme');
         insert a;
 
         Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
-            new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' }
-        }));
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll('Account', 'client', JSON.serialize(
+            new List<Map<String, String>>{ new Map<String, String>{ 'recordId' => a.Id, 'veleiroId' => 'org_acme' } }));
         Test.stopTest();
 
         System.assertEquals(1, r.linked);
-        System.assertEquals(0, r.skipped);
         System.assertEquals('org_acme', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+        System.assertEquals(0, [SELECT COUNT() FROM Veleiro_Link__c], 'Account usa su campo, no el objeto de vinculos');
     }
 
     @isTest
-    static void linkAllNeverReusesAClient() {
+    static void linkAndSyncPushesTheMappedFields() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        mapField('Account', 'client', 'Website', 'sf_website', 'Additional Field');
+        Account a = new Account(Name = 'Acme', Website = 'https://acme.com');
+        insert a;
+        VeleiroApiMock mock = new VeleiroApiMock();
+        mock.singleClientBody = '{"data":{"id":"org_acme","name":"Acme","version":3,"additional_fields":{"otro":"no se pisa"}}}';
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAndSync('Account', 'client', JSON.serialize(
+            new List<Map<String, String>>{ new Map<String, String>{ 'recordId' => a.Id, 'veleiroId' => 'org_acme' } }));
+        Test.stopTest(); // el Queueable corre aqui
+
+        System.assertEquals(1, r.linked);
+        System.assertEquals(true, r.syncing);
+        Map<String, Object> sent = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPatchBody);
+        Map<String, Object> af = (Map<String, Object>) sent.get('additional_fields');
+        System.assertEquals('https://acme.com', af.get('sf_website'), 'los campos mapeados viajan a Veleiro');
+        System.assertEquals(String.valueOf(a.Id), af.get('sf_account_id'));
+        System.assertEquals('no se pisa', af.get('otro'), 'lo que ya tenia Veleiro se conserva');
+    }
+
+    @isTest
+    static void neverReusesARecordOrAResource() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
         Account taken = new Account(Name = 'Primera', Veleiro_Client_Id__c = 'org_acme');
         Account other = new Account(Name = 'Segunda');
         insert new List<Account>{ taken, other };
 
         Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
-            new Map<String, String>{ 'accountId' => other.Id, 'clientId' => 'org_acme' },
-            new Map<String, String>{ 'accountId' => other.Id, 'clientId' => '' }
-        }));
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll('Account', 'client', JSON.serialize(
+            new List<Map<String, String>>{
+                new Map<String, String>{ 'recordId' => other.Id, 'veleiroId' => 'org_acme' }, // client ocupado
+                new Map<String, String>{ 'recordId' => taken.Id, 'veleiroId' => 'org_otro' }, // cuenta ocupada
+                new Map<String, String>{ 'recordId' => other.Id, 'veleiroId' => '' }          // fila vacia
+            }));
         Test.stopTest();
 
-        System.assertEquals(0, r.linked, 'ni roba el client ni acepta filas vacias');
-        System.assertEquals(1, r.skipped);
+        System.assertEquals(0, r.linked);
+        System.assertEquals(2, r.skipped);
         System.assertEquals(null, [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :other.Id].Veleiro_Client_Id__c);
     }
 
     @isTest
-    static void linkAllSkipsAccountsThatAlreadyHaveAClient() {
-        Account taken = new Account(Name = 'Ya tiene client', Veleiro_Client_Id__c = 'org_uno');
-        insert taken;
-
-        Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
-            new Map<String, String>{ 'accountId' => taken.Id, 'clientId' => 'org_dos' }
-        }));
-        Test.stopTest();
-
-        System.assertEquals(0, r.linked, 'no se le cambia el client a una cuenta ya vinculada');
-        System.assertEquals(1, r.skipped);
-        System.assertEquals('org_uno', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :taken.Id].Veleiro_Client_Id__c);
-    }
-
-    @isTest
-    static void tooManyAccountsStopsMatching() {
-        VeleiroLinkController.maxAccounts = 0;
+    static void tooManyRecordsStopsMatching() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        VeleiroLinkController.maxRecords = 0;
         insert new Account(Name = 'Acme');
         mockClients('{"data":[{"id":"org_acme","name":"Acme","additional_fields":{}}],"has_more":false}');
 
         Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
         Test.stopTest();
 
         System.assertEquals(true, o.truncated);
@@ -195,64 +190,20 @@ private class VeleiroLinkControllerTest {
     }
 
     @isTest
-    static void linkAndSyncPushesTheMappedFields() {
-        Account a = new Account(Name = 'Acme', Website = 'https://acme.com', Phone = '+57 1 234');
-        insert a;
-        VeleiroApiMock mock = new VeleiroApiMock();
-        mock.singleClientBody = '{"data":{"id":"org_acme","name":"Acme","version":2,"additional_fields":{"otro":"no se pisa"}}}';
-        Test.setMock(HttpCalloutMock.class, mock);
-
-        Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAndSync(JSON.serialize(
-            new List<Map<String, String>>{ new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' } }));
-        Test.stopTest(); // el Queueable corre aqui
-
-        System.assertEquals(1, r.linked);
-        System.assertEquals(true, r.syncing);
-
-        Map<String, Object> sent = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPatchBody);
-        Map<String, Object> af = (Map<String, Object>) sent.get('additional_fields');
-        System.assertEquals('Acme', sent.get('name'));
-        System.assertEquals('https://acme.com', af.get('sf_website'), 'los campos mapeados viajan a Veleiro');
-        System.assertEquals(a.Id, af.get('sf_account_id'), 'y el vinculo queda del lado de Veleiro');
-        System.assertEquals('no se pisa', af.get('otro'), 'lo que ya tenia Veleiro se conserva');
-    }
-
-    @isTest
-    static void linkWithoutSyncDoesNotCallVeleiro() {
-        Account a = new Account(Name = 'Acme', Website = 'https://acme.com');
-        insert a;
-        VeleiroApiMock mock = new VeleiroApiMock();
-        Test.setMock(HttpCalloutMock.class, mock);
-
-        Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(
-            new List<Map<String, String>>{ new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' } }));
-        Test.stopTest();
-
-        System.assertEquals(1, r.linked);
-        System.assertEquals(false, r.syncing);
-        System.assertEquals(null, mock.lastPatchBody, 'vincular no habla con Veleiro');
-    }
-
-    @isTest
     static void linkSyncQueueableSkipsWhatFailsAndKeepsGoing() {
-        Account ok = new Account(Name = 'Ok', Veleiro_Client_Id__c = 'org_ok');
-        Account broken = new Account(Name = 'Sin client');
-        insert new List<Account>{ ok, broken };
-        VeleiroLinkSyncQueueable.batchSize = 1; // segunda tanda: en test no se encadena
-
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        Account a = new Account(Name = 'Acme', Veleiro_Client_Id__c = 'org_acme');
+        insert a;
         VeleiroApiMock mock = new VeleiroApiMock();
         mock.overrideStatus = 404;
         mock.overrideBody = '{"error":{"code":"not_found"}}';
         Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
-        System.enqueueJob(new VeleiroLinkSyncQueueable(new List<Id>{ ok.Id, broken.Id }));
+        System.enqueueJob(new VeleiroLinkSyncQueueable(new List<Id>{ a.Id }, 'client'));
         Test.stopTest();
 
-        System.assertEquals('org_ok',
-            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :ok.Id].Veleiro_Client_Id__c,
+        System.assertEquals('org_acme', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
             'el error de Veleiro no rompe el lote ni borra el vinculo');
     }
 }

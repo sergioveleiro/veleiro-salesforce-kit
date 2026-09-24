@@ -9,26 +9,32 @@
 
             <h2 class="slds-text-heading_small">Link existing records</h2>
             <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
-                Every Veleiro client that isn't linked yet. Each one shows the Salesforce account we
-                think it is — keep it, or type to pick another. Then link.
+                For records that already existed on both sides. The pairs come from Veleiro Mappings:
+                each Veleiro record shows the Salesforce record we think it is — keep it, or type to
+                pick another.
             </p>
 
             <template if:true={loading}>
                 <lightning-spinner alternative-text="Reading Veleiro..." size="small"></lightning-spinner>
             </template>
 
-            <template if:true={overview}>
+            <template if:true={hasPairs}>
+                <div class="veleiro-pair slds-m-bottom_medium">
+                    <lightning-combobox label="Mapping" value={pairValue} options={pairOptions}
+                        onchange={handlePairChange}></lightning-combobox>
+                </div>
+
                 <div class="veleiro-stats slds-m-bottom_medium">
                     <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.clientsUnlinked}</span>
-                        <span class="veleiro-stat-label">Veleiro clients to link</span>
+                        <span class="veleiro-stat-num">{overview.veleiroUnlinked}</span>
+                        <span class="veleiro-stat-label">{veleiroColumnLabel}s to link</span>
                     </div>
                     <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.accountsUnlinked}</span>
-                        <span class="veleiro-stat-label">accounts not linked</span>
+                        <span class="veleiro-stat-num">{overview.recordsUnlinked}</span>
+                        <span class="veleiro-stat-label">{recordColumnLabel} records not linked</span>
                     </div>
                     <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.accountsLinked}</span>
+                        <span class="veleiro-stat-num">{overview.alreadyLinked}</span>
                         <span class="veleiro-stat-label">already linked</span>
                     </div>
                 </div>
@@ -36,46 +42,46 @@
 
             <template if:true={hasRows}>
                 <div class="veleiro-toolbar slds-m-bottom_small">
-                    <lightning-input type="checkbox" label="Only clients with a suggestion"
+                    <lightning-input type="checkbox" label="Only rows with a suggestion"
                         checked={onlySuggested} onchange={handleToggleFilter}></lightning-input>
                     <div>
                         <lightning-button label="Clear" onclick={handleClear}></lightning-button>
-                        <lightning-button label={linkLabel} disabled={nothingToLink}
-                            onclick={handleLink} class="slds-m-left_x-small"
+                        <lightning-button label={linkLabel} disabled={nothingToLink} onclick={handleLink}
+                            class="slds-m-left_x-small"
                             title="Only writes the link. Mapped fields stay in Salesforce."></lightning-button>
                         <lightning-button variant="brand" label={linkAndSyncLabel} disabled={nothingToLink}
                             onclick={handleLinkAndSync} class="slds-m-left_x-small veleiro-brand-btn"
-                            title="Links and sends the mapped fields to each Veleiro client."></lightning-button>
+                            title="Links and sends the mapped fields to Veleiro."></lightning-button>
                     </div>
                 </div>
 
                 <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                     <thead>
                         <tr class="slds-line-height_reset">
-                            <th scope="col"><div class="slds-truncate">Veleiro client</div></th>
-                            <th scope="col"><div class="slds-truncate">Salesforce account</div></th>
+                            <th scope="col"><div class="slds-truncate">{veleiroColumnLabel}</div></th>
+                            <th scope="col"><div class="slds-truncate">{recordColumnLabel}</div></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template for:each={visibleRows} for:item="r">
-                            <tr key={r.clientId}>
+                            <tr key={r.veleiroId}>
                                 <td class="veleiro-client-cell">
                                     <a href={r.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
-                                        {r.clientName}
+                                        {r.veleiroName}
                                     </a>
-                                    <div class="slds-text-body_small slds-text-color_weak">{r.clientWebsite}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">{r.veleiroWebsite}</div>
                                 </td>
                                 <td>
-                                    <!-- Un solo control: busca cuentas y muestra la sugerida ya puesta. -->
+                                    <!-- Un solo control: busca registros y muestra el sugerido ya puesto. -->
                                     <lightning-record-picker
-                                        label="Account"
+                                        label="Record"
                                         variant="label-hidden"
-                                        placeholder="Type an account name…"
-                                        object-api-name="Account"
-                                        value={r.selectedAccountId}
+                                        placeholder="Type a name…"
+                                        object-api-name={objectApiName}
+                                        value={r.selectedRecordId}
                                         matching-info={matchingInfo}
                                         display-info={displayInfo}
-                                        data-client={r.clientId}
+                                        data-veleiro={r.veleiroId}
                                         onchange={handlePick}>
                                     </lightning-record-picker>
 
@@ -91,9 +97,9 @@
                                     <template if:true={r.hasAlternatives}>
                                         <div class="veleiro-suggestions">
                                             <template for:each={r.alternatives} for:item="alt">
-                                                <button key={alt.accountId} type="button"
-                                                    class="veleiro-chip" data-client={r.clientId}
-                                                    data-account={alt.accountId} onclick={handleUseSuggestion}>
+                                                <button key={alt.recordId} type="button"
+                                                    class="veleiro-chip" data-veleiro={r.veleiroId}
+                                                    data-record={alt.recordId} onclick={handleUseSuggestion}>
                                                     {alt.name} · {alt.reason}
                                                 </button>
                                             </template>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Link_Key__c</fullName>
+    <description>RecordId|entidad. External id unico para upsert: evita dos vinculos del mismo registro a la misma entidad.</description>
+    <externalId>true</externalId>
+    <label>Link Key</label>
+    <length>40</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>
