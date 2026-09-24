@@ -12,7 +12,7 @@ Guía paso a paso, del ZIP a los flows activos. Escrita para quien instala el ki
 
 - https://github.com/sergioveleiro/veleiro-salesforce-kit → botón **Code** → **Download ZIP** (rama `main`).
 - Descomprime. Lo único que se despliega es la carpeta **`force-app/`**.
-- Verifica que el ZIP traiga el commit `de346fc` ("Send website_url on client create…") o posterior. Si no, está viejo.
+- Verifica que el ZIP traiga la pestaña **Veleiro Link** (`force-app/main/default/lwc/veleiroLinkHome`). Si no está, el ZIP es viejo.
 
 ## 2. Desplegar
 
@@ -24,7 +24,7 @@ Guía paso a paso, del ZIP a los flows activos. Escrita para quien instala el ki
 4. Pega esta lista de tests:
 
 ```
-VeleiroApiClientTest, VeleiroConnectionTest, VeleiroDashboardControllerTest, VeleiroInsightServiceTest, VeleiroMappingControllerTest, VeleiroOppSyncQueueableTest, VeleiroSeedTest, VeleiroSyncConfigTest, VeleiroSyncServiceTest, VeleiroSyncTest, VeleiroTargetsTest
+VeleiroApiClientTest,VeleiroClientMatcherTest VeleiroConnectionTest,VeleiroDashboardControllerTest VeleiroInsightServiceTest,VeleiroLinkControllerTest VeleiroMappingControllerTest,VeleiroOppSyncQueueableTest VeleiroSeedTest,VeleiroSyncConfigTest VeleiroSyncServiceTest,VeleiroSyncTest VeleiroTargetsTest
 ```
 
 5. Deja **Rollback on error** activado y **Deploy all metadata**.
@@ -101,7 +101,7 @@ Si esa org ya tenía Accounts en Salesforce y clients en Veleiro creados antes d
 - **Página de Account:** agrega **Veleiro** (`veleiroPanel`) y **Velly Insight** (`veleiroInsight`).
 - **Página de Opportunity:** agrega **Veleiro Project** (`veleiroOppPanel`).
 - **Acciones de página:** agrega `veleiroSyncAction` en Account y `veleiroSyncOppAction` en Opportunity, desde "Mobile & Lightning Actions".
-- **Navegación:** agrega los tabs **Veleiro Home** y **Veleiro Mappings** a tu app, o usa la app **Veleiro** que ya viene lista.
+- **Navegación:** agrega los tabs **Veleiro Home**, **Veleiro Mappings** y **Veleiro Link** a tu app, o usa la app **Veleiro** que ya viene lista.
 
 ## 9. Probar de punta a punta
 
