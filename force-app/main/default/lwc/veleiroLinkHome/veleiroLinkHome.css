@@ -269,3 +269,5 @@
 .veleiro-ok { color: #2e844a; }
 
 .veleiro-pair { max-width: 22rem; }
+
+.veleiro-chosen { display: flex; align-items: center; gap: 0.5rem; }

@@ -4,6 +4,7 @@ import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
 import getSuggestions from '@salesforce/apex/VeleiroLinkController.getSuggestions';
 import linkAll from '@salesforce/apex/VeleiroLinkController.linkAll';
 import linkAndSync from '@salesforce/apex/VeleiroLinkController.linkAndSync';
+import searchRecords from '@salesforce/apex/VeleiroLinkController.searchRecords';
 
 export default class VeleiroLinkHome extends LightningElement {
     logoUrl = VELEIRO_LOGO;
@@ -14,9 +15,6 @@ export default class VeleiroLinkHome extends LightningElement {
     onlySuggested = false;
     // Par elegido (objeto|entidad). Sale de lo configurado en Veleiro Mappings.
     pairValue;
-
-    matchingInfo = { primaryField: { fieldPath: 'Name' } };
-    displayInfo = { additionalFields: [] };
 
     connectedCallback() {
         this.scan();
@@ -40,35 +38,63 @@ export default class VeleiroLinkHome extends LightningElement {
 
     toRow(r) {
         const selected = r.suggestedRecordId || null;
-        return { ...r, selectedRecordId: selected, ...this.describe(r, selected) };
+        return { ...r, selectedRecordId: selected, term: '', results: [], ...this.describe(r, selected) };
     }
 
-    // Texto de ayuda y alternativas, segun lo elegido en esa fila.
+    // Estado de la fila: que esta elegido, que alternativas quedan y que decir debajo.
     describe(row, selectedId) {
-        const options = row.options || [];
+        const options = [...(row.options || []), ...(row.results || [])];
         const chosen = options.find((o) => o.recordId === selectedId);
         const alternatives = options.filter((o) => o.recordId !== selectedId);
         let note;
         if (selectedId) {
-            note = chosen ? `Suggested: ${chosen.reason}` : 'Chosen by you';
+            note = chosen ? `${chosen.name} — ${chosen.reason}` : 'Record chosen';
         } else if (options.length) {
             note = 'Not sure about these — pick one if it fits';
         } else {
-            note = 'No suggestion — search for the record';
+            note = 'No suggestion — type a name to search';
         }
-        return { chosen: !!selectedId, note, alternatives, hasAlternatives: alternatives.length > 0 };
+        return {
+            chosen: !!selectedId,
+            chosenName: chosen ? chosen.name : null,
+            note,
+            alternatives,
+            hasAlternatives: alternatives.length > 0
+        };
     }
 
-    update(veleiroId, selectedId) {
-        this.rows = this.rows.map((r) =>
-            r.veleiroId === veleiroId
-                ? { ...r, selectedRecordId: selectedId, ...this.describe(r, selectedId) }
-                : r
-        );
+    update(veleiroId, selectedId, extra) {
+        this.rows = this.rows.map((r) => {
+            if (r.veleiroId !== veleiroId) return r;
+            const merged = { ...r, ...(extra || {}) };
+            return { ...merged, selectedRecordId: selectedId, ...this.describe(merged, selectedId) };
+        });
     }
 
-    handlePick(event) {
-        this.update(event.target.dataset.veleiro, event.detail.recordId || null);
+    // Busca registros del objeto mapeado y los ofrece como opciones de esa fila.
+    async handleSearch(event) {
+        const veleiroId = event.target.dataset.veleiro;
+        const term = event.target.value;
+        if (!term || term.length < 2) {
+            this.update(veleiroId, this.selectedOf(veleiroId), { term, results: [] });
+            return;
+        }
+        try {
+            const [sobjectName, entity] = this.pairValue.split('|');
+            const results = await searchRecords({ sobjectName, entity, term });
+            this.update(veleiroId, this.selectedOf(veleiroId), { term, results });
+        } catch (e) {
+            this.toastError(e);
+        }
+    }
+
+    selectedOf(veleiroId) {
+        const row = this.rows.find((r) => r.veleiroId === veleiroId);
+        return row ? row.selectedRecordId : null;
+    }
+
+    handleUnpick(event) {
+        this.update(event.currentTarget.dataset.veleiro, null);
     }
 
     handleUseSuggestion(event) {

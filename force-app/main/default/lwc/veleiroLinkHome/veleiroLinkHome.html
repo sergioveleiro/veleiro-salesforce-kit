@@ -72,27 +72,24 @@
                                     <div class="slds-text-body_small slds-text-color_weak">{r.veleiroWebsite}</div>
                                 </td>
                                 <td>
-                                    <!-- Un solo control: busca registros y muestra el sugerido ya puesto. -->
-                                    <lightning-record-picker
-                                        label="Record"
-                                        variant="label-hidden"
-                                        placeholder="Type a name…"
-                                        object-api-name={objectApiName}
-                                        value={r.selectedRecordId}
-                                        matching-info={matchingInfo}
-                                        display-info={displayInfo}
-                                        data-veleiro={r.veleiroId}
-                                        onchange={handlePick}>
-                                    </lightning-record-picker>
+                                    <!-- Buscador propio: escribe y elige; sin dependencias de configuracion. -->
+                                    <template if:true={r.chosen}>
+                                        <div class="veleiro-chosen">
+                                            <span class="veleiro-ok">{r.chosenName}</span>
+                                            <button type="button" class="veleiro-chip" data-veleiro={r.veleiroId}
+                                                onclick={handleUnpick}>change</button>
+                                        </div>
+                                        <div class="slds-text-body_small slds-text-color_weak">{r.note}</div>
+                                    </template>
 
-                                    <div class="slds-text-body_small slds-m-top_xxx-small">
-                                        <template if:true={r.chosen}>
-                                            <span class="veleiro-ok">{r.note}</span>
-                                        </template>
-                                        <template if:false={r.chosen}>
-                                            <span class="slds-text-color_weak">{r.note}</span>
-                                        </template>
-                                    </div>
+                                    <template if:false={r.chosen}>
+                                        <lightning-input type="search" variant="label-hidden" label="Search"
+                                            placeholder="Type a name…" value={r.term} data-veleiro={r.veleiroId}
+                                            onchange={handleSearch}></lightning-input>
+                                        <div class="slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
+                                            {r.note}
+                                        </div>
+                                    </template>
 
                                     <template if:true={r.hasAlternatives}>
                                         <div class="veleiro-suggestions">

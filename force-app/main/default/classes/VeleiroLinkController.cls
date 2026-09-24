@@ -208,6 +208,41 @@ public with sharing class VeleiroLinkController {
         return o;
     }
 
+    // Buscador propio: el picker estandar depende de configuracion de la org y puede no cargar.
+    // Devuelve registros sin vincular de ese objeto cuyo nombre contenga el texto.
+    @AuraEnabled(cacheable=true)
+    public static List<RecordOption> searchRecords(String sobjectName, String entity, String term) {
+        List<RecordOption> out = new List<RecordOption>();
+        if (String.isBlank(sobjectName) || String.isBlank(term) || term.trim().length() < 2) return out;
+        Schema.SObjectType type = Schema.getGlobalDescribe().get(sobjectName);
+        if (type == null) return out;
+
+        String nameField = mappedField(sobjectName, entity, new Set<String>{ 'name' });
+        if (String.isBlank(nameField) && hasField(sobjectName, 'Name')) nameField = 'Name';
+        if (String.isBlank(nameField)) return out;
+        String siteField = mappedField(sobjectName, entity, new Set<String>{ 'website_url', 'sf_website', 'website' });
+        if (String.isBlank(siteField) && hasField(sobjectName, 'Website')) siteField = 'Website';
+
+        Set<Id> linked = VeleiroLinkStore.linkedRecords(sobjectName, entity);
+        Set<String> cols = new Set<String>{ 'Id', nameField };
+        if (String.isNotBlank(siteField)) cols.add(siteField);
+        String pattern = '%' + String.escapeSingleQuotes(term.trim()) + '%';
+        String soql = 'SELECT ' + String.join(new List<String>(cols), ', ') +
+                      ' FROM ' + String.escapeSingleQuotes(sobjectName) +
+                      ' WHERE ' + nameField + ' LIKE :pattern AND Id NOT IN :linked' +
+                      ' ORDER BY ' + nameField + ' LIMIT 20';
+        for (SObject r : Database.query(soql)) {
+            RecordOption op = new RecordOption();
+            op.recordId = r.Id;
+            op.name = str(r.get(nameField));
+            op.website = String.isNotBlank(siteField) ? str(r.get(siteField)) : null;
+            op.reason = 'Found by search';
+            op.confidence = VeleiroClientMatcher.WEAK;
+            out.add(op);
+        }
+        return out;
+    }
+
     public class LinkResult {
         @AuraEnabled public Integer linked = 0;
         @AuraEnabled public Integer skipped = 0;     // ya vinculados de un lado o del otro

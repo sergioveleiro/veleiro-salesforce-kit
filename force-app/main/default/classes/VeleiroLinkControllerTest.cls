@@ -206,4 +206,31 @@ private class VeleiroLinkControllerTest {
         System.assertEquals('org_acme', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
             'el error de Veleiro no rompe el lote ni borra el vinculo');
     }
+
+    @isTest
+    static void searchRecordsFindsUnlinkedOnesByName() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        insert new Account(Name = 'Buscable Uno');
+        insert new Account(Name = 'Buscable Dos', Veleiro_Client_Id__c = 'org_x');
+
+        List<VeleiroLinkController.RecordOption> found =
+            VeleiroLinkController.searchRecords('Account', 'client', 'buscable');
+
+        System.assertEquals(1, found.size(), 'solo los que faltan por vincular');
+        System.assertEquals('Buscable Uno', found[0].name);
+        System.assert(VeleiroLinkController.searchRecords('Account', 'client', 'a').isEmpty(), 'busqueda muy corta');
+        System.assert(VeleiroLinkController.searchRecords('Account', 'client', null).isEmpty());
+        System.assert(VeleiroLinkController.searchRecords('NoExiste__c', 'client', 'algo').isEmpty());
+    }
+
+    @isTest
+    static void searchRecordsUsesTheMappedNameFieldOfAnyObject() {
+        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
+        insert new Contact(LastName = 'Buscable Contacto');
+
+        List<VeleiroLinkController.RecordOption> found =
+            VeleiroLinkController.searchRecords('Contact', 'client', 'buscable');
+        System.assertEquals(1, found.size());
+        System.assertEquals('Buscable Contacto', found[0].name);
+    }
 }
