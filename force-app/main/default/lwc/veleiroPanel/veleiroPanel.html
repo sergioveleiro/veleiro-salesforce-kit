@@ -38,6 +38,42 @@
                 </div>
                 <lightning-button variant="brand" label="Sync with Veleiro" onclick={handleSync} class="veleiro-brand-btn"></lightning-button>
             </template>
+
+            <!-- Este cliente podria existir ya en Veleiro: vincular en vez de duplicar -->
+            <template if:true={showCandidates}>
+                <section role="dialog" aria-modal="true" class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <h2 class="slds-text-heading_medium">This account may already exist in Veleiro</h2>
+                        </header>
+                        <div class="slds-modal__content slds-p-around_medium">
+                            <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                Link it instead of creating a second client.
+                            </p>
+                            <template for:each={candidates} for:item="c">
+                                <div key={c.clientId} class="veleiro-candidate slds-m-bottom_x-small">
+                                    <div>
+                                        <a href={c.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">{c.name}</a>
+                                        <p class="slds-text-body_small slds-text-color_weak">{c.reason}</p>
+                                        <template if:true={c.linkedToOtherAccount}>
+                                            <p class="slds-text-body_small veleiro-warn">
+                                                Already linked to another Salesforce account
+                                            </p>
+                                        </template>
+                                    </div>
+                                    <lightning-button label="Link" data-id={c.clientId} onclick={handleLink}></lightning-button>
+                                </div>
+                            </template>
+                        </div>
+                        <footer class="slds-modal__footer">
+                            <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+                            <lightning-button label="Create a new client anyway" onclick={handleCreateAnyway}
+                                class="slds-m-left_x-small"></lightning-button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
         </div>
     </lightning-card>
 </template>

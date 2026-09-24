@@ -47,6 +47,7 @@ Two businesses, one link:
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
 | `flowDefinitions/*` | Pin each flow's active version. **Required**: production deploys leave flows inactive otherwise. |
+| `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
 | `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
 | `objects/Veleiro_Config__c` | Hierarchy custom setting: `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. |
 | `objects/Veleiro_Field_Mapping__c` | The mapping model (see `docs/field-mapping.md`). |

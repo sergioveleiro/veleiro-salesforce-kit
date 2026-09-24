@@ -119,8 +119,37 @@ public with sharing class VeleiroSyncService {
         return r;
     }
 
+    // Candidatos en Veleiro para un Account aun no vinculado (lo consume el panel).
+    @AuraEnabled
+    public static VeleiroClientMatcher.MatchResult findClientCandidates(Id accountId) {
+        return VeleiroClientMatcher.forAccount(accountId);
+    }
+
+    // Vincula el Account a un client existente y lo sincroniza como update (no crea nada).
+    // El id NO se guarda antes: un DML previo al callout lanza "uncommitted work pending".
+    @AuraEnabled
+    public static ClientResult linkAccountToClient(Id accountId, String clientId) {
+        if (String.isBlank(clientId)) {
+            throw new VeleiroApiClient.VeleiroApiException('Missing Veleiro client id.');
+        }
+        return syncAccount(accountId, false, clientId.trim());
+    }
+
+    // Crea un client nuevo aunque existan candidatos (el usuario lo confirmo en el panel).
+    @AuraEnabled
+    public static ClientResult createClientForAccount(Id accountId) {
+        return syncAccount(accountId, false, null);
+    }
+
     @AuraEnabled
     public static ClientResult syncAccount(Id accountId) {
+        // Por defecto se vincula solo cuando la coincidencia es fuerte (mismo sf_account_id o
+        // mismo dominio): asi los flows automaticos tampoco duplican clients ya existentes.
+        return syncAccount(accountId, true, null);
+    }
+
+    // linkClientId != null -> vincular a ese client (sin crear) en esta misma transaccion.
+    public static ClientResult syncAccount(Id accountId, Boolean autoLink, String linkClientId) {
         // La direccion configurada define si Salesforce puede empujar a Veleiro.
         if (!VeleiroSyncConfig.pushEnabled()) {
             throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
@@ -138,6 +167,19 @@ public with sharing class VeleiroSyncService {
 
         Map<String, Object> result;
         Boolean created = false;
+
+        // Vinculo elegido por el usuario en el panel: se aplica en memoria, se guarda al final.
+        if (String.isNotBlank(linkClientId)) {
+            a.Veleiro_Client_Id__c = linkClientId;
+            a.Veleiro_Version__c = null; // version desconocida -> la toma del GET del client
+        }
+
+        // Antes de crear: si el client ya existe en Veleiro, vincular en vez de duplicar.
+        if (String.isBlank(a.Veleiro_Client_Id__c) && autoLink == true) {
+            VeleiroClientMatcher.Candidate match = VeleiroClientMatcher.autoLinkable(
+                VeleiroClientMatcher.forAccount(a.Id));
+            if (match != null) a.Veleiro_Client_Id__c = match.clientId;
+        }
 
         if (String.isBlank(a.Veleiro_Client_Id__c)) {
             // CREATE

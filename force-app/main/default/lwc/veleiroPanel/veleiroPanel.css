@@ -79,3 +79,17 @@
     width: auto;
     flex: none;
 }
+
+.veleiro-candidate {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+}
+
+.veleiro-warn {
+    color: #8a6d00;
+}
