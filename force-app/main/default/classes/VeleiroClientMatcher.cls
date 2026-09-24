@@ -16,6 +16,7 @@ public with sharing class VeleiroClientMatcher {
 
     public static final String HIGH = 'high';
     public static final String MEDIUM = 'medium';
+    public static final String WEAK = 'weak';
     // Tope de clients revisados: mas alla de esto la busqueda no es confiable y se avisa.
     @TestVisible private static Integer maxClients = 2000;
 
@@ -113,8 +114,7 @@ public with sharing class VeleiroClientMatcher {
     }
 
     // 'https://www.Acme.com/es' -> 'acme.com'. Null si no hay dominio utilizable.
-    @TestVisible
-    private static String domainOf(String url) {
+    public static String domainOf(String url) {
         if (String.isBlank(url)) return null;
         String s = url.trim().toLowerCase();
         s = s.replaceFirst('^https?://', '');
@@ -125,8 +125,7 @@ public with sharing class VeleiroClientMatcher {
     }
 
     // 'Acme S.A. de C.V.' -> 'acme'. Quita sufijos societarios y puntuacion.
-    @TestVisible
-    private static String normalizeName(String raw) {
+    public static String normalizeName(String raw) {
         if (String.isBlank(raw)) return null;
         String s = raw.trim().toLowerCase();
         s = s.replaceAll('[^a-z0-9 ]', ' ');

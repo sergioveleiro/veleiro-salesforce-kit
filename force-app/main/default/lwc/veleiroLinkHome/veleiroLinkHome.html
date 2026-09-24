@@ -7,16 +7,11 @@
         <div class="slds-p-horizontal_medium slds-p-bottom_medium">
             <div class="veleiro-accentbar"></div>
 
-            <div class="veleiro-head slds-m-bottom_medium">
-                <img src={mascotUrl} alt="Velly" class="veleiro-mascot" />
-                <div>
-                    <h2 class="slds-text-heading_small">Link existing records</h2>
-                    <p class="slds-text-body_small slds-text-color_weak">
-                        Accounts and Veleiro clients created before the kit: link them here instead of
-                        creating duplicates. Matched by Salesforce id, website domain or name.
-                    </p>
-                </div>
-            </div>
+            <h2 class="slds-text-heading_small">Link existing records</h2>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                Every Veleiro client that isn't linked yet, with the Salesforce accounts that look
+                like it. Pick one per client, or search by name, then link.
+            </p>
 
             <template if:true={loading}>
                 <lightning-spinner alternative-text="Reading Veleiro..." size="small"></lightning-spinner>
@@ -25,12 +20,12 @@
             <template if:true={overview}>
                 <div class="veleiro-stats slds-m-bottom_medium">
                     <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.accountsUnlinked}</span>
-                        <span class="veleiro-stat-label">accounts not linked</span>
+                        <span class="veleiro-stat-num">{overview.clientsUnlinked}</span>
+                        <span class="veleiro-stat-label">Veleiro clients to link</span>
                     </div>
                     <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.clientsUnlinked}</span>
-                        <span class="veleiro-stat-label">Veleiro clients not linked</span>
+                        <span class="veleiro-stat-num">{overview.accountsUnlinked}</span>
+                        <span class="veleiro-stat-label">accounts not linked</span>
                     </div>
                     <div class="veleiro-stat">
                         <span class="veleiro-stat-num">{overview.accountsLinked}</span>
@@ -40,43 +35,43 @@
             </template>
 
             <template if:true={hasRows}>
-                <div class="slds-m-bottom_small">
-                    <lightning-button label="Select strong matches" onclick={handleSelectStrong}></lightning-button>
-                    <lightning-button label="Clear" onclick={handleClear} class="slds-m-left_x-small"></lightning-button>
-                    <lightning-button variant="brand" label={linkLabel} disabled={nothingToLink}
-                        onclick={handleLink} class="slds-m-left_x-small veleiro-brand-btn"></lightning-button>
+                <div class="veleiro-toolbar slds-m-bottom_small">
+                    <lightning-input type="checkbox" label="Only clients with a suggestion"
+                        checked={onlySuggested} onchange={handleToggleFilter}></lightning-input>
+                    <div>
+                        <lightning-button label="Clear" onclick={handleClear}></lightning-button>
+                        <lightning-button variant="brand" label={linkLabel} disabled={nothingToLink}
+                            onclick={handleLink} class="slds-m-left_x-small veleiro-brand-btn"></lightning-button>
+                    </div>
                 </div>
 
                 <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                     <thead>
                         <tr class="slds-line-height_reset">
-                            <th scope="col"></th>
-                            <th scope="col"><div class="slds-truncate">Salesforce account</div></th>
                             <th scope="col"><div class="slds-truncate">Veleiro client</div></th>
-                            <th scope="col"><div class="slds-truncate">Why</div></th>
+                            <th scope="col"><div class="slds-truncate">Salesforce account</div></th>
+                            <th scope="col"><div class="slds-truncate">Search by name</div></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <template for:each={rows} for:item="r">
-                            <tr key={r.key}>
-                                <td>
-                                    <input type="checkbox" data-key={r.key} checked={r.selected}
-                                        onchange={handleToggle} />
-                                </td>
-                                <td>
-                                    <div class="slds-truncate">{r.accountName}</div>
-                                    <div class="slds-text-body_small slds-text-color_weak">{r.accountWebsite}</div>
-                                </td>
+                        <template for:each={visibleRows} for:item="r">
+                            <tr key={r.clientId}>
                                 <td>
                                     <a href={r.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
                                         {r.clientName}
                                     </a>
+                                    <div class="slds-text-body_small slds-text-color_weak">{r.clientWebsite}</div>
                                 </td>
                                 <td>
-                                    <div class="slds-truncate">{r.reason}</div>
-                                    <template if:false={r.strong}>
-                                        <span class="veleiro-warn slds-text-body_small">check before linking</span>
-                                    </template>
+                                    <lightning-combobox variant="label-hidden" label="Account"
+                                        data-client={r.clientId} value={r.selectedAccountId}
+                                        options={r.options} onchange={handleSelect}></lightning-combobox>
+                                    <div class="slds-text-body_small slds-text-color_weak">{r.note}</div>
+                                </td>
+                                <td>
+                                    <lightning-input type="search" variant="label-hidden" label="Search"
+                                        placeholder="Account name…" data-client={r.clientId}
+                                        onchange={handleSearch}></lightning-input>
                                 </td>
                             </tr>
                         </template>
