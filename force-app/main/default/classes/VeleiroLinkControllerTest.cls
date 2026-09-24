@@ -135,12 +135,13 @@ private class VeleiroLinkControllerTest {
         insert a;
 
         Test.startTest();
-        Integer linked = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
             new Map<String, String>{ 'accountId' => a.Id, 'clientId' => 'org_acme' }
         }));
         Test.stopTest();
 
-        System.assertEquals(1, linked);
+        System.assertEquals(1, r.linked);
+        System.assertEquals(0, r.skipped);
         System.assertEquals('org_acme', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
     }
 
@@ -151,14 +152,31 @@ private class VeleiroLinkControllerTest {
         insert new List<Account>{ taken, other };
 
         Test.startTest();
-        Integer linked = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
             new Map<String, String>{ 'accountId' => other.Id, 'clientId' => 'org_acme' },
             new Map<String, String>{ 'accountId' => other.Id, 'clientId' => '' }
         }));
         Test.stopTest();
 
-        System.assertEquals(0, linked, 'ni roba el client ni acepta filas vacias');
+        System.assertEquals(0, r.linked, 'ni roba el client ni acepta filas vacias');
+        System.assertEquals(1, r.skipped);
         System.assertEquals(null, [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :other.Id].Veleiro_Client_Id__c);
+    }
+
+    @isTest
+    static void linkAllSkipsAccountsThatAlreadyHaveAClient() {
+        Account taken = new Account(Name = 'Ya tiene client', Veleiro_Client_Id__c = 'org_uno');
+        insert taken;
+
+        Test.startTest();
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll(JSON.serialize(new List<Map<String, String>>{
+            new Map<String, String>{ 'accountId' => taken.Id, 'clientId' => 'org_dos' }
+        }));
+        Test.stopTest();
+
+        System.assertEquals(0, r.linked, 'no se le cambia el client a una cuenta ya vinculada');
+        System.assertEquals(1, r.skipped);
+        System.assertEquals('org_uno', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :taken.Id].Veleiro_Client_Id__c);
     }
 
     @isTest

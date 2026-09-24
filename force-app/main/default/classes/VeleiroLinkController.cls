@@ -176,28 +176,42 @@ public with sharing class VeleiroLinkController {
         return out;
     }
 
+    public class LinkResult {
+        @AuraEnabled public Integer linked = 0;
+        @AuraEnabled public Integer skipped = 0; // ya vinculados de un lado o del otro
+    }
+
     // Aplica las vinculaciones elegidas. pairsJson: [{"accountId":"001...","clientId":"org_..."}]
     @AuraEnabled
-    public static Integer linkAll(String pairsJson) {
+    public static LinkResult linkAll(String pairsJson) {
         List<Object> rows = (List<Object>) JSON.deserializeUntyped(pairsJson);
         Map<Id, Account> toUpdate = new Map<Id, Account>();
         Set<String> alreadyUsed = new Set<String>();
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Veleiro_Client_Id__c != null]) {
+        // Cuentas que ya tienen client: no se les cambia el vinculo desde esta pantalla.
+        Set<Id> accountsTaken = new Set<Id>();
+        for (Account a : [SELECT Id, Veleiro_Client_Id__c FROM Account WHERE Veleiro_Client_Id__c != null]) {
             alreadyUsed.add(a.Veleiro_Client_Id__c);
+            accountsTaken.add(a.Id);
         }
 
+        LinkResult result = new LinkResult();
         for (Object o : rows) {
             Map<String, Object> row = (Map<String, Object>) o;
             String accountId = String.valueOf(row.get('accountId'));
             String clientId = String.valueOf(row.get('clientId'));
             if (String.isBlank(accountId) || String.isBlank(clientId)
                 || accountId == 'null' || clientId == 'null') continue;
-            if (alreadyUsed.contains(clientId)) continue; // un client, un Account
+            // Un client, un Account (y viceversa): lo que ya esta vinculado no se toca.
+            if (alreadyUsed.contains(clientId) || accountsTaken.contains((Id) accountId)) {
+                result.skipped++;
+                continue;
+            }
             alreadyUsed.add(clientId);
             toUpdate.put(accountId, new Account(Id = accountId, Veleiro_Client_Id__c = clientId, Veleiro_Version__c = null));
         }
         if (!toUpdate.isEmpty()) update toUpdate.values();
-        return toUpdate.size();
+        result.linked = toUpdate.size();
+        return result;
     }
 
     // ---- helpers ----

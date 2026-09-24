@@ -242,3 +242,28 @@
 .veleiro-warn { color: #8a6d00; }
 
 .veleiro-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+.veleiro-client-cell { width: 28%; }
+
+.veleiro-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.veleiro-chip {
+    background: #f3f6f9;
+    border: 1px solid #dddbda;
+    border-radius: 1rem;
+    padding: 0.125rem 0.6rem;
+    font-size: 0.75rem;
+    color: #040b25;
+    cursor: pointer;
+}
+
+.veleiro-chip:hover {
+    background: #cfe6f8;
+}
+
+.veleiro-ok { color: #2e844a; }

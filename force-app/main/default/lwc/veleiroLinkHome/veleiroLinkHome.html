@@ -9,8 +9,8 @@
 
             <h2 class="slds-text-heading_small">Link existing records</h2>
             <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
-                Every Veleiro client that isn't linked yet, with the Salesforce accounts that look
-                like it. Pick one per client, or search by name, then link.
+                Every Veleiro client that isn't linked yet. Each one shows the Salesforce account we
+                think it is — keep it, or type to pick another. Then link.
             </p>
 
             <template if:true={loading}>
@@ -50,28 +50,51 @@
                         <tr class="slds-line-height_reset">
                             <th scope="col"><div class="slds-truncate">Veleiro client</div></th>
                             <th scope="col"><div class="slds-truncate">Salesforce account</div></th>
-                            <th scope="col"><div class="slds-truncate">Search by name</div></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template for:each={visibleRows} for:item="r">
                             <tr key={r.clientId}>
-                                <td>
+                                <td class="veleiro-client-cell">
                                     <a href={r.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
                                         {r.clientName}
                                     </a>
                                     <div class="slds-text-body_small slds-text-color_weak">{r.clientWebsite}</div>
                                 </td>
                                 <td>
-                                    <lightning-combobox variant="label-hidden" label="Account"
-                                        data-client={r.clientId} value={r.selectedAccountId}
-                                        options={r.options} onchange={handleSelect}></lightning-combobox>
-                                    <div class="slds-text-body_small slds-text-color_weak">{r.note}</div>
-                                </td>
-                                <td>
-                                    <lightning-input type="search" variant="label-hidden" label="Search"
-                                        placeholder="Account name…" data-client={r.clientId}
-                                        onchange={handleSearch}></lightning-input>
+                                    <!-- Un solo control: busca cuentas y muestra la sugerida ya puesta. -->
+                                    <lightning-record-picker
+                                        label="Account"
+                                        variant="label-hidden"
+                                        placeholder="Type an account name…"
+                                        object-api-name="Account"
+                                        value={r.selectedAccountId}
+                                        matching-info={matchingInfo}
+                                        display-info={displayInfo}
+                                        data-client={r.clientId}
+                                        onchange={handlePick}>
+                                    </lightning-record-picker>
+
+                                    <div class="slds-text-body_small slds-m-top_xxx-small">
+                                        <template if:true={r.chosen}>
+                                            <span class="veleiro-ok">{r.note}</span>
+                                        </template>
+                                        <template if:false={r.chosen}>
+                                            <span class="slds-text-color_weak">{r.note}</span>
+                                        </template>
+                                    </div>
+
+                                    <template if:true={r.hasAlternatives}>
+                                        <div class="veleiro-suggestions">
+                                            <template for:each={r.alternatives} for:item="alt">
+                                                <button key={alt.accountId} type="button"
+                                                    class="veleiro-chip" data-client={r.clientId}
+                                                    data-account={alt.accountId} onclick={handleUseSuggestion}>
+                                                    {alt.name} · {alt.reason}
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </td>
                             </tr>
                         </template>
