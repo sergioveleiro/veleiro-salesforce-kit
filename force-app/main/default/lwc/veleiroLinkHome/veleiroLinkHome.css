@@ -1,0 +1,242 @@
+:host {
+    --veleiro-navy: #040b25;
+    --veleiro-navy-hover: #0a1740;
+    --veleiro-accent: #cfe6f8;
+    --veleiro-line: #e7eef6;
+    --veleiro-muted: #5a6b82;
+}
+
+.veleiro-home {
+    padding: 4px;
+}
+.veleiro-hero {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: #ffffff;
+    border: 1px solid var(--veleiro-line);
+    border-left: 6px solid var(--veleiro-accent);
+    padding: 18px 24px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(4, 11, 37, 0.06);
+}
+.hero-logo { height: 30px; width: auto; flex: none; }
+.hero-text { flex: 1; }
+.hero-text h1 { color: var(--veleiro-navy); font-size: 1.35rem; font-weight: 700; margin: 0 0 4px 0; }
+.hero-text p { color: var(--veleiro-muted); font-size: 0.9rem; margin: 0; max-width: 720px; line-height: 1.5; }
+.hero-mascot { height: 60px; width: auto; flex: none; }
+
+/* Card */
+.veleiro-card {
+    background: #fff;
+    border: 1px solid var(--veleiro-line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+}
+
+/* Pickers */
+.veleiro-pickers {
+    display: grid;
+    grid-template-columns: 1fr 28px 1fr;
+    align-items: end;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.veleiro-arrow {
+    text-align: center;
+    color: var(--veleiro-muted);
+    font-weight: 700;
+    padding-bottom: 8px;
+}
+
+.veleiro-hint {
+    background: #f2f8ff;
+    border: 1px solid var(--veleiro-accent);
+    color: #04345e;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+}
+
+/* Editable rows */
+.veleiro-map-table { display: flex; flex-direction: column; gap: 6px; }
+.veleiro-map-row {
+    display: grid;
+    grid-template-columns: 1.2fr 18px 1.4fr 34px;
+    align-items: start;
+    gap: 8px;
+}
+.veleiro-map-header { align-items: center; }
+.veleiro-target-cell { display: flex; flex-direction: column; gap: 4px; }
+.veleiro-target-note {
+    margin: 8px 2px 0;
+    font-size: 0.72rem;
+    color: #7c8996;
+    line-height: 1.4;
+}
+.veleiro-map-header {
+    color: #97a6bb;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    padding: 0 2px 2px;
+}
+.veleiro-arrow-sm { text-align: center; color: #97a6bb; font-weight: 700; }
+
+.veleiro-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+}
+.veleiro-brand-btn {
+    --slds-c-button-brand-color-background: var(--veleiro-navy);
+    --slds-c-button-brand-color-border: var(--veleiro-navy);
+    --slds-c-button-brand-color-background-hover: var(--veleiro-navy-hover);
+    --slds-c-button-brand-color-border-hover: var(--veleiro-navy-hover);
+}
+.veleiro-empty-hint { color: var(--veleiro-muted); font-size: 0.86rem; }
+
+/* Summary */
+.veleiro-section-head {
+    color: var(--veleiro-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin: 4px 2px 10px;
+}
+.veleiro-group {
+    background: #fff;
+    border: 1px solid var(--veleiro-line);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+.veleiro-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #eef3f8;
+}
+.veleiro-group-name { color: var(--veleiro-navy); font-size: 1rem; font-weight: 700; }
+.veleiro-badge {
+    background: var(--veleiro-accent);
+    color: #04345e;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+.veleiro-group-count { margin-left: auto; color: var(--veleiro-muted); font-size: 0.75rem; font-weight: 600; }
+.veleiro-sum-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 2px;
+    font-size: 0.82rem;
+}
+.veleiro-sum-row code {
+    background: #f4f8fc;
+    border: 1px solid var(--veleiro-line);
+    border-radius: 6px;
+    padding: 2px 8px;
+    color: var(--veleiro-navy);
+    font-family: "SFMono-Regular", Consolas, monospace;
+}
+.veleiro-type { margin-left: auto; color: var(--veleiro-muted); font-size: 0.72rem; }
+
+/* Config de integracion (3 pickers) */
+.veleiro-pickers-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.veleiro-config-hint {
+    color: var(--veleiro-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    max-width: 620px;
+}
+
+/* Uno-a-uno + editar */
+.veleiro-locked-hint {
+    color: #04345e;
+    background: #f2f8ff;
+    border: 1px solid var(--veleiro-accent);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+}
+.veleiro-group-clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.12s ease;
+}
+.veleiro-group-clickable:hover {
+    background: #f7fafd;
+}
+.veleiro-edit-icon {
+    margin-left: 8px;
+    --sds-c-icon-color-foreground-default: var(--veleiro-muted);
+}
+
+/* Header de seccion con boton (Add mapping) */
+.veleiro-section-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.veleiro-section-head-row .veleiro-section-head { margin: 0; }
+.veleiro-editor-title {
+    color: var(--veleiro-navy);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+.veleiro-actions-right { display: flex; align-items: center; gap: 8px; }
+.veleiro-empty-map {
+    text-align: center;
+    padding: 22px 10px;
+    color: var(--veleiro-muted);
+}
+.veleiro-empty-map p { margin-bottom: 12px; font-size: 0.9rem; }
+
+/* Conexion + estado */
+.veleiro-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--veleiro-line);
+}
+.veleiro-status-ok       { background: #eef8f1; border-color: #b6e0c4; }
+.veleiro-status-bad      { background: #fdecea; border-color: #f5c2bd; }
+.veleiro-status-checking { background: #f2f6fa; }
+.veleiro-status-dot { font-size: 1rem; flex: none; }
+.veleiro-status-text { display: flex; flex-direction: column; flex: 1; gap: 1px; }
+.veleiro-status-label { color: var(--veleiro-navy); font-weight: 700; font-size: 0.92rem; }
+.veleiro-status-sub { color: var(--veleiro-muted); font-size: 0.76rem; }
+.veleiro-conn-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+.veleiro-conn-input { flex: 1; }
+.veleiro-status-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+.veleiro-conn-done { justify-content: flex-end; }
+
+.veleiro-head { display: flex; align-items: center; gap: 0.75rem; }
+.veleiro-stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+.veleiro-stat { display: flex; flex-direction: column; }
+.veleiro-stat-num { font-size: 1.5rem; font-weight: 700; color: #040b25; }
+.veleiro-stat-label { font-size: 0.75rem; color: #706e6b; }
+.veleiro-warn { color: #8a6d00; }

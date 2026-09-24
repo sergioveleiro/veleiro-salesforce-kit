@@ -1,0 +1,98 @@
+<template>
+    <lightning-card>
+        <div slot="title" class="veleiro-title">
+            <img src={logoUrl} alt="Veleiro" class="veleiro-logo" />
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <div class="veleiro-accentbar"></div>
+
+            <div class="veleiro-head slds-m-bottom_medium">
+                <img src={mascotUrl} alt="Velly" class="veleiro-mascot" />
+                <div>
+                    <h2 class="slds-text-heading_small">Link existing records</h2>
+                    <p class="slds-text-body_small slds-text-color_weak">
+                        Accounts and Veleiro clients created before the kit: link them here instead of
+                        creating duplicates. Matched by Salesforce id, website domain or name.
+                    </p>
+                </div>
+            </div>
+
+            <template if:true={loading}>
+                <lightning-spinner alternative-text="Reading Veleiro..." size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={overview}>
+                <div class="veleiro-stats slds-m-bottom_medium">
+                    <div class="veleiro-stat">
+                        <span class="veleiro-stat-num">{overview.accountsUnlinked}</span>
+                        <span class="veleiro-stat-label">accounts not linked</span>
+                    </div>
+                    <div class="veleiro-stat">
+                        <span class="veleiro-stat-num">{overview.clientsUnlinked}</span>
+                        <span class="veleiro-stat-label">Veleiro clients not linked</span>
+                    </div>
+                    <div class="veleiro-stat">
+                        <span class="veleiro-stat-num">{overview.accountsLinked}</span>
+                        <span class="veleiro-stat-label">already linked</span>
+                    </div>
+                </div>
+            </template>
+
+            <template if:true={hasRows}>
+                <div class="slds-m-bottom_small">
+                    <lightning-button label="Select strong matches" onclick={handleSelectStrong}></lightning-button>
+                    <lightning-button label="Clear" onclick={handleClear} class="slds-m-left_x-small"></lightning-button>
+                    <lightning-button variant="brand" label={linkLabel} disabled={nothingToLink}
+                        onclick={handleLink} class="slds-m-left_x-small veleiro-brand-btn"></lightning-button>
+                </div>
+
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col"></th>
+                            <th scope="col"><div class="slds-truncate">Salesforce account</div></th>
+                            <th scope="col"><div class="slds-truncate">Veleiro client</div></th>
+                            <th scope="col"><div class="slds-truncate">Why</div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={rows} for:item="r">
+                            <tr key={r.key}>
+                                <td>
+                                    <input type="checkbox" data-key={r.key} checked={r.selected}
+                                        onchange={handleToggle} />
+                                </td>
+                                <td>
+                                    <div class="slds-truncate">{r.accountName}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">{r.accountWebsite}</div>
+                                </td>
+                                <td>
+                                    <a href={r.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
+                                        {r.clientName}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="slds-truncate">{r.reason}</div>
+                                    <template if:false={r.strong}>
+                                        <span class="veleiro-warn slds-text-body_small">check before linking</span>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </template>
+
+            <template if:false={hasRows}>
+                <template if:true={scanned}>
+                    <p class="slds-text-body_regular slds-text-color_weak">{emptyMessage}</p>
+                </template>
+            </template>
+
+            <div class="slds-m-top_medium">
+                <lightning-button label="Re-scan" onclick={scan}></lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

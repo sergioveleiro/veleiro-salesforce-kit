@@ -29,6 +29,10 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>Veleiro_Link</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>Veleiro_Mappings</tab>
         <visibility>Visible</visibility>
     </tabSettings>

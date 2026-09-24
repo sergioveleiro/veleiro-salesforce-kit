@@ -47,6 +47,7 @@ Two businesses, one link:
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
 | `flowDefinitions/*` | Pin each flow's active version. **Required**: production deploys leave flows inactive otherwise. |
+| `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab: bulk-match unlinked Accounts against Veleiro clients and link the chosen pairs (field write only, no callouts). For orgs that had records on both sides before the kit. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
 | `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
 | `objects/Veleiro_Config__c` | Hierarchy custom setting: `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. |
@@ -100,7 +101,8 @@ Queues: `expand`+`reference` → Expand; `protect`+`unblock` → At-risk; `onboa
 2. Configure `Veleiro_Config__c` **as data** (never in git): set `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. Use `scripts/apex/configure.apex` (edit in a local copy, don't commit the token) or the Setup UI.
 3. `sf apex run -o <org> -f scripts/apex/seedMappings.apex` to seed default mappings.
 4. `sf org assign permset -o <org> -n Veleiro_Integration_Access`.
-5. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
+5. If the org already had accounts in Salesforce and clients in Veleiro, open the **Veleiro Link** tab and link them before syncing, so nothing is duplicated.
+6. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
 6. Verify: `sf apex run` calling `VeleiroSync.syncClients();` (pull) and `VeleiroSyncService.syncAccount('<accountId>');` (push).
 
 Full manual: `docs/setup.md`.

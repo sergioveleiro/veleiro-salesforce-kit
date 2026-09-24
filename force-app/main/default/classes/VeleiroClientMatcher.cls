@@ -44,9 +44,6 @@ public with sharing class VeleiroClientMatcher {
             return r; // demasiados para comparar con confianza: mejor no sugerir nada
         }
 
-        String accountDomain = domainOf(a.Website);
-        String accountName = normalizeName(a.Name);
-        String accountId15 = String.valueOf(a.Id).substring(0, 15);
         // Ids de clients ya usados por otras cuentas: se muestran, pero avisando.
         Set<String> takenElsewhere = new Set<String>();
         for (Account other : [
@@ -57,38 +54,8 @@ public with sharing class VeleiroClientMatcher {
         }
 
         for (Object o : clients) {
-            Map<String, Object> c = (Map<String, Object>) o;
-            if (c.get('is_archived') == true) continue;
-            Map<String, Object> af = (c.get('additional_fields') instanceof Map<String, Object>)
-                ? (Map<String, Object>) c.get('additional_fields') : new Map<String, Object>();
-
-            String reason;
-            String confidence;
-            String linkedSfId = str(af.get('sf_account_id'));
-            String clientDomain = domainOf(str(af.get('sf_website')));
-
-            if (String.isNotBlank(linkedSfId) && linkedSfId.length() >= 15
-                && linkedSfId.substring(0, 15) == accountId15) {
-                reason = 'Already carries this Salesforce Account id';
-                confidence = HIGH;
-            } else if (String.isNotBlank(accountDomain) && accountDomain == clientDomain) {
-                reason = 'Same website domain (' + accountDomain + ')';
-                confidence = HIGH;
-            } else if (String.isNotBlank(accountName) && accountName == normalizeName(str(c.get('name')))) {
-                reason = 'Same name';
-                confidence = MEDIUM;
-            } else {
-                continue;
-            }
-
-            Candidate cand = new Candidate();
-            cand.clientId = str(c.get('id'));
-            cand.name = str(c.get('name'));
-            cand.reason = reason;
-            cand.confidence = confidence;
-            cand.linkedToOtherAccount = takenElsewhere.contains(cand.clientId);
-            cand.veleiroUrl = VeleiroApiClient.appBaseUrl() + '/a/partner-portal/organizations/' + cand.clientId;
-            r.candidates.add(cand);
+            Candidate cand = evaluate(a, (Map<String, Object>) o, takenElsewhere);
+            if (cand != null) r.candidates.add(cand);
         }
         // Primero las coincidencias fuertes y sin dueño.
         List<Candidate> sorted = new List<Candidate>();
@@ -96,6 +63,44 @@ public with sharing class VeleiroClientMatcher {
         for (Candidate c : r.candidates) if (!(c.confidence == HIGH && !c.linkedToOtherAccount)) sorted.add(c);
         r.candidates = sorted;
         return r;
+    }
+
+    // Un client contra un Account: devuelve el candidato o null si no se parecen.
+    public static Candidate evaluate(Account a, Map<String, Object> c, Set<String> takenElsewhere) {
+        if (c.get('is_archived') == true) return null;
+        Map<String, Object> af = (c.get('additional_fields') instanceof Map<String, Object>)
+            ? (Map<String, Object>) c.get('additional_fields') : new Map<String, Object>();
+
+        String accountDomain = domainOf(a.Website);
+        String accountName = normalizeName(a.Name);
+        String accountId15 = String.valueOf(a.Id).substring(0, 15);
+        String linkedSfId = str(af.get('sf_account_id'));
+        String clientDomain = domainOf(str(af.get('sf_website')));
+
+        String reason;
+        String confidence;
+        if (String.isNotBlank(linkedSfId) && linkedSfId.length() >= 15
+            && linkedSfId.substring(0, 15) == accountId15) {
+            reason = 'Already carries this Salesforce Account id';
+            confidence = HIGH;
+        } else if (String.isNotBlank(accountDomain) && accountDomain == clientDomain) {
+            reason = 'Same website domain (' + accountDomain + ')';
+            confidence = HIGH;
+        } else if (String.isNotBlank(accountName) && accountName == normalizeName(str(c.get('name')))) {
+            reason = 'Same name';
+            confidence = MEDIUM;
+        } else {
+            return null;
+        }
+
+        Candidate cand = new Candidate();
+        cand.clientId = str(c.get('id'));
+        cand.name = str(c.get('name'));
+        cand.reason = reason;
+        cand.confidence = confidence;
+        cand.linkedToOtherAccount = takenElsewhere != null && takenElsewhere.contains(cand.clientId);
+        cand.veleiroUrl = VeleiroApiClient.appBaseUrl() + '/a/partner-portal/organizations/' + cand.clientId;
+        return cand;
     }
 
     // Coincidencia lo bastante fuerte para vincular sin preguntar (flows y auto-sync).
