@@ -141,4 +141,34 @@ private class VeleiroSyncConfigTest {
         VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'manual');
         System.assertEquals(false, VeleiroSyncConfig.autoSyncOnCreate(), 'manual -> false');
     }
+
+    @isTest
+    static void eachPairCanBeAutomaticOnItsOwn() {
+        // Account automatico, Opportunity manual: el caso que piden los partners.
+        Test.startTest();
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, false);
+        Test.stopTest();
+
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncAccount());
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOpportunity());
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncAccountFlag());
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOpportunityFlag());
+    }
+
+    @isTest
+    static void manualTriggerTurnsOffBothPairs() {
+        Test.startTest();
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'manual', true, true);
+        Test.stopTest();
+
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncAccount(), 'el trigger global manda');
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOpportunity());
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncAccountFlag(), 'pero el interruptor conserva su valor');
+    }
+
+    @isTest
+    static void pairsDefaultToAutomaticWhenNothingIsSavedYet() {
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncAccountFlag());
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncOpportunityFlag());
+    }
 }

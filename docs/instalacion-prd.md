@@ -63,6 +63,7 @@ En el mismo panel, sección **1 · How the integration works**:
 - **On conflict, who wins:** normalmente Salesforce.
 - **Pull from Veleiro:** Off, cada hora o diario.
 - **Sync to Veleiro (trigger):** **Automatic on record create** si quieres que los flows funcionen. En "Manual" no se sincroniza nada solo.
+- **Automatic for:** con el trigger en Automatic aparecen dos interruptores, uno por par. Así puedes dejar **Account → client** automático y **Opportunity → project** manual (o al revés). El de Opportunity cubre tanto la creación como el paso a Closed Won.
 - **Save configuration**.
 
 ## 6. Cargar los mapeos de campos

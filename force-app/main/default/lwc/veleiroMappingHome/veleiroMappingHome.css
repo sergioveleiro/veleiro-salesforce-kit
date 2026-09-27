@@ -233,3 +233,11 @@
 .veleiro-conn-input { flex: 1; }
 .veleiro-status-actions { display: flex; gap: 6px; align-items: center; flex: none; }
 .veleiro-conn-done { justify-content: flex-end; }
+
+.veleiro-autopairs {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}

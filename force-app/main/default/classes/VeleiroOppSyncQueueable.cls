@@ -25,7 +25,7 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
     // Opportunities que deben esperar al auto-sync de su Account (recien creado y aun sin client).
     public static Set<Id> waitingForAccountSync(List<Id> opportunityIds) {
         Set<Id> waiting = new Set<Id>();
-        if (opportunityIds == null || opportunityIds.isEmpty() || !VeleiroSyncConfig.autoSyncOnCreate()) {
+        if (opportunityIds == null || opportunityIds.isEmpty() || !VeleiroSyncConfig.autoSyncAccount()) {
             return waiting;
         }
         Datetime freshSince = Datetime.now().addMinutes(-FRESH_ACCOUNT_MINUTES);

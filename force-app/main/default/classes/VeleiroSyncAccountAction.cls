@@ -6,6 +6,8 @@
 public with sharing class VeleiroSyncAccountAction {
     @InvocableMethod(label='Sync Account to Veleiro Client' callout=true)
     public static void syncAccounts(List<Id> accountIds) {
+        // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
+        if (!VeleiroSyncConfig.autoSyncAccount()) return;
         for (Id aid : accountIds) {
             VeleiroSyncService.syncAccount(aid);
         }

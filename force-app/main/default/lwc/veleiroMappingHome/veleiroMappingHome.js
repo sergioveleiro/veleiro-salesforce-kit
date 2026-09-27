@@ -70,6 +70,8 @@ export default class VeleiroMappingHome extends LightningElement {
     syncWinner = 'salesforce';
     syncFrequency = 'off';
     syncTrigger = 'manual';
+    autoAccount = true;
+    autoOpportunity = true;
     savingConfig = false;
 
     // ---- connection status ----
@@ -217,6 +219,8 @@ export default class VeleiroMappingHome extends LightningElement {
                     this.syncWinner = c.winner || 'salesforce';
                     this.syncFrequency = c.frequency || 'off';
                     this.syncTrigger = c.trigger || 'manual';
+                    this.autoAccount = c.autoAccount !== 'false';
+                    this.autoOpportunity = c.autoOpportunity !== 'false';
                 }
             })
             .catch(() => {});
@@ -225,10 +229,17 @@ export default class VeleiroMappingHome extends LightningElement {
     handleWinnerChange(event) { this.syncWinner = event.detail.value; }
     handleFrequencyChange(event) { this.syncFrequency = event.detail.value; }
     handleTriggerChange(event) { this.syncTrigger = event.detail.value; }
+    handleAutoAccountChange(event) { this.autoAccount = event.target.checked; }
+    handleAutoOpportunityChange(event) { this.autoOpportunity = event.target.checked; }
+
+    get triggerIsAuto() { return this.syncTrigger === 'auto'; }
 
     handleSaveConfig() {
         this.savingConfig = true;
-        saveSyncConfig({ direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency, triggerMode: this.syncTrigger })
+        saveSyncConfig({
+            direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency,
+            triggerMode: this.syncTrigger, autoAccount: this.autoAccount, autoOpportunity: this.autoOpportunity
+        })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({
                     title: 'Integration configured',

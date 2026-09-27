@@ -594,6 +594,8 @@ public with sharing class VeleiroSyncService {
     // el de Account vive en VeleiroSyncAccountAction.
     @InvocableMethod(label='Sync Opportunity to Veleiro Project' callout=true)
     public static void syncOpportunitiesInvocable(List<Id> opportunityIds) {
+        // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
+        if (!VeleiroSyncConfig.autoSyncOpportunity()) return;
         // Si el Account se creo en la misma operacion (conversion de Lead), su propio auto-sync
         // esta creando el client: esperamos a ese en vez de crear un duplicado.
         Set<Id> waiting = VeleiroOppSyncQueueable.waitingForAccountSync(opportunityIds);

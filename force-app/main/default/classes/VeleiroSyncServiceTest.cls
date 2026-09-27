@@ -234,6 +234,8 @@ private class VeleiroSyncServiceTest {
 
     @isTest
     static void invocableCreatesProject() {
+        // El invocable es la ruta automatica: solo actua con el par en Automatic.
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
         Account a = newAccount('org_test');
         Opportunity o = newOpp(a.Id, null);
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
@@ -248,6 +250,7 @@ private class VeleiroSyncServiceTest {
 
     @isTest
     static void invocableCreatesClient() {
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
         Account a = newAccount(null);
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
 
@@ -257,5 +260,36 @@ private class VeleiroSyncServiceTest {
 
         Account after = [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('org_test', after.Veleiro_Client_Id__c);
+    }
+
+    @isTest
+    static void opportunityInvocableRespectsItsOwnSwitch() {
+        // Account automatico, Opportunity manual: el flow corre pero no debe sincronizar.
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, false);
+        Account a = newAccount('org_test');
+        Opportunity o = newOpp(a.Id, null);
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncOpportunitiesInvocable(new List<Id>{ o.Id });
+        Test.stopTest();
+
+        System.assertEquals(null, mock.lastPostBody, 'Opportunity en manual -> no se crea el project');
+        System.assertEquals(null, [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :o.Id].Veleiro_Project_Id__c);
+    }
+
+    @isTest
+    static void accountInvocableRespectsItsOwnSwitch() {
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', false, true);
+        Account a = newAccount(null);
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a.Id });
+        Test.stopTest();
+
+        System.assertEquals(null, mock.lastPostBody, 'Account en manual -> no se crea el client');
     }
 }

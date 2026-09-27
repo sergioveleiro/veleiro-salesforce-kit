@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Auto_Sync_Opportunity__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Con el trigger en Automatico, sincroniza la Opportunity al crearla y al pasar a Closed Won. Apagalo para que el project solo se cree con el boton.</description>
+    <label>Auto sync Opportunity to project</label>
+    <type>Checkbox</type>
+</CustomField>

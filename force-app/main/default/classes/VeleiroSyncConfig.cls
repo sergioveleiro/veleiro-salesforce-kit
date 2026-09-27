@@ -46,8 +46,25 @@ public with sharing class VeleiroSyncConfig {
     // Auto-sincronizar al crear? solo si el trigger es 'auto' Y el push (SF->Veleiro) esta permitido.
     public static Boolean autoSyncOnCreate() { return syncTrigger() == TRIG_AUTO && pushEnabled(); }
 
+    // Interruptores por par: con el trigger global en 'auto', cada uno decide si ese par
+    // se sincroniza solo. Sin config guardada, ambos vienen encendidos (checkbox default true).
+    public static Boolean autoSyncAccount() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
+    public static Boolean autoSyncOpportunity() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
+
+    // Valor tal cual del interruptor, para mostrarlo en el panel.
+    public static Boolean autoSyncAccountFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
+    public static Boolean autoSyncOpportunityFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
+
+    // Un checkbox sin registro de config todavia cuenta como encendido.
+    private static Boolean flag(Boolean value) { return value == null ? true : value; }
+
     // ---- escritura + (re)programacion del job ----
     public static void save(String direction, String winner, String frequency, String triggerMode) {
+        save(direction, winner, frequency, triggerMode, true, true);
+    }
+
+    public static void save(String direction, String winner, String frequency, String triggerMode,
+                            Boolean autoAccount, Boolean autoOpportunity) {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
@@ -56,6 +73,8 @@ public with sharing class VeleiroSyncConfig {
         c.Conflict_Winner__c = (String.isNotBlank(winner) && winner.toLowerCase() == WIN_VELEIRO) ? WIN_VELEIRO : WIN_SF;
         c.Pull_Frequency__c = normalizeFreq(frequency);
         c.Sync_Trigger__c = normalizeTrigger(triggerMode);
+        c.Auto_Sync_Account__c = flag(autoAccount);
+        c.Auto_Sync_Opportunity__c = flag(autoOpportunity);
         upsert c;
         reschedule(c.Pull_Frequency__c);
     }

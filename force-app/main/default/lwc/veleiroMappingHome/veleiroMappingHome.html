@@ -73,8 +73,21 @@
                     value={syncFrequency} onchange={handleFrequencyChange}></lightning-combobox>
                 <lightning-combobox label="Sync to Veleiro (trigger)" options={triggerOptions}
                     value={syncTrigger} onchange={handleTriggerChange}
-                    field-level-help="Automatic = sincroniza Account/Opportunity al crearlos. Manual = solo cuando das clic en Sync."></lightning-combobox>
+                    field-level-help="Automatic = sincroniza al crear el registro. Manual = solo cuando das clic en Sync."></lightning-combobox>
             </div>
+            <!-- Con el trigger en Automatico, cada par decide si se sincroniza solo. -->
+            <template if:true={triggerIsAuto}>
+                <div class="veleiro-autopairs">
+                    <span class="veleiro-config-hint">Automatic for:</span>
+                    <lightning-input type="toggle" label="Account &#8594; client" message-toggle-active="Automatic"
+                        message-toggle-inactive="Manual" checked={autoAccount}
+                        onchange={handleAutoAccountChange}></lightning-input>
+                    <lightning-input type="toggle" label="Opportunity &#8594; project" message-toggle-active="Automatic"
+                        message-toggle-inactive="Manual" checked={autoOpportunity}
+                        onchange={handleAutoOpportunityChange}
+                        field-level-help="Incluye la creacion de la Opportunity y el paso a Closed Won."></lightning-input>
+                </div>
+            </template>
             <div class="veleiro-actions">
                 <span class="veleiro-config-hint">🧭&nbsp;Set this first — it defines whether Salesforce pushes, pulls, or both, who wins a conflict, and how often we pull from Veleiro (no webhook yet).</span>
                 <lightning-button variant="brand" label="Save configuration" onclick={handleSaveConfig}

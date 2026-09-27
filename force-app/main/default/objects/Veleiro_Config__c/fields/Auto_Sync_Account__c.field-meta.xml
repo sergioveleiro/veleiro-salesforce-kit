@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Auto_Sync_Account__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Con el trigger en Automatico, sincroniza el Account al crearlo. Apagalo para que Account solo se sincronice con el boton.</description>
+    <label>Auto sync Account to client</label>
+    <type>Checkbox</type>
+</CustomField>

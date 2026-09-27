@@ -155,7 +155,7 @@ private class VeleiroMappingControllerTest {
         Test.startTest();
         VeleiroMappingController.saveToken('vlr_test');
         Map<String, String> st = VeleiroMappingController.getStatus();
-        VeleiroMappingController.saveSyncConfig('bidirectional', 'salesforce', 'off', 'manual');
+        VeleiroMappingController.saveSyncConfig('bidirectional', 'salesforce', 'off', 'manual', true, false);
         Map<String, String> cfg = VeleiroMappingController.getSyncConfig();
         Test.stopTest();
 
