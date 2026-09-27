@@ -12,6 +12,7 @@ A public Salesforce (SFDX) package that you can deploy as-is. It links a partner
 - **All Veleiro calls are server-to-server from Apex, through `VeleiroApiClient` only.** The token never reaches an LWC.
 - **`additional_fields` is replaced whole on write**, so always read-modify-write (`VeleiroSyncService.patchClientWithMerge` / `patchProjectWithMerge`).
 - **Branch on the error `code`, never on `message`.** No trailing slash on API paths (it causes a 301 and the body is dropped).
+- **Tests must not create records on the customer's standard objects beyond Account and Opportunity.** A partner org rejected `Contact` inserts with its own validation rule and the whole deploy rolled back — Apex tests cannot bypass validation rules, required fields or record types. Exercise the "any mapped object" paths with `Veleiro_Field_Mapping__c` (ours) and the Account hierarchy (`ParentId`), which the integration already requires.
 - **Every source class needs ≥75% coverage on its own** (we deploy with `RunSpecifiedTests`). Every source class has a `*Test` that uses `VeleiroApiMock`. Add tests when you add Apex.
 - **Confirm before outward-facing actions**, such as a deploy to a partner's production org or creating/pushing public repos.
 

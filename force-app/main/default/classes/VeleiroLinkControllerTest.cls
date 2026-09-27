@@ -7,6 +7,17 @@ private class VeleiroLinkControllerTest {
     }
 
     // Mapeo minimo: la pantalla de Link solo ofrece lo que este configurado.
+    // Registro de prueba sobre un objeto del propio kit: inmune a las reglas del cliente.
+    private static Veleiro_Field_Mapping__c anyRecord(String name) {
+        Veleiro_Field_Mapping__c r = new Veleiro_Field_Mapping__c(
+            Name = name, SObject__c = 'ZZ_TEST_RECORD', Veleiro_Entity__c = 'client',
+            SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard',
+            Active__c = false
+        );
+        insert r;
+        return r;
+    }
+
     private static void mapField(String sobjectName, String entity, String sfField, String target, String targetType) {
         insert new Veleiro_Field_Mapping__c(
             Name = sobjectName + ' ' + sfField, SObject__c = sobjectName, Veleiro_Entity__c = entity,
@@ -41,13 +52,13 @@ private class VeleiroLinkControllerTest {
     @isTest
     static void pairsComeFromTheConfiguredMappings() {
         mapField('Account', 'client', 'Name', 'name', 'Standard');
-        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
+        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
         mapField('Opportunity', 'project', 'Name', 'name', 'Standard');
 
         List<VeleiroLinkController.Pair> pairs = VeleiroLinkController.getPairs();
         Set<String> values = new Set<String>();
         for (VeleiroLinkController.Pair p : pairs) values.add(p.value);
-        System.assertEquals(new Set<String>{ 'Account|client', 'Contact|client', 'Opportunity|project' }, values);
+        System.assertEquals(new Set<String>{ 'Account|client', 'Veleiro_Field_Mapping__c|client', 'Opportunity|project' }, values);
     }
 
     @isTest
@@ -81,27 +92,25 @@ private class VeleiroLinkControllerTest {
 
     @isTest
     static void worksWithAnyMappedObjectNotJustAccount() {
-        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
-        Contact c = new Contact(LastName = 'Acme');
-        insert c;
+        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
+        Veleiro_Field_Mapping__c c = anyRecord('Acme');
         mockClients('{"data":[{"id":"org_acme","name":"ACME","additional_fields":{}}],"has_more":false}');
 
         Test.startTest();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Contact', 'client');
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Veleiro_Field_Mapping__c', 'client');
         Test.stopTest();
 
-        System.assertEquals('Contact', o.sobjectName);
+        System.assertEquals('Veleiro_Field_Mapping__c', o.sobjectName);
         System.assertEquals(c.Id, o.rows[0].suggestedRecordId, 'empareja por el campo mapeado a name');
     }
 
     @isTest
     static void linkStoresTheLinkOnTheCustomObject() {
-        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
-        Contact c = new Contact(LastName = 'Acme');
-        insert c;
+        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
+        Veleiro_Field_Mapping__c c = anyRecord('Acme');
 
         Test.startTest();
-        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll('Contact', 'client', JSON.serialize(
+        VeleiroLinkController.LinkResult r = VeleiroLinkController.linkAll('Veleiro_Field_Mapping__c', 'client', JSON.serialize(
             new List<Map<String, String>>{ new Map<String, String>{ 'recordId' => c.Id, 'veleiroId' => 'org_acme' } }));
         Test.stopTest();
 
@@ -109,7 +118,7 @@ private class VeleiroLinkControllerTest {
         System.assertEquals(false, r.syncing);
         Veleiro_Link__c link = [SELECT Veleiro_Id__c, SObject__c FROM Veleiro_Link__c];
         System.assertEquals('org_acme', link.Veleiro_Id__c);
-        System.assertEquals('Contact', link.SObject__c);
+        System.assertEquals('Veleiro_Field_Mapping__c', link.SObject__c);
     }
 
     @isTest
@@ -225,12 +234,12 @@ private class VeleiroLinkControllerTest {
 
     @isTest
     static void searchRecordsUsesTheMappedNameFieldOfAnyObject() {
-        mapField('Contact', 'client', 'LastName', 'name', 'Standard');
-        insert new Contact(LastName = 'Buscable Contacto');
+        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
+        anyRecord('Buscable Registro');
 
         List<VeleiroLinkController.RecordOption> found =
-            VeleiroLinkController.searchRecords('Contact', 'client', 'buscable');
+            VeleiroLinkController.searchRecords('Veleiro_Field_Mapping__c', 'client', 'buscable');
         System.assertEquals(1, found.size());
-        System.assertEquals('Buscable Contacto', found[0].name);
+        System.assertEquals('Buscable Registro', found[0].name);
     }
 }
