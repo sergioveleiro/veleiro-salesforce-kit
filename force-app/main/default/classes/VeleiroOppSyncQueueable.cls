@@ -57,7 +57,11 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
             if (String.isBlank(o.Account.Veleiro_Client_Id__c) && !lastAttempt) {
                 stillWaiting.add(o.Id);
             } else {
-                VeleiroSyncService.syncOpportunity(o.Id);
+                try {
+                    VeleiroSyncService.syncOpportunity(o.Id);
+                } catch (Exception e) {
+                    VeleiroAutoSyncGuard.recordFailure(o.Id, e);
+                }
             }
         }
         // Encolar despues de los callouts (un callout despues de encolar truena).

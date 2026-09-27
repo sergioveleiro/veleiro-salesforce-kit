@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Sync_Error__c</fullName>
+    <description>Ultimo error de un sync automatico. Los flows se tragan los errores; esto los deja visibles en el panel.</description>
+    <label>Last sync error</label>
+    <length>255</length>
+    <required>false</required>
+    <type>Text</type>
+</CustomField>

@@ -72,6 +72,9 @@ export default class VeleiroMappingHome extends LightningElement {
     syncTrigger = 'manual';
     autoAccount = true;
     autoOpportunity = true;
+    pullWritesName = false;
+    lastError;
+    lastErrorAt;
     savingConfig = false;
 
     // ---- connection status ----
@@ -221,6 +224,9 @@ export default class VeleiroMappingHome extends LightningElement {
                     this.syncTrigger = c.trigger || 'manual';
                     this.autoAccount = c.autoAccount !== 'false';
                     this.autoOpportunity = c.autoOpportunity !== 'false';
+                    this.pullWritesName = c.pullWritesName === 'true';
+                    this.lastError = c.lastError;
+                    this.lastErrorAt = c.lastErrorAt;
                 }
             })
             .catch(() => {});
@@ -231,6 +237,10 @@ export default class VeleiroMappingHome extends LightningElement {
     handleTriggerChange(event) { this.syncTrigger = event.detail.value; }
     handleAutoAccountChange(event) { this.autoAccount = event.target.checked; }
     handleAutoOpportunityChange(event) { this.autoOpportunity = event.target.checked; }
+    handlePullNameChange(event) { this.pullWritesName = event.target.checked; }
+
+    get hasLastError() { return !!this.lastError; }
+    get lastErrorLine() { return this.lastErrorAt ? `${this.lastErrorAt} — ${this.lastError}` : this.lastError; }
 
     get triggerIsAuto() { return this.syncTrigger === 'auto'; }
 
@@ -238,7 +248,8 @@ export default class VeleiroMappingHome extends LightningElement {
         this.savingConfig = true;
         saveSyncConfig({
             direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency,
-            triggerMode: this.syncTrigger, autoAccount: this.autoAccount, autoOpportunity: this.autoOpportunity
+            triggerMode: this.syncTrigger, autoAccount: this.autoAccount, autoOpportunity: this.autoOpportunity,
+            pullWritesName: this.pullWritesName
         })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({

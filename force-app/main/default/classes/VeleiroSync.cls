@@ -37,6 +37,11 @@ public with sharing class VeleiroSync {
      * en SF -> esto previene ciclos (no re-aplica lo que ya teniamos ni re-dispara un push).
      * Devuelve cuantos Accounts actualizo.
      */
+    // Tope por corrida: una org grande no puede procesarse de un solo golpe sin pasarse de
+    // los limites de Salesforce (50k registros por consulta, 10k por DML). Lo que sobra
+    // entra en la corrida siguiente.
+    @TestVisible private static Integer maxPerRun = 2000;
+
     public static Integer pullUpdates() {
         if (!VeleiroSyncConfig.pullEnabled()) return 0; // direccion sf_to_veleiro -> no jala
 
@@ -46,10 +51,13 @@ public with sharing class VeleiroSync {
             byId.put((String) c.get('id'), c);
         }
 
+        Boolean writesName = VeleiroSyncConfig.pullWritesName();
         List<Account> toUpdate = new List<Account>();
         for (Account a : [
             SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c, Veleiro_Additional_Fields__c
             FROM Account WHERE Veleiro_Client_Id__c != null
+            ORDER BY LastModifiedDate ASC
+            LIMIT 5000
         ]) {
             Map<String, Object> c = byId.get(a.Veleiro_Client_Id__c);
             if (c == null) continue;
@@ -58,15 +66,33 @@ public with sharing class VeleiroSync {
 
             // anti-ciclo: solo si Veleiro esta MAS adelantado que lo que ya tenemos
             if (vVer != null && (sfVer == null || vVer > sfVer)) {
-                a.Name = (String) c.get('name');
+                // El nombre de la cuenta es del cliente: solo se pisa si lo autorizo.
+                if (writesName) a.Name = (String) c.get('name');
                 Object af = c.get('additional_fields');
                 a.Veleiro_Additional_Fields__c = (af != null) ? JSON.serializePretty(af) : null;
                 a.Veleiro_Version__c = vVer;
                 toUpdate.add(a);
             }
+            if (toUpdate.size() >= maxPerRun) break; // el resto, en la proxima corrida
         }
-        if (!toUpdate.isEmpty()) update toUpdate;
-        System.debug('VeleiroSync.pullUpdates -> ' + toUpdate.size() + ' accounts actualizados');
-        return toUpdate.size();
+
+        Integer updated = 0;
+        if (!toUpdate.isEmpty()) {
+            // Parcial a proposito: una regla de validacion del cliente sobre UNA cuenta no
+            // debe tumbar el lote completo.
+            List<Database.SaveResult> results = Database.update(toUpdate, false);
+            String firstError;
+            Integer failed = 0;
+            for (Database.SaveResult sr : results) {
+                if (sr.isSuccess()) { updated++; continue; }
+                failed++;
+                if (firstError == null && !sr.getErrors().isEmpty()) firstError = sr.getErrors()[0].getMessage();
+            }
+            if (failed > 0) {
+                VeleiroSyncConfig.recordError('Pull: ' + failed + ' account(s) rejected by Salesforce. First: ' + firstError);
+            }
+        }
+        System.debug('VeleiroSync.pullUpdates -> ' + updated + ' accounts actualizados');
+        return updated;
     }
 }

@@ -106,6 +106,13 @@ Si esa org ya tenía Accounts en Salesforce y clients en Veleiro creados antes d
 - **Acciones de página:** agrega `veleiroSyncAction` en Account y `veleiroSyncOppAction` en Opportunity, desde "Mobile & Lightning Actions".
 - **Navegación:** agrega los tabs **Veleiro Home**, **Veleiro Mappings** y **Veleiro Link** a tu app, o usa la app **Veleiro** que ya viene lista.
 
+## 8b. Antes de encender en una org de producción con historia
+
+- **Empieza en Manual y con el pull en Off.** Prueba primero con el botón en 5 o 10 registros.
+- **El pull no renombra cuentas:** el interruptor "Let Veleiro rename the Account" viene apagado. Enciéndelo solo si el cliente quiere que Veleiro mande sobre `Account.Name`.
+- **Cargas masivas:** con el auto-sync encendido, el kit **se salta** los lotes de más de 50 registros (importaciones, Data Loader) para no saturar los límites asíncronos que comparte con los procesos del cliente. Esos registros se sincronizan después con el botón o desde la pestaña Veleiro Link, y queda anotado en el panel.
+- **Errores visibles:** el último error de un sync automático aparece en el panel de Veleiro Mappings.
+
 ## 9. Probar de punta a punta
 
 1. **Manual:** abre un Account y pulsa **Sync with Veleiro**. El panel debe mostrar "Synced" y el link a Veleiro.

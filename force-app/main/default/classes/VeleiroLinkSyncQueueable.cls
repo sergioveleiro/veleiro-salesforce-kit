@@ -34,7 +34,7 @@ public with sharing class VeleiroLinkSyncQueueable implements Queueable, Databas
             try {
                 VeleiroSyncService.syncRecord(recordId, entity);
             } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR, 'VeleiroLinkSync: ' + recordId + ' -> ' + e.getMessage());
+                VeleiroAutoSyncGuard.recordFailure(recordId, e);
             }
         }
 

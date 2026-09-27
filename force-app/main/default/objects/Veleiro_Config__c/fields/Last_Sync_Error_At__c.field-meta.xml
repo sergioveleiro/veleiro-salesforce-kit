@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Sync_Error_At__c</fullName>
+    <description>Cuando ocurrio el ultimo error de sync automatico.</description>
+    <label>Last sync error at</label>
+    <required>false</required>
+    <type>DateTime</type>
+</CustomField>

@@ -51,6 +51,25 @@ public with sharing class VeleiroSyncConfig {
     public static Boolean autoSyncAccount() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
     public static Boolean autoSyncOpportunity() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
 
+    // El pull solo pisa Account.Name si el cliente lo enciende a proposito.
+    public static Boolean pullWritesName() { return cfg() != null && cfg().Pull_Writes_Name__c == true; }
+
+    // Los flows se tragan los errores: aqui queda el ultimo para que el panel lo muestre.
+    public static void recordError(String message) {
+        try {
+            Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+            if (c == null || c.Id == null) c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
+            c.Last_Sync_Error__c = String.isBlank(message) ? null : message.abbreviate(255);
+            c.Last_Sync_Error_At__c = System.now();
+            upsert c;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getMessage());
+        }
+    }
+
+    public static String lastError() { return cfg() != null ? cfg().Last_Sync_Error__c : null; }
+    public static Datetime lastErrorAt() { return cfg() != null ? cfg().Last_Sync_Error_At__c : null; }
+
     // Valor tal cual del interruptor, para mostrarlo en el panel.
     public static Boolean autoSyncAccountFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
     public static Boolean autoSyncOpportunityFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
@@ -60,11 +79,16 @@ public with sharing class VeleiroSyncConfig {
 
     // ---- escritura + (re)programacion del job ----
     public static void save(String direction, String winner, String frequency, String triggerMode) {
-        save(direction, winner, frequency, triggerMode, true, true);
+        save(direction, winner, frequency, triggerMode, true, true, false);
     }
 
     public static void save(String direction, String winner, String frequency, String triggerMode,
                             Boolean autoAccount, Boolean autoOpportunity) {
+        save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity, pullWritesName());
+    }
+
+    public static void save(String direction, String winner, String frequency, String triggerMode,
+                            Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName) {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
@@ -75,6 +99,7 @@ public with sharing class VeleiroSyncConfig {
         c.Sync_Trigger__c = normalizeTrigger(triggerMode);
         c.Auto_Sync_Account__c = flag(autoAccount);
         c.Auto_Sync_Opportunity__c = flag(autoOpportunity);
+        c.Pull_Writes_Name__c = pullWritesName == true; // por defecto NO se pisa el nombre
         upsert c;
         reschedule(c.Pull_Frequency__c);
     }

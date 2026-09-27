@@ -58,6 +58,8 @@ private class VeleiroSyncConfigTest {
 
     @isTest
     static void pullUpdatesAppliesNewerVersion() {
+        // El nombre solo se pisa si el cliente lo autoriza; aqui se prueba con permiso.
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'manual', true, true, true);
         Account a = new Account(Name = 'Old', Veleiro_Client_Id__c = 'org_x', Veleiro_Version__c = 1);
         insert a;
         VeleiroApiMock mock = new VeleiroApiMock();

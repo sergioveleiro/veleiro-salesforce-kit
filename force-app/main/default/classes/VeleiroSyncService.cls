@@ -596,11 +596,17 @@ public with sharing class VeleiroSyncService {
     public static void syncOpportunitiesInvocable(List<Id> opportunityIds) {
         // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
         if (!VeleiroSyncConfig.autoSyncOpportunity()) return;
+        if (VeleiroAutoSyncGuard.tooManyForAutoSync(opportunityIds, 'opportunities')) return;
         // Si el Account se creo en la misma operacion (conversion de Lead), su propio auto-sync
         // esta creando el client: esperamos a ese en vez de crear un duplicado.
         Set<Id> waiting = VeleiroOppSyncQueueable.waitingForAccountSync(opportunityIds);
         for (Id oid : opportunityIds) {
-            if (!waiting.contains(oid)) syncOpportunity(oid);
+            if (waiting.contains(oid)) continue;
+            try {
+                syncOpportunity(oid);
+            } catch (Exception e) {
+                VeleiroAutoSyncGuard.recordFailure(oid, e);
+            }
         }
         if (!waiting.isEmpty()) {
             VeleiroOppSyncQueueable.defer(waiting, 1);

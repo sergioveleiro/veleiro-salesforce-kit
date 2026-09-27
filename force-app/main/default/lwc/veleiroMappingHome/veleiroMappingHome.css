@@ -241,3 +241,12 @@
     flex-wrap: wrap;
     margin-top: 0.5rem;
 }
+
+.veleiro-lasterror {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid #ba0517;
+    background: #fdf1f1;
+    font-size: 0.8rem;
+    color: #5c1512;
+}

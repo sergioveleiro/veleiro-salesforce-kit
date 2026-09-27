@@ -8,8 +8,13 @@ public with sharing class VeleiroSyncAccountAction {
     public static void syncAccounts(List<Id> accountIds) {
         // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
         if (!VeleiroSyncConfig.autoSyncAccount()) return;
+        if (VeleiroAutoSyncGuard.tooManyForAutoSync(accountIds, 'accounts')) return;
         for (Id aid : accountIds) {
-            VeleiroSyncService.syncAccount(aid);
+            try {
+                VeleiroSyncService.syncAccount(aid);
+            } catch (Exception e) {
+                VeleiroAutoSyncGuard.recordFailure(aid, e);
+            }
         }
     }
 }

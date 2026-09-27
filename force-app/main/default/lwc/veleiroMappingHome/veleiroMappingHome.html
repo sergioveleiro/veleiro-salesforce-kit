@@ -88,6 +88,19 @@
                         field-level-help="Incluye la creacion de la Opportunity y el paso a Closed Won."></lightning-input>
                 </div>
             </template>
+            <div class="veleiro-autopairs">
+                <lightning-input type="toggle" label="Let Veleiro rename the Account"
+                    message-toggle-active="Veleiro wins the name" message-toggle-inactive="Salesforce keeps the name"
+                    checked={pullWritesName} onchange={handlePullNameChange}
+                    field-level-help="Apagado (recomendado), el pull nunca sobrescribe Account.Name."></lightning-input>
+            </div>
+
+            <template if:true={hasLastError}>
+                <div class="veleiro-lasterror">
+                    <span>Last sync error &#8212; {lastErrorLine}</span>
+                </div>
+            </template>
+
             <div class="veleiro-actions">
                 <span class="veleiro-config-hint">🧭&nbsp;Set this first — it defines whether Salesforce pushes, pulls, or both, who wins a conflict, and how often we pull from Veleiro (no webhook yet).</span>
                 <lightning-button variant="brand" label="Save configuration" onclick={handleSaveConfig}

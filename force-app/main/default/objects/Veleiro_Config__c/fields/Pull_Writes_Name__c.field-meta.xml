@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pull_Writes_Name__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Si esta encendido, el pull de Veleiro sobrescribe Account.Name con el nombre del client. Apagado por defecto: renombrar cuentas en masa es el cambio mas invasivo que puede hacer el kit en la org del cliente.</description>
+    <inlineHelpText>Apagado, el pull solo actualiza los campos de Veleiro. Enciendelo unicamente si quieres que Veleiro mande sobre el nombre de la cuenta.</inlineHelpText>
+    <label>Pull overwrites Account Name</label>
+    <type>Checkbox</type>
+</CustomField>
