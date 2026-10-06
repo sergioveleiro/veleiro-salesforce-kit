@@ -171,4 +171,49 @@ private class VeleiroClientMatcherTest {
 
         System.assertEquals(1, r.candidates.size());
     }
+
+    @isTest
+    static void opportunitySyncReusesTheExistingClientInsteadOfDuplicating() {
+        // Caso reportado por el cliente: dos clients con el mismo nombre, uno con proyecto y
+        // otro vacio. Pasaba porque la Opportunity creaba su propio client sin mirar Veleiro.
+        Account a = newAccount('Acme', 'https://acme.com'); // sin vincular
+        Opportunity o = new Opportunity(
+            Name = 'Acme - Implementacion', StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30), AccountId = a.Id
+        );
+        insert o;
+
+        VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
+        mock.singleClientBody = '{"data":{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}}';
+
+        Test.startTest();
+        VeleiroSyncService.ProjectResult r = VeleiroSyncService.syncOpportunity(o.Id);
+        Test.stopTest();
+
+        System.assertEquals('prjct_test', r.projectId);
+        Map<String, Object> posted = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+        System.assertEquals('org_existing', posted.get('client_id'), 'el project cuelga del client que ya existia');
+        System.assertEquals('org_existing',
+            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
+            'y la cuenta queda vinculada a ese mismo client');
+    }
+
+    @isTest
+    static void opportunitySyncStillCreatesTheClientWhenThereIsNone() {
+        Account a = newAccount('Nueva Cuenta', null);
+        Opportunity o = new Opportunity(
+            Name = 'Nueva', StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30), AccountId = a.Id
+        );
+        insert o;
+        mockWith('{"data":[],"has_more":false}');
+
+        Test.startTest();
+        VeleiroSyncService.syncOpportunity(o.Id);
+        Test.stopTest();
+
+        System.assertEquals('org_test',
+            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
+            'sin candidato, se crea como siempre');
+    }
 }

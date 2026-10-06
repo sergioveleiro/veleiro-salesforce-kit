@@ -319,6 +319,20 @@ public with sharing class VeleiroSyncService {
         String clientId = a.Veleiro_Client_Id__c;
         Boolean accountNeedsUpdate = false;
         if (String.isBlank(clientId)) {
+            // Antes de crear: el client del Account puede existir ya en Veleiro (org con
+            // historia, o un sync anterior). Sin esta busqueda, sincronizar la Opportunity
+            // generaba un client duplicado.
+            VeleiroClientMatcher.Candidate match = VeleiroClientMatcher.autoLinkable(
+                VeleiroClientMatcher.forAccount(a.Id));
+            if (match != null) {
+                clientId = match.clientId;
+                a.Veleiro_Client_Id__c = clientId;
+                a.Veleiro_Version__c = null; // version desconocida: la toma del proximo sync
+                accountNeedsUpdate = true;
+            }
+        }
+
+        if (String.isBlank(clientId)) {
             // Crea el client usando SUS propios mapeos (Account -> client).
             MappedPayload amp = buildPayload('Account', 'client', a.Id, new Set<String>{ 'Name', 'Website' });
             amp.additional.put('sf_account_id', a.Id);
