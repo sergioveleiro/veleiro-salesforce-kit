@@ -14,6 +14,7 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "62.0",
   "packageAliases": {
-    "Veleiro Salesforce Kit": "0HoPe00000003SXKAY"
+    "Veleiro Salesforce Kit": "0HoPe00000003SXKAY",
+    "Veleiro Salesforce Kit@1.0.0-1": "04tPe0000010onRIAQ"
   }
 }
