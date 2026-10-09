@@ -6,6 +6,9 @@
  */
 @isTest
 private class VeleiroRecordSyncTest {
+    // Con namespace el objeto se llama veleiro__Veleiro_Field_Mapping__c: se lee del describe.
+    private static final String KIT_OBJECT = String.valueOf(Veleiro_Field_Mapping__c.SObjectType);
+
 
     @testSetup
     static void setup() {
@@ -39,8 +42,8 @@ private class VeleiroRecordSyncTest {
 
     @isTest
     static void customObjectSyncsAsClientAndStoresTheLink() {
-        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
-        mapField('Veleiro_Field_Mapping__c', 'client', 'SObject__c', 'sf_source', 'Additional Field');
+        mapField(KIT_OBJECT, 'client', 'Name', 'name', 'Standard');
+        mapField(KIT_OBJECT, 'client', 'SObject__c', 'sf_source', 'Additional Field');
         Veleiro_Field_Mapping__c c = anyRecord('Acme Holding');
         VeleiroApiMock mock = new VeleiroApiMock();
         Test.setMock(HttpCalloutMock.class, mock);
@@ -57,23 +60,23 @@ private class VeleiroRecordSyncTest {
         System.assertEquals('Acme Holding', sent.get('name'), 'el nombre sale del mapeo');
         System.assertEquals('ZZ_TEST_RECORD', af.get('sf_source'));
         System.assertEquals(String.valueOf(c.Id), af.get('sf_record_id'));
-        System.assertEquals('Veleiro_Field_Mapping__c', af.get('sf_object'));
+        System.assertEquals(KIT_OBJECT, af.get('sf_object'));
 
         Veleiro_Link__c link = [SELECT Veleiro_Id__c, SObject__c, Veleiro_Entity__c, Veleiro_Version__c FROM Veleiro_Link__c];
         System.assertEquals('org_test', link.Veleiro_Id__c);
-        System.assertEquals('Veleiro_Field_Mapping__c', link.SObject__c);
+        System.assertEquals(KIT_OBJECT, link.SObject__c);
         System.assertEquals('client', link.Veleiro_Entity__c);
         System.assertEquals(1, link.Veleiro_Version__c);
     }
 
     @isTest
     static void secondSyncUpdatesInsteadOfCreating() {
-        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
+        mapField(KIT_OBJECT, 'client', 'Name', 'name', 'Standard');
         Veleiro_Field_Mapping__c c = anyRecord('Acme');
         // Como si ya se hubiera sincronizado antes.
         insert new Veleiro_Link__c(
             Link_Key__c = String.valueOf(c.Id).left(15) + '|client',
-            Record_Id__c = c.Id, SObject__c = 'Veleiro_Field_Mapping__c', Veleiro_Entity__c = 'client',
+            Record_Id__c = c.Id, SObject__c = KIT_OBJECT, Veleiro_Entity__c = 'client',
             Veleiro_Id__c = 'org_test', Veleiro_Version__c = 1
         );
         VeleiroApiMock mock = new VeleiroApiMock();
@@ -128,7 +131,7 @@ private class VeleiroRecordSyncTest {
 
     @isTest
     static void projectWithoutAClientIsRefused() {
-        mapField('Veleiro_Field_Mapping__c', 'project', 'Name', 'name', 'Standard');
+        mapField(KIT_OBJECT, 'project', 'Name', 'name', 'Standard');
         Veleiro_Field_Mapping__c c = anyRecord('Suelto'); // sin ningun lookup a Account
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
 
@@ -173,7 +176,7 @@ private class VeleiroRecordSyncTest {
 
     @isTest
     static void invocableSyncsWhateverTheFlowSends() {
-        mapField('Veleiro_Field_Mapping__c', 'client', 'Name', 'name', 'Standard');
+        mapField(KIT_OBJECT, 'client', 'Name', 'name', 'Standard');
         Veleiro_Field_Mapping__c c = anyRecord('Desde flow');
         Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
 
