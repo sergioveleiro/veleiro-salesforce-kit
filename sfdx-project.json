@@ -1,12 +1,19 @@
 {
   "packageDirectories": [
     {
+      "versionName": "Primera version administrada",
+      "versionNumber": "1.0.0.NEXT",
       "path": "force-app",
-      "default": true
+      "default": true,
+      "package": "Veleiro Salesforce Kit",
+      "versionDescription": "Links Salesforce accounts and opportunities to Veleiro clients and projects, with delivery insights."
     }
   ],
   "name": "veleiro-salesforce-kit",
-  "namespace": "",
+  "namespace": "veleiro",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "62.0"
+  "sourceApiVersion": "62.0",
+  "packageAliases": {
+    "Veleiro Salesforce Kit": "0HoPe00000003SXKAY"
+  }
 }

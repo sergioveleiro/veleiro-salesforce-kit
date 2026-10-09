@@ -3,7 +3,7 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>c:veleiroLinkHome</componentName>
+                <componentName>veleiro:veleiroLinkHome</componentName>
                 <identifier>veleiroLinkHomeComp</identifier>
             </componentInstance>
         </itemInstances>

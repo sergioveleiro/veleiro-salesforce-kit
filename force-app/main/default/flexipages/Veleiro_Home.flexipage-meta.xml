@@ -3,13 +3,13 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>c:veleiroBriefing</componentName>
+                <componentName>veleiro:veleiroBriefing</componentName>
                 <identifier>veleiroBriefingComp</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>c:veleiroDashboard</componentName>
+                <componentName>veleiro:veleiroDashboard</componentName>
                 <identifier>veleiroDashboardComp</identifier>
             </componentInstance>
         </itemInstances>
