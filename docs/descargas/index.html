@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Veleiro para Salesforce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+<style>
+  :root {
+    --ink: #10182b;
+    --ink-soft: #55607a;
+    --paper: #f4f6fb;
+    --surface: #ffffff;
+    --line: #dfe4ef;
+    --sea: #1f5f8b;
+    --sea-soft: #e8f1f8;
+    --brass: #a9763f;
+    --shadow: 0 1px 2px rgba(16, 24, 43, .05), 0 12px 28px -18px rgba(16, 24, 43, .35);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e9eefc;
+      --ink-soft: #97a2bd;
+      --paper: #080d1a;
+      --surface: #111828;
+      --line: #1e2740;
+      --sea: #8fc6ef;
+      --sea-soft: #15243a;
+      --brass: #d2a269;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 32px -20px rgba(0,0,0,.8);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e9eefc;
+    --ink-soft: #97a2bd;
+    --paper: #080d1a;
+    --surface: #111828;
+    --line: #1e2740;
+    --sea: #8fc6ef;
+    --sea-soft: #15243a;
+    --brass: #d2a269;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 32px -20px rgba(0,0,0,.8);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { width: 100%; max-width: 940px; margin-inline: auto; padding-inline: 20px; }
+
+  /* Encabezado: una linea de horizonte sobre el mar, sin estridencias */
+  .masthead {
+    padding-block: clamp(3rem, 9vw, 5.5rem) clamp(2rem, 5vw, 3rem);
+    background:
+      linear-gradient(180deg, var(--sea-soft) 0%, transparent 72%);
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--sea); margin: 0 0 1.1rem;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  .eyebrow::after {
+    content: ""; flex: 1; height: 1px; max-width: 120px;
+    background: linear-gradient(90deg, var(--sea), transparent);
+  }
+  h1 {
+    font-family: Fraunces, "Iowan Old Style", Georgia, serif;
+    font-weight: 600; font-size: clamp(2.1rem, 6.5vw, 3.3rem);
+    line-height: 1.08; letter-spacing: -.02em; margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .lede { margin: 0; max-width: 34em; color: var(--ink-soft); font-size: clamp(1rem, 2.4vw, 1.12rem); }
+
+  main { padding-block: clamp(2.2rem, 6vw, 3.4rem) 1rem; }
+
+  .packages { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+  .pkg {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.6rem 1.5rem 1.4rem;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .pkg-head { display: flex; flex-direction: column; gap: .3rem; }
+  .pkg h2 {
+    font-family: Fraunces, Georgia, serif; font-weight: 600;
+    font-size: 1.35rem; line-height: 1.2; margin: 0; letter-spacing: -.01em;
+  }
+  .pkg .role {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--brass);
+  }
+  .pkg p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+  .pkg ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .55rem; font-size: .93rem; }
+  .pkg li { display: grid; grid-template-columns: 1.1rem 1fr; gap: .5rem; align-items: start; color: var(--ink); }
+  .pkg li::before {
+    content: ""; width: 7px; height: 7px; margin-top: .52rem; border-radius: 50%;
+    border: 1.5px solid var(--sea);
+  }
+  .cta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .3rem; }
+  a.btn {
+    font: 500 .9rem/1 "IBM Plex Sans", sans-serif; text-decoration: none;
+    padding: .72rem 1.05rem; border-radius: 7px; border: 1px solid var(--line);
+    color: var(--ink); background: transparent; transition: background .15s ease, border-color .15s ease;
+  }
+  a.btn:hover { border-color: var(--sea); }
+  a.btn.solid { background: var(--sea); border-color: var(--sea); color: var(--paper); }
+  a.btn.solid:hover { filter: brightness(1.08); }
+  a.btn:focus-visible, a:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  .specs {
+    display: flex; flex-wrap: wrap; gap: .4rem 1.4rem;
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
+    color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: .85rem;
+  }
+  .specs b { font-weight: 500; color: var(--ink); }
+
+  section.block { margin-top: clamp(2.5rem, 7vw, 4rem); }
+  h3 {
+    font-family: Fraunces, Georgia, serif; font-size: 1.15rem; font-weight: 600;
+    margin: 0 0 1rem; letter-spacing: -.01em;
+  }
+
+  /* Pasos: son una secuencia real, por eso van numerados */
+  ol.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: .1rem; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step; display: grid; grid-template-columns: 2.3rem 1fr; gap: .8rem;
+    padding: .85rem 0; border-top: 1px solid var(--line); align-items: baseline;
+  }
+  ol.steps li:last-child { border-bottom: 1px solid var(--line); }
+  ol.steps li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: "IBM Plex Mono", monospace; font-size: .78rem; color: var(--sea);
+  }
+  ol.steps strong { font-weight: 600; }
+  ol.steps span { color: var(--ink-soft); font-size: .93rem; display: block; }
+
+  dl.reqs { display: grid; gap: 0; margin: 0; }
+  dl.reqs > div {
+    display: grid; grid-template-columns: minmax(130px, 200px) 1fr; gap: 1rem;
+    padding: .8rem 0; border-top: 1px solid var(--line);
+  }
+  dl.reqs > div:last-child { border-bottom: 1px solid var(--line); }
+  dt { font-weight: 600; font-size: .9rem; }
+  dd { margin: 0; color: var(--ink-soft); font-size: .93rem; }
+
+  .notice {
+    margin-top: 1.2rem; padding: .9rem 1.1rem; border-radius: 8px;
+    background: var(--sea-soft); color: var(--ink); font-size: .9rem;
+    border: 1px solid var(--line);
+  }
+  .notice strong { font-weight: 600; }
+
+  code {
+    font-family: "IBM Plex Mono", monospace; font-size: .85em;
+    background: var(--sea-soft); padding: .1rem .35rem; border-radius: 4px;
+  }
+
+  footer {
+    margin-top: clamp(3rem, 8vw, 4.5rem); padding-block: 1.5rem 3rem;
+    border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .82rem;
+    display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; justify-content: space-between;
+  }
+  @media (max-width: 420px) {
+    dl.reqs > div { grid-template-columns: 1fr; gap: .15rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">Paquetes para Salesforce</p>
+    <h1>La entrega, visible desde el CRM</h1>
+    <p class="lede">Dos paquetes administrados e independientes. Uno mantiene cuentas y oportunidades en sintonía con los clientes y proyectos de Veleiro; el otro deja que cualquiera levante un ticket sin salir de Salesforce. Instala el que necesites.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="packages">
+
+    <article class="pkg">
+      <div class="pkg-head">
+        <span class="role">Ventas y entrega</span>
+        <h2>Veleiro Salesforce Kit</h2>
+      </div>
+      <p>Cuenta ⇄ cliente y oportunidad ⇄ proyecto, con la salud de la entrega donde el vendedor ya trabaja.</p>
+      <ul>
+        <li>Sincronización manual o automática, configurable por cada par</li>
+        <li>Avance del proyecto en la oportunidad y señales de riesgo en la cuenta</li>
+        <li>Mapeo de campos propio y vinculación masiva de lo que ya existía</li>
+      </ul>
+      <div class="cta">
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010onRIAQ">Instalar en producción</a>
+        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010onRIAQ">Sandbox</a>
+        <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit">Código</a>
+      </div>
+      <div class="specs">
+        <span><b>1.0.0.1</b></span>
+        <span>cobertura <b>93%</b></span>
+        <span>04tPe0000010onRIAQ</span>
+      </div>
+    </article>
+
+    <article class="pkg">
+      <div class="pkg-head">
+        <span class="role">Soporte</span>
+        <h2>Veleiro Ticket Intake</h2>
+      </div>
+      <p>Un ticket levantado desde cualquier pantalla de Salesforce aparece como task en Veleiro, con su contexto.</p>
+      <ul>
+        <li>Formulario en la barra de utilidades, con adjuntos y la URL de origen</li>
+        <li>Reenvío de un ticket que no llegó, sin volver a escribirlo</li>
+        <li>Con el kit instalado, cae en el cliente o proyecto del registro de origen</li>
+      </ul>
+      <div class="cta">
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010op3IAA">Instalar en producción</a>
+        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010op3IAA">Sandbox</a>
+        <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake">Código</a>
+      </div>
+      <div class="specs">
+        <span><b>1.0.0.1</b></span>
+        <span>cobertura <b>90%</b></span>
+        <span>04tPe0000010op3IAA</span>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="notice">
+    <strong>Estas versiones son beta.</strong> Se instalan en sandbox y en orgs de desarrollo; para producción hace falta promover la versión.
+  </div>
+
+  <section class="block">
+    <h3>Qué necesitas antes de instalar</h3>
+    <dl class="reqs">
+      <div>
+        <dt>Token de Veleiro</dt>
+        <dd>Lectura y escritura de clientes y proyectos. El ticket intake además requiere <code>task:write</code>.</dd>
+      </div>
+      <div>
+        <dt>Usuario de Salesforce</dt>
+        <dd>Con permiso para instalar paquetes y entrar a Configuración.</dd>
+      </div>
+      <div>
+        <dt>Decidir el ambiente</dt>
+        <dd>Producción de Veleiro (<code>app.veleiro.ai</code>) o beta (<code>app.beta.veleiro.dev</code>). Se cambia después sin tocar código.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="block">
+    <h3>Cómo va la instalación</h3>
+    <ol class="steps">
+      <li>
+        <div><strong>Instalar el paquete</strong>
+        <span>Desde el enlace de arriba, para los administradores o para todos los usuarios.</span></div>
+      </li>
+      <li>
+        <div><strong>Asignar el permission set</strong>
+        <span><code>Veleiro_Integration_Access</code> en el kit, <code>Veleiro_Ticket_Intake_User</code> en tickets.</span></div>
+      </li>
+      <li>
+        <div><strong>Conectar</strong>
+        <span>Pegar el token en el panel de configuración y verificar que el indicador quede en verde.</span></div>
+      </li>
+      <li>
+        <div><strong>Probar en manual antes de automatizar</strong>
+        <span>Sincroniza dos o tres registros con el botón; recién entonces enciende el modo automático.</span></div>
+      </li>
+    </ol>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <span>Veleiro AI · paquetes administrados, namespace <code>veleiro</code></span>
+  <span>Cada paquete se instala, actualiza y desinstala por separado</span>
+</footer>
+
+</body>
+</html>
