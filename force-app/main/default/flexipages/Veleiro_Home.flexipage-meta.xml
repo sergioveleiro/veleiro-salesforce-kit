@@ -3,6 +3,12 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>c:veleiroSetupBanner</componentName>
+                <identifier>veleiroSetupBannerComp</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>c:veleiroBriefing</componentName>
                 <identifier>veleiroBriefingComp</identifier>
             </componentInstance>

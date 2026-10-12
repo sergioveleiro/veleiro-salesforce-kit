@@ -1,0 +1,14 @@
+<template>
+    <template if:true={show}>
+        <div class="vsb">
+            <img src={mascotUrl} class="vsb-mascot" alt="Velly" />
+            <div class="vsb-text">
+                <span class="vsb-head">{headline}</span>
+                <span class="vsb-next">{nextStep}</span>
+                <div class="vsb-track"><div class="vsb-fill"></div></div>
+            </div>
+            <lightning-button variant="brand" label="Continuar el setup" onclick={handleOpen}
+                class="vsb-btn"></lightning-button>
+        </div>
+    </template>
+</template>

@@ -1,0 +1,343 @@
+:host {
+    --veleiro-navy: #040b25;
+    --veleiro-blue: #0084fb;
+    --veleiro-cyan: #5eecfc;
+    --veleiro-line: #e7eef6;
+    --veleiro-muted: #5a6b82;
+    --veleiro-ok: #1b9e6f;
+    display: block;
+}
+
+.vo {
+    padding: 6px 4px 28px;
+    max-width: 920px;
+}
+
+/* ---------- Hero ---------- */
+.vo-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: radial-gradient(120% 140% at 100% 0%, #10224d 0%, var(--veleiro-navy) 55%);
+    color: #fff;
+    margin-bottom: 18px;
+}
+.vo-hero-main {
+    min-width: 260px;
+    flex: 1 1 320px;
+}
+/* El logo viene en tinta oscura: aquí lo pasamos a blanco sin cargar otro asset. */
+.vo-logo {
+    height: 22px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+    margin-bottom: 12px;
+}
+.vo-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #fff;
+}
+.vo-sub {
+    color: #b9c6dd;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    max-width: 46ch;
+}
+.vo-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+.vo-track {
+    flex: 1 1 auto;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    overflow: hidden;
+}
+.vo-track-fill {
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--veleiro-blue), var(--veleiro-cyan));
+    transition: width 0.45s ease;
+}
+.vo-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--veleiro-cyan);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.vo-velly {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+.vo-speech {
+    position: relative;
+    max-width: 22ch;
+    background: #fff;
+    color: var(--veleiro-navy);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    padding: 10px 12px;
+    border-radius: 12px 12px 2px 12px;
+}
+.vo-mascot {
+    height: 74px;
+    width: auto;
+}
+
+/* ---------- Pasos ---------- */
+.vo-step {
+    border: 1px solid var(--veleiro-line);
+    border-radius: 12px;
+    background: #fff;
+    margin-bottom: 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.vo-step-open {
+    border-color: #c7dcf3;
+    box-shadow: 0 2px 14px rgba(4, 11, 37, 0.07);
+}
+.vo-step-done .vo-step-title {
+    color: var(--veleiro-muted);
+}
+
+.vo-step-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+.vo-step-head:focus-visible {
+    outline: 2px solid var(--veleiro-blue);
+    outline-offset: -2px;
+}
+
+.vo-badge {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--veleiro-muted);
+    background: #f1f5fa;
+    border: 1px solid var(--veleiro-line);
+}
+.vo-badge-active {
+    color: #fff;
+    background: var(--veleiro-navy);
+    border-color: var(--veleiro-navy);
+}
+.vo-badge-done {
+    background: linear-gradient(135deg, var(--veleiro-blue), var(--veleiro-cyan));
+    border-color: transparent;
+    color: #fff;
+}
+.vo-badge-skipped {
+    background: #fff;
+    border-style: dashed;
+}
+
+.vo-step-id {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.vo-step-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--veleiro-navy);
+}
+.vo-step-evidence {
+    font-size: 0.76rem;
+    color: var(--veleiro-muted);
+    overflow-wrap: anywhere;
+}
+
+.vo-pill {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #f1f5fa;
+    color: var(--veleiro-muted);
+}
+.vo-pill-done {
+    background: rgba(27, 158, 111, 0.12);
+    color: var(--veleiro-ok);
+}
+.vo-pill-unknown {
+    background: rgba(234, 162, 26, 0.14);
+    color: #8a5a00;
+}
+.vo-chev {
+    flex: 0 0 auto;
+    --slds-c-icon-color-foreground-default: var(--veleiro-muted);
+}
+
+.vo-step-body {
+    padding: 0 16px 16px 54px;
+}
+.vo-hidden {
+    display: none;
+}
+.vo-step-summary {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: #3d4b60;
+    max-width: 68ch;
+}
+.vo-note {
+    font-size: 0.74rem;
+    color: var(--veleiro-muted);
+    margin-top: 8px;
+    max-width: 68ch;
+}
+
+.vo-inline {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+.vo-inline-field {
+    flex: 1 1 220px;
+    min-width: 200px;
+}
+.vo-inline-btn {
+    flex: 0 0 auto;
+    padding-bottom: 2px;
+}
+
+.vo-step-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+.vo-skip,
+.vo-linkbtn {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 0.78rem;
+    color: var(--veleiro-blue);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ---------- Salud (setup completo) ---------- */
+.vo-health {
+    border: 1px solid var(--veleiro-line);
+    border-radius: 12px;
+    background: #fff;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+.vo-health-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.vo-health-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--veleiro-navy);
+}
+.vo-health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px 18px;
+}
+.vo-health-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.vo-health-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--veleiro-muted);
+}
+.vo-health-value {
+    font-size: 0.88rem;
+    color: var(--veleiro-navy);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-wrap: anywhere;
+}
+.vo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+.vo-dot-ok {
+    background: var(--veleiro-ok);
+}
+.vo-dot-bad {
+    background: #c23934;
+}
+.vo-health-error {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(194, 57, 52, 0.08);
+    color: #8a2b27;
+    font-size: 0.78rem;
+}
+.vo-linkbtn {
+    margin-top: 14px;
+}
+
+.vo-loading {
+    padding: 28px 0;
+    position: relative;
+    min-height: 60px;
+}
+.vo-error {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(194, 57, 52, 0.08);
+    color: #8a2b27;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 640px) {
+    .vo-velly {
+        display: none;
+    }
+    .vo-step-body {
+        padding-left: 16px;
+    }
+}

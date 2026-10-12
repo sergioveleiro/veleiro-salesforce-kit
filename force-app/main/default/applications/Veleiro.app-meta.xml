@@ -9,6 +9,7 @@
         <headerColor>#040B25</headerColor>
         <shouldOverrideOrgTheme>true</shouldOverrideOrgTheme>
     </brand>
+    <tabs>Veleiro_Setup</tabs>
     <tabs>Veleiro_Home</tabs>
     <tabs>Veleiro_Mappings</tabs>
     <tabs>Veleiro_Link</tabs>

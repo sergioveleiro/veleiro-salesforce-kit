@@ -43,6 +43,8 @@ Two businesses, one link:
 | `lwc/veleiroPanel` / `veleiroOppPanel` | Branded panel on Account / Opportunity record pages (sync + status + "Open in Veleiro"; the Opp one shows live progress). |
 | `lwc/veleiroDashboard` / `veleiroBriefing` / `veleiroInsight` | Home dashboard, Velly briefing + queues, Account insight strip. |
 | `lwc/veleiroMappingHome` | Field-mapping console (grouped by object). |
+| `classes/VeleiroOnboardingController.cls` / `lwc/veleiroOnboarding` | **Veleiro Setup** tab (first in the app): the step-by-step onboarding. `getState(verifyConnection)` measures each step against the org itself — no "I'm done" flags. Steps 1 and 2 (token and sync mode) are completed inline; the rest navigate to where the work happens. |
+| `lwc/veleiroSetupBanner` | Slim reminder at the top of Veleiro Home while the setup is incomplete; it disappears on its own. Calls `getState(false)` so opening the Home never spends a callout. |
 | `lwc/veleiroSyncAction` / `veleiroSyncOppAction` | Headless `lightning__RecordAction` LWCs — add them as record-page actions (no QuickAction wrapper needed). |
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
@@ -105,8 +107,9 @@ Queues: `expand`+`reference` → Expand; `protect`+`unblock` → At-risk; `onboa
 3. `sf apex run -o <org> -f scripts/apex/seedMappings.apex` to seed default mappings.
 4. `sf org assign permset -o <org> -n Veleiro_Integration_Access`.
 5. If the org already had accounts in Salesforce and clients in Veleiro, open the **Veleiro Link** tab and link them before syncing, so nothing is duplicated.
-6. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
-6. Verify: `sf apex run` calling `VeleiroSync.syncClients();` (pull) and `VeleiroSyncService.syncAccount('<accountId>');` (push).
+6. Open the **Veleiro Setup** tab: it walks the remaining steps and marks each one as it actually lands.
+7. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
+8. Verify: `sf apex run` calling `VeleiroSync.syncClients();` (pull) and `VeleiroSyncService.syncAccount('<accountId>');` (push).
 
 Full manual: `docs/setup.md`.
 
