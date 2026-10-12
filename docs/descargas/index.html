@@ -1,193 +1,262 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Veleiro para Salesforce</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap" />
 <style>
   :root {
-    --ink: #10182b;
-    --ink-soft: #55607a;
-    --paper: #f4f6fb;
+    --navy: #040b25;
+    --ink: #0b1230;
+    --ink-soft: #57608a;
+    --paper: #f5f7fc;
     --surface: #ffffff;
-    --line: #dfe4ef;
-    --sea: #1f5f8b;
-    --sea-soft: #e8f1f8;
-    --brass: #a9763f;
-    --shadow: 0 1px 2px rgba(16, 24, 43, .05), 0 12px 28px -18px rgba(16, 24, 43, .35);
+    --line: #e0e5f1;
+    --blue: #0084fb;
+    --blue-ink: #0168c7;
+    --cyan: #5eecfc;
+    --wash: #eaf4ff;
+    --shadow: 0 1px 2px rgba(4, 11, 37, .05), 0 18px 36px -24px rgba(4, 11, 37, .4);
+    --logo-light: block;
+    --logo-dark: none;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --ink: #e9eefc;
-      --ink-soft: #97a2bd;
-      --paper: #080d1a;
-      --surface: #111828;
-      --line: #1e2740;
-      --sea: #8fc6ef;
-      --sea-soft: #15243a;
-      --brass: #d2a269;
-      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 32px -20px rgba(0,0,0,.8);
+      --navy: #020923;
+      --ink: #eaeefb;
+      --ink-soft: #9aa4c6;
+      --paper: #020923;
+      --surface: #0a1233;
+      --line: #1b2552;
+      --blue: #3ea3ff;
+      --blue-ink: #8ac8ff;
+      --cyan: #5eecfc;
+      --wash: #0d1942;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 20px 40px -26px rgba(0,0,0,.9);
+      --logo-light: none;
+      --logo-dark: block;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --ink: #e9eefc;
-    --ink-soft: #97a2bd;
-    --paper: #080d1a;
-    --surface: #111828;
-    --line: #1e2740;
-    --sea: #8fc6ef;
-    --sea-soft: #15243a;
-    --brass: #d2a269;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 32px -20px rgba(0,0,0,.8);
+    --navy: #020923;
+    --ink: #eaeefb;
+    --ink-soft: #9aa4c6;
+    --paper: #020923;
+    --surface: #0a1233;
+    --line: #1b2552;
+    --blue: #3ea3ff;
+    --blue-ink: #8ac8ff;
+    --cyan: #5eecfc;
+    --wash: #0d1942;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 20px 40px -26px rgba(0,0,0,.9);
+    --logo-light: none;
+    --logo-dark: block;
     color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Rethink Sans", system-ui, -apple-system, sans-serif;
     font-size: 16px;
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { width: 100%; max-width: 940px; margin-inline: auto; padding-inline: 20px; }
+  .wrap { width: 100%; max-width: 1000px; margin-inline: auto; padding-inline: 20px; }
+  img { max-width: 100%; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
 
-  /* Encabezado: una linea de horizonte sobre el mar, sin estridencias */
-  .masthead {
-    padding-block: clamp(3rem, 9vw, 5.5rem) clamp(2rem, 5vw, 3rem);
-    background:
-      linear-gradient(180deg, var(--sea-soft) 0%, transparent 72%);
-    border-bottom: 1px solid var(--line);
+  /* ---- barra superior ---- */
+  .topbar { padding-block: 1.4rem .4rem; }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .logo { height: 26px; width: auto; }
+  .logo.light { display: var(--logo-light); }
+  .logo.dark { display: var(--logo-dark); }
+  .topbar a.site {
+    font-size: .85rem; font-weight: 600; color: var(--ink-soft); text-decoration: none;
+  }
+  .topbar a.site:hover { color: var(--blue); }
+  .topbar .right { display: flex; align-items: center; gap: .9rem; }
+  button.theme {
+    display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+    font-family: inherit; font-size: .8rem; font-weight: 600; color: var(--ink-soft);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: .38rem .8rem; transition: border-color .15s ease, color .15s ease;
+  }
+  button.theme:hover { border-color: var(--blue); color: var(--blue); }
+  button.theme svg { width: 14px; height: 14px; }
+  .theme .sun { display: var(--logo-dark); }
+  .theme .moon { display: var(--logo-light); }
+
+  /* ---- hero ---- */
+  .hero { padding-block: clamp(2rem, 6vw, 3.6rem) clamp(2rem, 6vw, 3.2rem); }
+  .hero .wrap {
+    display: grid; gap: clamp(1.5rem, 4vw, 3rem);
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); align-items: center;
   }
   .eyebrow {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--sea); margin: 0 0 1.1rem;
-    display: flex; align-items: center; gap: .6rem;
-  }
-  .eyebrow::after {
-    content: ""; flex: 1; height: 1px; max-width: 120px;
-    background: linear-gradient(90deg, var(--sea), transparent);
+    display: inline-flex; align-items: center; gap: .5rem;
+    font-size: .74rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--blue-ink); background: var(--wash); border-radius: 999px;
+    padding: .34rem .85rem; margin: 0 0 1.1rem;
   }
   h1 {
-    font-family: Fraunces, "Iowan Old Style", Georgia, serif;
-    font-weight: 600; font-size: clamp(2.1rem, 6.5vw, 3.3rem);
-    line-height: 1.08; letter-spacing: -.02em; margin: 0 0 1rem;
-    text-wrap: balance;
+    font-size: clamp(2.05rem, 5.4vw, 3.15rem); font-weight: 800; line-height: 1.06;
+    letter-spacing: -.03em; margin: 0 0 .9rem; text-wrap: balance;
   }
-  .lede { margin: 0; max-width: 34em; color: var(--ink-soft); font-size: clamp(1rem, 2.4vw, 1.12rem); }
+  h1 em { font-style: normal; color: var(--blue); }
+  .lede { margin: 0; font-size: clamp(1rem, 2.2vw, 1.1rem); color: var(--ink-soft); max-width: 33em; }
+  .velly-hero { justify-self: center; max-width: 290px; }
+  .velly-hero img { display: block; width: 100%; height: auto; }
 
-  main { padding-block: clamp(2.2rem, 6vw, 3.4rem) 1rem; }
-
-  .packages { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-
+  /* ---- paquetes ---- */
+  .packages { display: grid; gap: 1.15rem; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); }
   .pkg {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 1.6rem 1.5rem 1.4rem;
-    box-shadow: var(--shadow);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 1.7rem 1.6rem 1.5rem; box-shadow: var(--shadow);
     display: flex; flex-direction: column; gap: 1rem;
   }
-  .pkg-head { display: flex; flex-direction: column; gap: .3rem; }
-  .pkg h2 {
-    font-family: Fraunces, Georgia, serif; font-weight: 600;
-    font-size: 1.35rem; line-height: 1.2; margin: 0; letter-spacing: -.01em;
+  .role {
+    font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--blue);
   }
-  .pkg .role {
-    font-family: "IBM Plex Mono", monospace; font-size: .7rem;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--brass);
-  }
-  .pkg p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
-  .pkg ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .55rem; font-size: .93rem; }
-  .pkg li { display: grid; grid-template-columns: 1.1rem 1fr; gap: .5rem; align-items: start; color: var(--ink); }
-  .pkg li::before {
-    content: ""; width: 7px; height: 7px; margin-top: .52rem; border-radius: 50%;
-    border: 1.5px solid var(--sea);
-  }
-  .cta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .3rem; }
+  .pkg h2 { font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; margin: .2rem 0 0; }
+  .pkg p.sub { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+  .pkg ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; font-size: .93rem; }
+  .pkg li { display: grid; grid-template-columns: 1.15rem 1fr; gap: .45rem; align-items: start; }
+  .pkg li svg { width: 15px; height: 15px; margin-top: .3rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .35rem; }
   a.btn {
-    font: 500 .9rem/1 "IBM Plex Sans", sans-serif; text-decoration: none;
-    padding: .72rem 1.05rem; border-radius: 7px; border: 1px solid var(--line);
-    color: var(--ink); background: transparent; transition: background .15s ease, border-color .15s ease;
+    font-size: .9rem; font-weight: 600; text-decoration: none; padding: .7rem 1.05rem;
+    border-radius: 9px; border: 1px solid var(--line); color: var(--ink);
+    transition: border-color .15s ease, background .15s ease, color .15s ease;
   }
-  a.btn:hover { border-color: var(--sea); }
-  a.btn.solid { background: var(--sea); border-color: var(--sea); color: var(--paper); }
-  a.btn.solid:hover { filter: brightness(1.08); }
-  a.btn:focus-visible, a:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
-
+  a.btn:hover { border-color: var(--blue); color: var(--blue); }
+  a.btn.solid { background: var(--blue); border-color: var(--blue); color: #ffffff; }
+  a.btn.solid:hover { background: var(--blue-ink); border-color: var(--blue-ink); color: #ffffff; }
   .specs {
-    display: flex; flex-wrap: wrap; gap: .4rem 1.4rem;
-    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
-    color: var(--ink-soft); border-top: 1px solid var(--line); padding-top: .85rem;
+    display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-size: .76rem; color: var(--ink-soft);
+    border-top: 1px solid var(--line); padding-top: .85rem;
+    font-variant-numeric: tabular-nums;
   }
-  .specs b { font-weight: 500; color: var(--ink); }
+  .specs b { color: var(--ink); font-weight: 600; }
 
-  section.block { margin-top: clamp(2.5rem, 7vw, 4rem); }
-  h3 {
-    font-family: Fraunces, Georgia, serif; font-size: 1.15rem; font-weight: 600;
-    margin: 0 0 1rem; letter-spacing: -.01em;
+  .notice {
+    margin-top: 1.15rem; padding: .9rem 1.1rem; border-radius: 12px;
+    background: var(--wash); border: 1px solid var(--line); font-size: .9rem;
   }
+  .notice b { font-weight: 700; }
 
-  /* Pasos: son una secuencia real, por eso van numerados */
-  ol.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: .1rem; counter-reset: step; }
+
+  /* ---- analitica ---- */
+  .tiles { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .tile {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem 1.1rem; display: grid; gap: .15rem;
+  }
+  .tile .num {
+    font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile .lbl { font-size: .78rem; color: var(--ink-soft); }
+  .tile .foot { font-size: .72rem; color: var(--ink-soft); opacity: .85; }
+
+  .panel {
+    margin-top: 1rem; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 1.3rem 1.4rem;
+  }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .panel-head h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+  .tag {
+    font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-soft); border: 1px dashed var(--line); border-radius: 999px; padding: .22rem .6rem;
+  }
+  .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .78rem; color: var(--ink-soft); margin-top: .8rem; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: .35rem; vertical-align: -1px; }
+  .chart-scroll { overflow-x: auto; }
+  .pending { font-size: .88rem; color: var(--ink-soft); margin: 1rem 0 0; }
+
+  /* ---- secciones ---- */
+  section.block { margin-top: clamp(2.6rem, 7vw, 4rem); }
+  h3 { font-size: 1.22rem; font-weight: 700; letter-spacing: -.02em; margin: 0 0 1.1rem; }
+
+  .split { display: grid; gap: clamp(1.5rem, 4vw, 2.5rem); grid-template-columns: minmax(0, 1fr) minmax(0, 300px); align-items: start; }
+  .velly-side { justify-self: center; max-width: 240px; }
+  .velly-side img { display: block; width: 100%; height: auto; }
+  .velly-caption { text-align: center; font-size: .8rem; color: var(--ink-soft); margin: .4rem 0 0; }
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
   ol.steps li {
-    counter-increment: step; display: grid; grid-template-columns: 2.3rem 1fr; gap: .8rem;
-    padding: .85rem 0; border-top: 1px solid var(--line); align-items: baseline;
+    counter-increment: step; display: grid; grid-template-columns: 2rem 1fr; gap: .9rem;
+    padding: .9rem 0; border-top: 1px solid var(--line);
   }
   ol.steps li:last-child { border-bottom: 1px solid var(--line); }
   ol.steps li::before {
-    content: counter(step, decimal-leading-zero);
-    font-family: "IBM Plex Mono", monospace; font-size: .78rem; color: var(--sea);
+    content: counter(step); font-size: .8rem; font-weight: 700; color: var(--blue);
+    font-variant-numeric: tabular-nums; padding-top: .15rem;
   }
-  ol.steps strong { font-weight: 600; }
-  ol.steps span { color: var(--ink-soft); font-size: .93rem; display: block; }
+  ol.steps strong { display: block; font-weight: 700; font-size: .97rem; }
+  ol.steps span { color: var(--ink-soft); font-size: .92rem; }
 
-  dl.reqs { display: grid; gap: 0; margin: 0; }
+  dl.reqs { margin: 0; }
   dl.reqs > div {
-    display: grid; grid-template-columns: minmax(130px, 200px) 1fr; gap: 1rem;
-    padding: .8rem 0; border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: minmax(140px, 210px) 1fr; gap: 1rem;
+    padding: .85rem 0; border-top: 1px solid var(--line);
   }
   dl.reqs > div:last-child { border-bottom: 1px solid var(--line); }
-  dt { font-weight: 600; font-size: .9rem; }
+  dt { font-weight: 700; font-size: .92rem; }
   dd { margin: 0; color: var(--ink-soft); font-size: .93rem; }
 
-  .notice {
-    margin-top: 1.2rem; padding: .9rem 1.1rem; border-radius: 8px;
-    background: var(--sea-soft); color: var(--ink); font-size: .9rem;
-    border: 1px solid var(--line);
-  }
-  .notice strong { font-weight: 600; }
-
   code {
-    font-family: "IBM Plex Mono", monospace; font-size: .85em;
-    background: var(--sea-soft); padding: .1rem .35rem; border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em;
+    background: var(--wash); padding: .12rem .4rem; border-radius: 5px; color: var(--ink);
   }
 
   footer {
-    margin-top: clamp(3rem, 8vw, 4.5rem); padding-block: 1.5rem 3rem;
-    border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .82rem;
-    display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; justify-content: space-between;
+    margin-top: clamp(3rem, 8vw, 4.5rem); border-top: 1px solid var(--line);
+    padding-block: 1.6rem 3rem;
   }
-  @media (max-width: 420px) {
-    dl.reqs > div { grid-template-columns: 1fr; gap: .15rem; }
-  }
-</style>
-</head>
-<body>
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: center; justify-content: space-between; }
+  footer p { margin: 0; font-size: .82rem; color: var(--ink-soft); max-width: 34em; }
+  .partner { height: 54px; width: auto; }
 
-<header class="masthead">
+  @media (max-width: 760px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .velly-hero { max-width: 210px; order: -1; }
+    .split { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 430px) {
+    dl.reqs > div { grid-template-columns: 1fr; gap: .1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="topbar">
   <div class="wrap">
-    <p class="eyebrow">Paquetes para Salesforce</p>
-    <h1>La entrega, visible desde el CRM</h1>
-    <p class="lede">Dos paquetes administrados e independientes. Uno mantiene cuentas y oportunidades en sintonía con los clientes y proyectos de Veleiro; el otro deja que cualquiera levante un ticket sin salir de Salesforce. Instala el que necesites.</p>
+    <img class="logo light" src="assets/logo.svg" alt="Veleiro" />
+    <img class="logo dark" src="assets/logo-inverted.svg" alt="Veleiro" />
+    <div class="right">
+      <a class="site" href="https://www.veleiro.ai/es">veleiro.ai &nearr;</a>
+      <button class="theme" id="themeToggle" type="button" aria-label="Cambiar tema">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+        <span id="themeLabel">Tema claro</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Paquetes para Salesforce</p>
+      <h1>La entrega, visible <em>desde el CRM</em></h1>
+      <p class="lede">Dos paquetes administrados e independientes. Uno mantiene cuentas y oportunidades en sintonía con los clientes y proyectos de Veleiro; el otro deja que cualquiera levante un ticket sin salir de Salesforce.</p>
+    </div>
+    <div class="velly-hero">
+      <img src="assets/velly-telescope.webp" alt="Velly, la mascota de Veleiro, mirando por un telescopio" />
+    </div>
   </div>
 </header>
 
@@ -196,15 +265,13 @@
   <div class="packages">
 
     <article class="pkg">
-      <div class="pkg-head">
-        <span class="role">Ventas y entrega</span>
-        <h2>Veleiro Salesforce Kit</h2>
-      </div>
-      <p>Cuenta ⇄ cliente y oportunidad ⇄ proyecto, con la salud de la entrega donde el vendedor ya trabaja.</p>
+      <span class="role">Ventas y entrega</span>
+      <h2>Veleiro Salesforce Kit</h2>
+      <p class="sub">Cuenta ⇄ cliente y oportunidad ⇄ proyecto, con la salud de la entrega donde el vendedor ya trabaja.</p>
       <ul>
-        <li>Sincronización manual o automática, configurable por cada par</li>
-        <li>Avance del proyecto en la oportunidad y señales de riesgo en la cuenta</li>
-        <li>Mapeo de campos propio y vinculación masiva de lo que ya existía</li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Sincronización manual o automática, configurable por cada par</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Avance del proyecto en la oportunidad y señales de riesgo en la cuenta</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mapeo de campos propio y vinculación masiva de lo que ya existía</span></li>
       </ul>
       <div class="cta">
         <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010onRIAQ">Instalar en producción</a>
@@ -212,22 +279,19 @@
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit">Código</a>
       </div>
       <div class="specs">
-        <span><b>1.0.0.1</b></span>
-        <span>cobertura <b>93%</b></span>
-        <span>04tPe0000010onRIAQ</span>
+        <span>Versión <b>1.0.0.1</b></span>
+        <span>Cobertura de pruebas <b>93%</b></span>
       </div>
     </article>
 
     <article class="pkg">
-      <div class="pkg-head">
-        <span class="role">Soporte</span>
-        <h2>Veleiro Ticket Intake</h2>
-      </div>
-      <p>Un ticket levantado desde cualquier pantalla de Salesforce aparece como task en Veleiro, con su contexto.</p>
+      <span class="role">Soporte</span>
+      <h2>Veleiro Ticket Intake</h2>
+      <p class="sub">Un ticket levantado desde cualquier pantalla de Salesforce aparece como task en Veleiro, con su contexto.</p>
       <ul>
-        <li>Formulario en la barra de utilidades, con adjuntos y la URL de origen</li>
-        <li>Reenvío de un ticket que no llegó, sin volver a escribirlo</li>
-        <li>Con el kit instalado, cae en el cliente o proyecto del registro de origen</li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Formulario en la barra de utilidades, con adjuntos y la URL de origen</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Reenvío de un ticket que no llegó, sin volver a escribirlo</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
       </ul>
       <div class="cta">
         <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010op3IAA">Instalar en producción</a>
@@ -235,17 +299,46 @@
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake">Código</a>
       </div>
       <div class="specs">
-        <span><b>1.0.0.1</b></span>
-        <span>cobertura <b>90%</b></span>
-        <span>04tPe0000010op3IAA</span>
+        <span>Versión <b>1.0.0.1</b></span>
+        <span>Cobertura de pruebas <b>90%</b></span>
       </div>
     </article>
 
   </div>
 
   <div class="notice">
-    <strong>Estas versiones son beta.</strong> Se instalan en sandbox y en orgs de desarrollo; para producción hace falta promover la versión.
+    <b>Estas versiones son beta.</b> Se instalan en sandbox y en orgs de desarrollo; para producción hace falta promover la versión.
   </div>
+
+  <section class="block">
+    <div class="split">
+      <div>
+        <h3>Cómo va la instalación</h3>
+        <ol class="steps">
+          <li>
+            <div><strong>Instalar el paquete</strong>
+            <span>Desde el enlace de arriba, para administradores o para todos los usuarios.</span></div>
+          </li>
+          <li>
+            <div><strong>Asignar el permission set</strong>
+            <span><code>Veleiro_Integration_Access</code> en el kit, <code>Veleiro_Ticket_Intake_User</code> en tickets.</span></div>
+          </li>
+          <li>
+            <div><strong>Conectar con Veleiro</strong>
+            <span>Pegar el token en el panel de configuración y confirmar que el indicador quede en verde.</span></div>
+          </li>
+          <li>
+            <div><strong>Probar en manual antes de automatizar</strong>
+            <span>Sincroniza dos o tres registros con el botón; recién entonces enciende el modo automático.</span></div>
+          </li>
+        </ol>
+      </div>
+      <div class="velly-side">
+        <img src="assets/velly-helm.webp" alt="Velly al timón, con una brújula" />
+        <p class="velly-caption">Velly lleva el timón: tú decides el rumbo.</p>
+      </div>
+    </div>
+  </section>
 
   <section class="block">
     <h3>Qué necesitas antes de instalar</h3>
@@ -259,40 +352,126 @@
         <dd>Con permiso para instalar paquetes y entrar a Configuración.</dd>
       </div>
       <div>
-        <dt>Decidir el ambiente</dt>
+        <dt>Elegir el ambiente</dt>
         <dd>Producción de Veleiro (<code>app.veleiro.ai</code>) o beta (<code>app.beta.veleiro.dev</code>). Se cambia después sin tocar código.</dd>
+      </div>
+      <div>
+        <dt>Qué se instala</dt>
+        <dd>Metadatos únicamente: Apex, componentes, campos con prefijo <code>veleiro__</code> y un permission set. Nada reemplaza ni elimina lo que ya existe en la org.</dd>
       </div>
     </dl>
   </section>
 
+
   <section class="block">
-    <h3>Cómo va la instalación</h3>
-    <ol class="steps">
-      <li>
-        <div><strong>Instalar el paquete</strong>
-        <span>Desde el enlace de arriba, para los administradores o para todos los usuarios.</span></div>
-      </li>
-      <li>
-        <div><strong>Asignar el permission set</strong>
-        <span><code>Veleiro_Integration_Access</code> en el kit, <code>Veleiro_Ticket_Intake_User</code> en tickets.</span></div>
-      </li>
-      <li>
-        <div><strong>Conectar</strong>
-        <span>Pegar el token en el panel de configuración y verificar que el indicador quede en verde.</span></div>
-      </li>
-      <li>
-        <div><strong>Probar en manual antes de automatizar</strong>
-        <span>Sincroniza dos o tres registros con el botón; recién entonces enciende el modo automático.</span></div>
-      </li>
-    </ol>
+    <h3>Analítica del paquete</h3>
+
+    <div class="tiles">
+      <div class="tile">
+        <span class="num">2</span>
+        <span class="lbl">paquetes publicados</span>
+        <span class="foot">namespace veleiro</span>
+      </div>
+      <div class="tile">
+        <span class="num">200</span>
+        <span class="lbl">componentes empaquetados</span>
+        <span class="foot">148 del kit · 52 de tickets</span>
+      </div>
+      <div class="tile">
+        <span class="num">93%</span>
+        <span class="lbl">cobertura de pruebas del kit</span>
+        <span class="foot">tickets: 90%</span>
+      </div>
+      <div class="tile">
+        <span class="num">2</span>
+        <span class="lbl">orgs de prueba con ambos paquetes</span>
+        <span class="foot">verificado hoy desde el CLI</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h4>Instalaciones por mes · sandbox y producción</h4>
+        <span class="tag">Datos de ejemplo</span>
+      </div>
+      <div class="chart-scroll">
+        <svg viewBox="0 0 490 215" width="100%" height="215" role="img"
+             aria-label="Gráfico de ejemplo de instalaciones por mes, separadas en sandbox y producción">
+          <line x1="40" y1="188.0" x2="470" y2="188.0" stroke="var(--line)" stroke-width="1"></line>
+          <text x="32" y="192.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">0</text>
+          <line x1="40" y1="150.5" x2="470" y2="150.5" stroke="var(--line)" stroke-width="1"></line>
+          <text x="32" y="154.5" text-anchor="end" font-size="11" fill="var(--ink-soft)">5</text>
+          <line x1="40" y1="113.0" x2="470" y2="113.0" stroke="var(--line)" stroke-width="1"></line>
+          <text x="32" y="117.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">10</text>
+          <line x1="40" y1="75.5" x2="470" y2="75.5" stroke="var(--line)" stroke-width="1"></line>
+          <text x="32" y="79.5" text-anchor="end" font-size="11" fill="var(--ink-soft)">15</text>
+          <line x1="40" y1="38.0" x2="470" y2="38.0" stroke="var(--line)" stroke-width="1"></line>
+          <text x="32" y="42.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">20</text>
+          <rect x="58" y="180.5" width="30" height="7.5" rx="3" fill="var(--cyan)"></rect>
+          <rect x="58" y="180.5" width="30" height="0.0" rx="3" fill="var(--blue)"></rect>
+          <text x="73" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Oct</text>
+          <rect x="128" y="158.0" width="30" height="30.0" rx="3" fill="var(--cyan)"></rect>
+          <rect x="128" y="143.0" width="30" height="15.0" rx="3" fill="var(--blue)"></rect>
+          <text x="143" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Nov</text>
+          <rect x="198" y="143.0" width="30" height="45.0" rx="3" fill="var(--cyan)"></rect>
+          <rect x="198" y="120.5" width="30" height="22.5" rx="3" fill="var(--blue)"></rect>
+          <text x="213" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Dic</text>
+          <rect x="268" y="128.0" width="30" height="60.0" rx="3" fill="var(--cyan)"></rect>
+          <rect x="268" y="83.0" width="30" height="45.0" rx="3" fill="var(--blue)"></rect>
+          <text x="283" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Ene</text>
+          <rect x="338" y="120.5" width="30" height="67.5" rx="3" fill="var(--cyan)"></rect>
+          <rect x="338" y="53.0" width="30" height="67.5" rx="3" fill="var(--blue)"></rect>
+          <text x="353" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Feb</text>
+          <rect x="408" y="113.0" width="30" height="75.0" rx="3" fill="var(--cyan)"></rect>
+          <rect x="408" y="15.5" width="30" height="97.5" rx="3" fill="var(--blue)"></rect>
+          <text x="423" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Mar</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background: var(--blue);"></i>Producción</span>
+        <span><i style="background: var(--cyan);"></i>Sandbox</span>
+      </div>
+      <p class="pending"><b>Hoy no hay cifras reales de instalación, y no porque sean cero.</b> Salesforce no le reporta las instalaciones al Dev Hub: se las reporta al <b>License Management App</b>, que se activa con la Partner Business Org. Hasta entonces, ni las instalaciones en sandbox ni las de producción quedan registradas en ningún lado consultable.</p>
+      <p class="pending">Con el LMA conectado, cada instalación aparece con la org que la hizo, su versión, si es sandbox o producción y cuándo actualizó por última vez.</p>
+    </div>
   </section>
 
 </main>
 
-<footer class="wrap">
-  <span>Veleiro AI · paquetes administrados, namespace <code>veleiro</code></span>
-  <span>Cada paquete se instala, actualiza y desinstala por separado</span>
+<footer>
+  <div class="wrap">
+    <p>Veleiro AI · paquetes administrados bajo el namespace <code>veleiro</code>. Cada uno se instala, actualiza y desinstala por separado.</p>
+    <img class="partner" src="assets/salesforce-partner.png" alt="Salesforce Partner" />
+  </div>
 </footer>
 
-</body>
-</html>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var label = document.getElementById('themeLabel');
+
+    function prefersDark() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function current() {
+      var set = root.getAttribute('data-theme');
+      return set === 'dark' || set === 'light' ? set : (prefersDark() ? 'dark' : 'light');
+    }
+    function apply(theme) {
+      root.setAttribute('data-theme', theme);
+      label.textContent = theme === 'dark' ? 'Tema claro' : 'Tema oscuro';
+      btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+    }
+
+    var saved = null;
+    try { saved = localStorage.getItem('veleiro-theme'); } catch (e) { /* sin almacenamiento: se usa el del sistema */ }
+    apply(saved === 'dark' || saved === 'light' ? saved : current());
+
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      apply(next);
+      try { localStorage.setItem('veleiro-theme', next); } catch (e) { /* no se recuerda, pero funciona */ }
+    });
+  })();
+</script>

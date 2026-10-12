@@ -1,12 +1,13 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Primera version administrada",
-      "versionNumber": "1.0.0.NEXT",
+      "versionName": "Prueba de actualizacion",
+      "versionNumber": "1.1.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Links Salesforce accounts and opportunities to Veleiro clients and projects, with delivery insights."
+      "versionDescription": "Links Salesforce accounts and opportunities to Veleiro clients and projects, with delivery insights.",
+      "ancestorVersion": "HIGHEST"
     }
   ],
   "name": "veleiro-salesforce-kit",
@@ -15,6 +16,7 @@
   "sourceApiVersion": "62.0",
   "packageAliases": {
     "Veleiro Salesforce Kit": "0HoPe00000003SXKAY",
-    "Veleiro Salesforce Kit@1.0.0-1": "04tPe0000010onRIAQ"
+    "Veleiro Salesforce Kit@1.0.0-1": "04tPe0000010onRIAQ",
+    "Veleiro Salesforce Kit@1.1.0-1": "04tPe0000010vc1IAA"
   }
 }

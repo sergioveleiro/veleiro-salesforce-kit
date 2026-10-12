@@ -46,11 +46,25 @@ sf package version promote --package <04t...> -v veleiro-ro
 
 Una versión **no promovida** se puede instalar en scratch orgs y sandboxes, no en producción. Promover es definitivo: esa versión ya no se puede borrar ni modificar.
 
+## Actualizar a un cliente
+
+Hoy **no se puede empujar** una versión a la org de un cliente: eso es un *push upgrade* y requiere el programa de partners. Lo que sí funciona es mandarle el enlace de la versión nueva; Salesforce reconoce el paquete instalado y muestra *Upgrade* en vez de *Install*. Los datos, la configuración y los vínculos del cliente se conservan.
+
+Dos condiciones para que eso ocurra:
+
+1. **La versión debe estar promovida.** Sin promover no se instala en producción.
+2. **Debe declarar ascendencia** (`"ancestorVersion": "HIGHEST"` en `sfdx-project.json`). Sin ancestro, Salesforce la trata como un paquete distinto y no deja actualizar.
+
+**Numeración:** las versiones *patch* (1.0.**X**) requieren que Salesforce habilite patch versioning por caso en la Partner Community. Mientras tanto, el ciclo normal va por versiones menores: 1.1.0, 1.2.0, etc.
+
+**Verificado el 12/10/2026:** una org con la 1.0.0.1 instalada se actualizó a la 1.1.0.1 por el mismo camino que usaría un cliente. La instalación mantuvo su identidad (mismo registro), los 3 flows siguieron activos, las 44 clases presentes y el permission set asignado.
+
 ## Historial de versiones
 
 | Versión | Id de suscriptor | Cobertura | Estado |
 |---|---|---|---|
-| 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | Beta (sin promover) · instalada y verificada en scratch |
+| 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | **Released** · primera versión |
+| 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización |
 
 ## Pendientes antes de entregar a un cliente en producción
 
