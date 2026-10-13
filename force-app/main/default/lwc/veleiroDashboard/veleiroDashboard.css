@@ -3,13 +3,21 @@
     --veleiro-blue: #0084fb;
     --veleiro-cyan: #5eecfc;
     --veleiro-accent: #cfe6f8;
+    --veleiro-canvas: #f4f8fc;
+    --veleiro-ink: #040b25;
     --veleiro-line: #e7eef6;
     --veleiro-muted: #5a6b82;
 }
 
+/* El kit pinta su propia superficie. Una org puede traer un theme con fondo oscuro y texto
+   claro; si heredamos eso, los textos se pierden y las tarjetas flotan sobre un gris sucio.
+   Fijar fondo y color aqui hace que el kit se vea igual en cualquier org. */
 .veleiro-dash {
-    padding: 6px 4px 24px;
+    padding: 18px;
     font-family: inherit;
+    background: var(--veleiro-canvas);
+    color: var(--veleiro-ink);
+    border-radius: 12px;
 }
 
 /* Encabezado: una línea, sin repetir el logo que ya trae la barra de la app */
