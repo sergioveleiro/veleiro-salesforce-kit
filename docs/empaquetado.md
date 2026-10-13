@@ -70,7 +70,8 @@ Dos condiciones para que eso ocurra:
 | 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | **Released** · primera versión · es la que tiene UMM-PRD |
 | 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización. **Rama muerta**: nunca se promovió, así que una org con esta versión no puede subir a la 1.2.0 (son hermanas, no línea). |
 | 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | Released · **NO ENTREGAR**: arrastra el bug de la Named Credential. Sustituida por la 1.3.0.1. |
-| 1.3.0.1 | `04tPe0000010w8HIAQ` | 94% | **Released · la que se entrega hoy** · arregla el callout + pestaña Veleiro Setup, Veleiro Link en dos direcciones, idiomas es/pt/en |
+| 1.3.0.1 | `04tPe0000010w8HIAQ` | 94% | Released · arregla el callout. Superada por la 1.4.0.1. |
+| 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | **Released · la que se entrega hoy** · arregla los mapeos en blanco y hace al kit independiente del theme de la org |
 
 ## La trampa del namespace (nos costó dos versiones)
 
@@ -83,6 +84,24 @@ Lo peligroso es que **desde el código fuente no se reproduce**. Ahí el prefijo
 - antes de promover, vale más una prueba de callout real en una org con el paquete instalado que cien tests verdes en el código fuente.
 
 **Verificado el 12/10/2026 (1.0.0.1 → 1.3.0.1):** en una org con la 1.0.0.1 y datos de cliente, crear una Account dispara el flow del paquete y el error que quedaba registrado era *"the named credential Veleiro_API might not exist"*. Tras el upgrade directo a la 1.3.0.1, el mismo camino registró *"invalid_token: The bearer token is missing or invalid"* — un error **de Veleiro**, o sea que el callout salió, llegó y fue respondido.
+
+## Lo que el namespace rompe (van tres)
+
+El prefijo `veleiro__` no solo afecta a los nombres que escribimos en el código. Hasta ahora nos mordió en tres formas distintas, todas invisibles desde el código fuente:
+
+1. **Named Credentials.** `callout:Veleiro_API` no resuelve; es `veleiro__Veleiro_API`.
+2. **Nombres de objeto en datos.** Un test que guarda `SObject__c = 'Veleiro_Field_Mapping__c'` no empata con el objeto real.
+3. **sObjects que viajan al UI.** Un `@AuraEnabled` que devuelve el registro crudo serializa `veleiro__SObject__c`, y el componente que lee `m.SObject__c` recibe `undefined`. Un cliente lo vio como una lista de mapeos con todos los nombres en blanco.
+
+La regla que sale de ahí: **nada que cruce la frontera del paquete se nombra con un literal.** Los campos viajan en DTOs con nombres propios, las credenciales y pestañas se arman con `VeleiroSyncConfig.namespacePrefix()`, y los tests simulan el prefijo. `VeleiroMappingControllerTest` asevera que el JSON que viaja al navegador **no contiene ningún `__c`**: esa sola línea es la que atrapa al siguiente que devuelva un sObject.
+
+## El theme de la org no es nuestro
+
+Una org puede traer un Lightning theme propio (UMM tiene uno). Un componente que hereda el fondo y el color del texto de la página se vuelve ilegible ahí. Cada raíz del kit pinta su propio lienzo (`--veleiro-canvas`) y su propio color (`--veleiro-ink`), y nunca asume que la página es clara.
+
+## Un solo lugar para los clientes
+
+El `04t` del enlace **es** la versión: cada release tiene su propio link y no existe uno que apunte "al último". Para que el cliente tenga una sola dirección, el enlace vive detrás de la página de descargas (`docs/descargas/`); al publicar una versión se actualiza ahí y nadie más se entera. La URL permanente de verdad es el listado de AppExchange, que llega con la revisión de seguridad — la misma que desbloquea los push upgrades.
 
 ## Pendientes antes de entregar a un cliente en producción
 
