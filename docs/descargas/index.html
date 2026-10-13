@@ -2,6 +2,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap" />
+<script>
+  /* Antes de pintar: el tema claro es el default. Si esto corriera despues del CSS, quien
+     tenga el sistema en oscuro veria un parpadeo oscuro antes de que la pagina se corrija. */
+  document.documentElement.setAttribute('data-theme', (function () {
+    try { return localStorage.getItem('veleiro-theme') === 'dark' ? 'dark' : 'light'; }
+    catch (e) { return 'light'; }
+  })());
+</script>
 <style>
   :root {
     --navy: #040b25;
@@ -79,6 +87,15 @@
   }
   .topbar a.site:hover { color: var(--blue); }
   .topbar .right { display: flex; align-items: center; gap: .9rem; }
+  .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .lang button {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    padding: .34rem .7rem; font: inherit; font-size: .76rem; font-weight: 600;
+    letter-spacing: .04em; color: var(--ink-soft);
+  }
+  .lang button + button { border-left: 1px solid var(--line); }
+  .lang button:hover { color: var(--ink); }
+  .lang button[aria-pressed="true"] { background: var(--navy); color: #fff; }
   button.theme {
     display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
     font-family: inherit; font-size: .8rem; font-weight: 600; color: var(--ink-soft);
@@ -209,6 +226,11 @@
     <img class="logo light" src="assets/logo.svg" alt="Veleiro" />
     <img class="logo dark" src="assets/logo-inverted.svg" alt="Veleiro" />
     <div class="right">
+      <div class="lang" role="group" aria-label="Idioma">
+        <button type="button" data-lang="es">ES</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="pt">PT</button>
+      </div>
       <a class="site" href="https://www.veleiro.ai/es">veleiro.ai &nearr;</a>
       <button class="theme" id="themeToggle" type="button" aria-label="Cambiar tema">
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -222,9 +244,9 @@
 <header class="hero">
   <div class="wrap">
     <div>
-      <p class="eyebrow">Paquetes para Salesforce</p>
-      <h1>La entrega, visible <em>desde el CRM</em></h1>
-      <p class="lede">Dos paquetes administrados e independientes. Uno mantiene cuentas y oportunidades en sintonía con los clientes y proyectos de Veleiro; el otro deja que cualquiera levante un ticket sin salir de Salesforce.</p>
+      <p class="eyebrow" data-t="eyebrow">Paquetes para Salesforce</p>
+      <h1 data-t="h1">La entrega, visible <em>desde el CRM</em></h1>
+      <p class="lede" data-t="lede">Dos paquetes administrados e independientes. Uno mantiene cuentas y oportunidades en sintonía con los clientes y proyectos de Veleiro; el otro deja que cualquiera levante un ticket sin salir de Salesforce.</p>
     </div>
     <div class="velly-hero">
       <img src="assets/velly-telescope.webp" alt="Velly, la mascota de Veleiro, mirando por un telescopio" />
@@ -237,98 +259,98 @@
   <div class="packages">
 
     <article class="pkg">
-      <span class="role">Ventas y entrega</span>
+      <span class="role" data-t="kit.role">Ventas y entrega</span>
       <h2>Veleiro Salesforce Kit</h2>
-      <p class="sub">Cuenta ⇄ cliente y oportunidad ⇄ proyecto, con la salud de la entrega donde el vendedor ya trabaja.</p>
+      <p class="sub" data-t="kit.sub">Cuenta ⇄ cliente y oportunidad ⇄ proyecto, con la salud de la entrega donde el vendedor ya trabaja.</p>
       <ul>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Sincronización manual o automática, configurable por cada par</span></li>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Avance del proyecto en la oportunidad y señales de riesgo en la cuenta</span></li>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mapeo de campos propio y vinculación masiva de lo que ya existía</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="kit.f1">Sincronización manual o automática, configurable por cada par</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="kit.f2">Avance del proyecto en la oportunidad y señales de riesgo en la cuenta</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="kit.f3">Mapeo de campos propio y vinculación masiva de lo que ya existía</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY">Instalar en producción</a>
-        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY">Sandbox</a>
-        <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit">Código</a>
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY" data-t="btn.install">Instalar en producción</a>
+        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY" data-t="btn.sandbox">Sandbox</a>
+        <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit" data-t="btn.code">Código</a>
       </div>
       <div class="specs">
-        <span>Versión <b>1.5.0.1</b></span>
+        <span><span data-t="spec.version">Versión</span> <b>1.5.0.1</b></span>
       </div>
     </article>
 
     <article class="pkg">
-      <span class="role">Soporte</span>
+      <span class="role" data-t="tkt.role">Soporte</span>
       <h2>Veleiro Ticket Intake</h2>
-      <p class="sub">Un ticket levantado desde cualquier pantalla de Salesforce aparece como task en Veleiro, con su contexto.</p>
+      <p class="sub" data-t="tkt.sub">Un ticket levantado desde cualquier pantalla de Salesforce aparece como task en Veleiro, con su contexto.</p>
       <ul>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Formulario en la barra de utilidades, con adjuntos y la URL de origen</span></li>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Reenvío de un ticket que no llegó, sin volver a escribirlo</span></li>
-        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="tkt.f1">Formulario en la barra de utilidades, con adjuntos y la URL de origen</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="tkt.f2">Reenvío de un ticket que no llegó, sin volver a escribirlo</span></li>
+        <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="tkt.f3">Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI">Instalar en producción</a>
-        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI">Sandbox</a>
-        <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake">Código</a>
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.install">Instalar en producción</a>
+        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.sandbox">Sandbox</a>
+        <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake" data-t="btn.code">Código</a>
       </div>
       <div class="specs">
-        <span>Versión <b>1.1.0.1</b></span>
+        <span><span data-t="spec.version">Versión</span> <b>1.1.0.1</b></span>
       </div>
     </article>
 
   </div>
 
   <div class="notice">
-    <b>Ya instalan en producción.</b> Si tu org ya tiene una versión anterior, el enlace te va a ofrecer
-    <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.
+    <span data-t="notice"><b>Ya instalan en producción.</b> Si tu org ya tiene una versión anterior, el enlace te va a ofrecer
+    <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.</span>
   </div>
 
   <section class="block">
     <div class="split">
       <div>
-        <h3>Cómo va la instalación</h3>
+        <h3 data-t="steps.title">Cómo va la instalación</h3>
         <ol class="steps">
           <li>
-            <div><strong>Instalar el paquete</strong>
-            <span>Desde el enlace de arriba, para administradores o para todos los usuarios.</span></div>
+            <div><strong data-t="s1.t">Instalar el paquete</strong>
+            <span data-t="s1.d">Desde el enlace de arriba, para administradores o para todos los usuarios.</span></div>
           </li>
           <li>
-            <div><strong>Asignar el permission set</strong>
-            <span><code>Veleiro_Integration_Access</code> en el kit, <code>Veleiro_Ticket_Intake_User</code> en tickets.</span></div>
+            <div><strong data-t="s2.t">Asignar el permission set</strong>
+            <span data-t="s2.d"><code>Veleiro_Integration_Access</code> en el kit, <code>Veleiro_Ticket_Intake_User</code> en tickets.</span></div>
           </li>
           <li>
-            <div><strong>Conectar con Veleiro</strong>
-            <span>Abre la pestaña <b>Veleiro Setup</b>: te lleva paso a paso y cada uno se marca solo cuando de verdad quedó hecho.</span></div>
+            <div><strong data-t="s3.t">Conectar con Veleiro</strong>
+            <span data-t="s3.d">Abre la pestaña <b>Veleiro Setup</b>: te lleva paso a paso y cada uno se marca solo cuando de verdad quedó hecho.</span></div>
           </li>
           <li>
-            <div><strong>Probar en manual antes de automatizar</strong>
-            <span>Sincroniza dos o tres registros con el botón; recién entonces enciende el modo automático.</span></div>
+            <div><strong data-t="s4.t">Probar en manual antes de automatizar</strong>
+            <span data-t="s4.d">Sincroniza dos o tres registros con el botón; recién entonces enciende el modo automático.</span></div>
           </li>
         </ol>
       </div>
       <div class="velly-side">
         <img src="assets/velly-helm.webp" alt="Velly al timón, con una brújula" />
-        <p class="velly-caption">Velly lleva el timón: tú decides el rumbo.</p>
+        <p class="velly-caption" data-t="velly">Velly lleva el timón: tú decides el rumbo.</p>
       </div>
     </div>
   </section>
 
   <section class="block">
-    <h3>Qué necesitas antes de instalar</h3>
+    <h3 data-t="reqs.title">Qué necesitas antes de instalar</h3>
     <dl class="reqs">
       <div>
-        <dt>Token de Veleiro</dt>
-        <dd>Lectura y escritura de clientes y proyectos. El ticket intake además requiere <code>task:write</code>.</dd>
+        <dt data-t="r1.t">Token de Veleiro</dt>
+        <dd data-t="r1.d">Lectura y escritura de clientes y proyectos. El ticket intake además requiere <code>task:write</code>.</dd>
       </div>
       <div>
-        <dt>Usuario de Salesforce</dt>
-        <dd>Con permiso para instalar paquetes y entrar a Configuración.</dd>
+        <dt data-t="r2.t">Usuario de Salesforce</dt>
+        <dd data-t="r2.d">Con permiso para instalar paquetes y entrar a Configuración.</dd>
       </div>
       <div>
-        <dt>Elegir el ambiente</dt>
-        <dd>Producción de Veleiro (<code>app.veleiro.ai</code>) o beta (<code>app.beta.veleiro.dev</code>). Se cambia después sin tocar código.</dd>
+        <dt data-t="r3.t">Elegir el ambiente</dt>
+        <dd data-t="r3.d">Producción de Veleiro (<code>app.veleiro.ai</code>) o beta (<code>app.beta.veleiro.dev</code>). Se cambia después sin tocar código.</dd>
       </div>
       <div>
-        <dt>Qué se instala</dt>
-        <dd>Metadatos únicamente: Apex, componentes, campos con prefijo <code>veleiro__</code> y un permission set. Nada reemplaza ni elimina lo que ya existe en la org.</dd>
+        <dt data-t="r4.t">Qué se instala</dt>
+        <dd data-t="r4.d">Metadatos únicamente: Apex, componentes, campos con prefijo <code>veleiro__</code> y un permission set. Nada reemplaza ni elimina lo que ya existe en la org.</dd>
       </div>
     </dl>
   </section>
@@ -339,38 +361,182 @@
 
 <footer>
   <div class="wrap">
-    <p>Veleiro AI · paquetes administrados bajo el namespace <code>veleiro</code>. Cada uno se instala, actualiza y desinstala por separado.</p>
+    <p data-t="footer">Veleiro AI · paquetes administrados bajo el namespace <code>veleiro</code>. Cada uno se instala, actualiza y desinstala por separado.</p>
     <img class="partner" src="assets/salesforce-partner.png" alt="Salesforce Partner" />
   </div>
 </footer>
 
 <script>
+  /* ---- idioma ----
+     Los textos viven aqui y se inyectan en los elementos marcados con data-t. El espanol es
+     la version de origen; ingles y portugues son traducciones, no transliteraciones. */
+  var I18N = {
+    es: {},
+    en: {
+      'eyebrow': 'Packages for Salesforce',
+      'h1': 'Delivery, visible <em>from the CRM</em>',
+      'lede': 'Two managed packages that install separately. One keeps accounts and opportunities in step with Veleiro clients and projects; the other lets anyone raise a ticket without leaving Salesforce.',
+      'kit.role': 'Sales and delivery',
+      'kit.sub': 'Account ⇄ client and opportunity ⇄ project, with the health of delivery where the seller already works.',
+      'kit.f1': 'Manual or automatic sync, switchable for each pair',
+      'kit.f2': 'Project progress on the opportunity and risk signals on the account',
+      'kit.f3': 'Your own field mapping, and bulk linking of what already existed',
+      'tkt.role': 'Support',
+      'tkt.sub': 'A ticket raised from any Salesforce screen lands in Veleiro as a task, carrying its context.',
+      'tkt.f1': 'A form in the utility bar, with attachments and the originating URL',
+      'tkt.f2': 'Resend a ticket that never arrived, without typing it again',
+      'tkt.f3': 'With the kit installed, it lands on the client or project of the record it came from',
+      'btn.install': 'Install in production',
+      'btn.sandbox': 'Sandbox',
+      'btn.code': 'Source',
+      'spec.version': 'Version',
+      'notice': '<b>These install in production.</b> If your org already has an earlier version, the link offers <b>Upgrade</b> instead of Install: your token, your mappings and your links are kept.',
+      'steps.title': 'How the install goes',
+      's1.t': 'Install the package',
+      's1.d': 'From the link above, for admins or for all users.',
+      's2.t': 'Assign the permission set',
+      's2.d': '<code>Veleiro_Integration_Access</code> for the kit, <code>Veleiro_Ticket_Intake_User</code> for tickets.',
+      's3.t': 'Connect to Veleiro',
+      's3.d': 'Open the <b>Veleiro Setup</b> tab: it walks you through, and each step turns green only once it has really happened.',
+      's4.t': 'Try it manually before automating',
+      's4.d': 'Sync two or three records with the button; only then turn on automatic mode.',
+      'velly': 'Velly takes the helm. You choose the course.',
+      'reqs.title': 'What you need before installing',
+      'r1.t': 'A Veleiro token',
+      'r1.d': 'Read and write on clients and projects. Ticket intake also needs <code>task:write</code>.',
+      'r2.t': 'A Salesforce user',
+      'r2.d': 'Allowed to install packages and reach Setup.',
+      'r3.t': 'Pick the environment',
+      'r3.d': 'Veleiro production (<code>app.veleiro.ai</code>) or beta (<code>app.beta.veleiro.dev</code>). You can switch later without touching code.',
+      'r4.t': 'What gets installed',
+      'r4.d': 'Metadata only: Apex, components, fields prefixed <code>veleiro__</code> and a permission set. Nothing replaces or removes what your org already has.',
+      'footer': 'Veleiro AI · managed packages under the <code>veleiro</code> namespace. Each one installs, upgrades and uninstalls on its own.',
+      'theme.toLight': 'Light theme',
+      'theme.toDark': 'Dark theme'
+    },
+    pt: {
+      'eyebrow': 'Pacotes para Salesforce',
+      'h1': 'A entrega, visível <em>do CRM</em>',
+      'lede': 'Dois pacotes gerenciados e independentes. Um mantém contas e oportunidades em sintonia com os clients e projects do Veleiro; o outro deixa qualquer pessoa abrir um ticket sem sair do Salesforce.',
+      'kit.role': 'Vendas e entrega',
+      'kit.sub': 'Account ⇄ client e opportunity ⇄ project, com a saúde da entrega onde o vendedor já trabalha.',
+      'kit.f1': 'Sincronização manual ou automática, configurável para cada par',
+      'kit.f2': 'Avanço do projeto na oportunidade e sinais de risco na conta',
+      'kit.f3': 'Mapeamento de campos próprio e vinculação em massa do que já existia',
+      'tkt.role': 'Suporte',
+      'tkt.sub': 'Um ticket aberto de qualquer tela do Salesforce aparece como task no Veleiro, com o contexto dele.',
+      'tkt.f1': 'Formulário na barra de utilidades, com anexos e a URL de origem',
+      'tkt.f2': 'Reenvio de um ticket que não chegou, sem escrever tudo de novo',
+      'tkt.f3': 'Com o kit instalado, cai no client ou project do registro de origem',
+      'btn.install': 'Instalar em produção',
+      'btn.sandbox': 'Sandbox',
+      'btn.code': 'Código',
+      'spec.version': 'Versão',
+      'notice': '<b>Já instalam em produção.</b> Se a sua org já tem uma versão anterior, o link oferece <b>Upgrade</b> em vez de Install: seu token, seus mapeamentos e seus vínculos são mantidos.',
+      'steps.title': 'Como é a instalação',
+      's1.t': 'Instalar o pacote',
+      's1.d': 'Pelo link acima, para administradores ou para todos os usuários.',
+      's2.t': 'Atribuir o permission set',
+      's2.d': '<code>Veleiro_Integration_Access</code> no kit, <code>Veleiro_Ticket_Intake_User</code> nos tickets.',
+      's3.t': 'Conectar ao Veleiro',
+      's3.d': 'Abra a aba <b>Veleiro Setup</b>: ela leva você passo a passo, e cada passo fica verde só quando realmente aconteceu.',
+      's4.t': 'Testar no manual antes de automatizar',
+      's4.d': 'Sincronize dois ou três registros pelo botão; só então ligue o modo automático.',
+      'velly': 'Velly leva o timão. Você escolhe o rumo.',
+      'reqs.title': 'O que você precisa antes de instalar',
+      'r1.t': 'Token do Veleiro',
+      'r1.d': 'Leitura e escrita de clients e projects. O ticket intake também precisa de <code>task:write</code>.',
+      'r2.t': 'Usuário do Salesforce',
+      'r2.d': 'Com permissão para instalar pacotes e entrar na Configuração.',
+      'r3.t': 'Escolher o ambiente',
+      'r3.d': 'Produção do Veleiro (<code>app.veleiro.ai</code>) ou beta (<code>app.beta.veleiro.dev</code>). Dá para mudar depois sem mexer em código.',
+      'r4.t': 'O que é instalado',
+      'r4.d': 'Somente metadados: Apex, componentes, campos com prefixo <code>veleiro__</code> e um permission set. Nada substitui nem apaga o que a org já tem.',
+      'footer': 'Veleiro AI · pacotes gerenciados sob o namespace <code>veleiro</code>. Cada um instala, atualiza e desinstala por conta própria.',
+      'theme.toLight': 'Tema claro',
+      'theme.toDark': 'Tema escuro'
+    }
+  };
+
   (function () {
     var root = document.documentElement;
+
+    /* ---- idioma ----
+       El espanol vive en el propio HTML, asi que es-ES se arma leyendo la pagina al cargar:
+       una traduccion que falte deja el texto original, nunca un hueco. */
+    var nodes = [].slice.call(document.querySelectorAll('[data-t]'));
+    nodes.forEach(function (el) {
+      var key = el.getAttribute('data-t');
+      if (!(key in I18N.es)) I18N.es[key] = el.innerHTML;
+    });
+    I18N.es['theme.toLight'] = 'Tema claro';
+    I18N.es['theme.toDark'] = 'Tema oscuro';
+
+    var langButtons = [].slice.call(document.querySelectorAll('.lang button'));
+    var lang = 'es';
+
+    function applyLang(next) {
+      lang = I18N[next] ? next : 'es';
+      var dict = I18N[lang];
+      nodes.forEach(function (el) {
+        var value = dict[el.getAttribute('data-t')];
+        if (value !== undefined) el.innerHTML = value;
+      });
+      root.setAttribute('lang', lang);
+      langButtons.forEach(function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false');
+      });
+      paintThemeLabel();
+    }
+
+    function preferredLang() {
+      var saved = null;
+      try { saved = localStorage.getItem('veleiro-lang'); } catch (e) { /* sin almacenamiento */ }
+      if (I18N[saved]) return saved;
+      var nav = (navigator.language || 'es').toLowerCase();
+      if (nav.indexOf('pt') === 0) return 'pt';
+      if (nav.indexOf('es') === 0) return 'es';
+      return 'en';
+    }
+
+    langButtons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var next = b.getAttribute('data-lang');
+        applyLang(next);
+        try { localStorage.setItem('veleiro-lang', next); } catch (e) { /* no se recuerda */ }
+      });
+    });
+
+    /* ---- tema ----
+       Claro por defecto: la pagina es la cara del producto y debe abrir siempre igual.
+       El oscuro existe para quien lo pida, no porque su sistema este en oscuro. */
     var btn = document.getElementById('themeToggle');
     var label = document.getElementById('themeLabel');
 
-    function prefersDark() {
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    function currentTheme() {
+      return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     }
-    function current() {
-      var set = root.getAttribute('data-theme');
-      return set === 'dark' || set === 'light' ? set : (prefersDark() ? 'dark' : 'light');
+    function paintThemeLabel() {
+      var dict = I18N[lang] || I18N.es;
+      var key = currentTheme() === 'dark' ? 'theme.toLight' : 'theme.toDark';
+      label.textContent = dict[key] || label.textContent;
     }
-    function apply(theme) {
+    function applyTheme(theme) {
       root.setAttribute('data-theme', theme);
-      label.textContent = theme === 'dark' ? 'Tema claro' : 'Tema oscuro';
       btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      paintThemeLabel();
     }
 
-    var saved = null;
-    try { saved = localStorage.getItem('veleiro-theme'); } catch (e) { /* sin almacenamiento: se usa el del sistema */ }
-    apply(saved === 'dark' || saved === 'light' ? saved : current());
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem('veleiro-theme'); } catch (e) { /* sin almacenamiento */ }
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
 
     btn.addEventListener('click', function () {
-      var next = current() === 'dark' ? 'light' : 'dark';
-      apply(next);
-      try { localStorage.setItem('veleiro-theme', next); } catch (e) { /* no se recuerda, pero funciona */ }
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('veleiro-theme', next); } catch (e) { /* no se recuerda */ }
     });
+
+    applyLang(preferredLang());
   })();
 </script>
