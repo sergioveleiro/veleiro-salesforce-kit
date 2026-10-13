@@ -149,34 +149,6 @@
   .notice b { font-weight: 700; }
 
 
-  /* ---- analitica ---- */
-  .tiles { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .tile {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    padding: 1rem 1.1rem; display: grid; gap: .15rem;
-  }
-  .tile .num {
-    font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
-  .tile .lbl { font-size: .78rem; color: var(--ink-soft); }
-  .tile .foot { font-size: .72rem; color: var(--ink-soft); opacity: .85; }
-
-  .panel {
-    margin-top: 1rem; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 14px; padding: 1.3rem 1.4rem;
-  }
-  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .panel-head h4 { margin: 0; font-size: 1rem; font-weight: 700; }
-  .tag {
-    font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--ink-soft); border: 1px dashed var(--line); border-radius: 999px; padding: .22rem .6rem;
-  }
-  .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .78rem; color: var(--ink-soft); margin-top: .8rem; }
-  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: .35rem; vertical-align: -1px; }
-  .chart-scroll { overflow-x: auto; }
-  .pending { font-size: .88rem; color: var(--ink-soft); margin: 1rem 0 0; }
-
   /* ---- secciones ---- */
   section.block { margin-top: clamp(2.6rem, 7vw, 4rem); }
   h3 { font-size: 1.22rem; font-weight: 700; letter-spacing: -.02em; margin: 0 0 1.1rem; }
@@ -279,8 +251,7 @@
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit">Código</a>
       </div>
       <div class="specs">
-        <span>Versión <b>1.0.0.1</b></span>
-        <span>Cobertura de pruebas <b>93%</b></span>
+        <span>Versión <b>1.5.0.1</b></span>
       </div>
     </article>
 
@@ -294,20 +265,20 @@
         <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010op3IAA">Instalar en producción</a>
-        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010op3IAA">Sandbox</a>
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI">Instalar en producción</a>
+        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI">Sandbox</a>
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake">Código</a>
       </div>
       <div class="specs">
-        <span>Versión <b>1.0.0.1</b></span>
-        <span>Cobertura de pruebas <b>90%</b></span>
+        <span>Versión <b>1.1.0.1</b></span>
       </div>
     </article>
 
   </div>
 
   <div class="notice">
-    <b>Estas versiones son beta.</b> Se instalan en sandbox y en orgs de desarrollo; para producción hace falta promover la versión.
+    <b>Ya instalan en producción.</b> Si tu org ya tiene una versión anterior, el enlace te va a ofrecer
+    <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.
   </div>
 
   <section class="block">
@@ -325,7 +296,7 @@
           </li>
           <li>
             <div><strong>Conectar con Veleiro</strong>
-            <span>Pegar el token en el panel de configuración y confirmar que el indicador quede en verde.</span></div>
+            <span>Abre la pestaña <b>Veleiro Setup</b>: te lleva paso a paso y cada uno se marca solo cuando de verdad quedó hecho.</span></div>
           </li>
           <li>
             <div><strong>Probar en manual antes de automatizar</strong>
@@ -363,78 +334,6 @@
   </section>
 
 
-  <section class="block">
-    <h3>Analítica del paquete</h3>
-
-    <div class="tiles">
-      <div class="tile">
-        <span class="num">2</span>
-        <span class="lbl">paquetes publicados</span>
-        <span class="foot">namespace veleiro</span>
-      </div>
-      <div class="tile">
-        <span class="num">200</span>
-        <span class="lbl">componentes empaquetados</span>
-        <span class="foot">148 del kit · 52 de tickets</span>
-      </div>
-      <div class="tile">
-        <span class="num">93%</span>
-        <span class="lbl">cobertura de pruebas del kit</span>
-        <span class="foot">tickets: 90%</span>
-      </div>
-      <div class="tile">
-        <span class="num">2</span>
-        <span class="lbl">orgs de prueba con ambos paquetes</span>
-        <span class="foot">verificado hoy desde el CLI</span>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h4>Instalaciones por mes · sandbox y producción</h4>
-        <span class="tag">Datos de ejemplo</span>
-      </div>
-      <div class="chart-scroll">
-        <svg viewBox="0 0 490 215" width="100%" height="215" role="img"
-             aria-label="Gráfico de ejemplo de instalaciones por mes, separadas en sandbox y producción">
-          <line x1="40" y1="188.0" x2="470" y2="188.0" stroke="var(--line)" stroke-width="1"></line>
-          <text x="32" y="192.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">0</text>
-          <line x1="40" y1="150.5" x2="470" y2="150.5" stroke="var(--line)" stroke-width="1"></line>
-          <text x="32" y="154.5" text-anchor="end" font-size="11" fill="var(--ink-soft)">5</text>
-          <line x1="40" y1="113.0" x2="470" y2="113.0" stroke="var(--line)" stroke-width="1"></line>
-          <text x="32" y="117.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">10</text>
-          <line x1="40" y1="75.5" x2="470" y2="75.5" stroke="var(--line)" stroke-width="1"></line>
-          <text x="32" y="79.5" text-anchor="end" font-size="11" fill="var(--ink-soft)">15</text>
-          <line x1="40" y1="38.0" x2="470" y2="38.0" stroke="var(--line)" stroke-width="1"></line>
-          <text x="32" y="42.0" text-anchor="end" font-size="11" fill="var(--ink-soft)">20</text>
-          <rect x="58" y="180.5" width="30" height="7.5" rx="3" fill="var(--cyan)"></rect>
-          <rect x="58" y="180.5" width="30" height="0.0" rx="3" fill="var(--blue)"></rect>
-          <text x="73" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Oct</text>
-          <rect x="128" y="158.0" width="30" height="30.0" rx="3" fill="var(--cyan)"></rect>
-          <rect x="128" y="143.0" width="30" height="15.0" rx="3" fill="var(--blue)"></rect>
-          <text x="143" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Nov</text>
-          <rect x="198" y="143.0" width="30" height="45.0" rx="3" fill="var(--cyan)"></rect>
-          <rect x="198" y="120.5" width="30" height="22.5" rx="3" fill="var(--blue)"></rect>
-          <text x="213" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Dic</text>
-          <rect x="268" y="128.0" width="30" height="60.0" rx="3" fill="var(--cyan)"></rect>
-          <rect x="268" y="83.0" width="30" height="45.0" rx="3" fill="var(--blue)"></rect>
-          <text x="283" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Ene</text>
-          <rect x="338" y="120.5" width="30" height="67.5" rx="3" fill="var(--cyan)"></rect>
-          <rect x="338" y="53.0" width="30" height="67.5" rx="3" fill="var(--blue)"></rect>
-          <text x="353" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Feb</text>
-          <rect x="408" y="113.0" width="30" height="75.0" rx="3" fill="var(--cyan)"></rect>
-          <rect x="408" y="15.5" width="30" height="97.5" rx="3" fill="var(--blue)"></rect>
-          <text x="423" y="206" text-anchor="middle" font-size="11" fill="var(--ink-soft)">Mar</text>
-        </svg>
-      </div>
-      <div class="legend">
-        <span><i style="background: var(--blue);"></i>Producción</span>
-        <span><i style="background: var(--cyan);"></i>Sandbox</span>
-      </div>
-      <p class="pending"><b>Hoy no hay cifras reales de instalación, y no porque sean cero.</b> Salesforce no le reporta las instalaciones al Dev Hub: se las reporta al <b>License Management App</b>, que se activa con la Partner Business Org. Hasta entonces, ni las instalaciones en sandbox ni las de producción quedan registradas en ningún lado consultable.</p>
-      <p class="pending">Con el LMA conectado, cada instalación aparece con la org que la hizo, su versión, si es sandbox o producción y cuándo actualizó por última vez.</p>
-    </div>
-  </section>
 
 </main>
 
