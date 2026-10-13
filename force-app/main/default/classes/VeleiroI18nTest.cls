@@ -6,12 +6,14 @@ private class VeleiroI18nTest {
         Map<String, String> cases = new Map<String, String>{
             'es' => 'es', 'es_MX' => 'es', 'ES_mx' => 'es',
             'pt_BR' => 'pt', 'pt' => 'pt',
-            'en_US' => 'en', 'fr' => 'en', 'ja' => 'en', '' => 'en', null => 'en'
+            'en_US' => 'en', 'fr' => 'en', 'ja' => 'en', '' => 'en'
         };
         for (String given : cases.keySet()) {
             VeleiroI18n.languageOverride = given;
             System.assertEquals(cases.get(given), VeleiroI18n.lang(), 'idioma ' + given);
         }
+        // null no es "sin idioma": es "sin override", y ahi manda el usuario de la org. Eso lo
+        // cubre sinOverrideUsaElIdiomaDelUsuario, que no asume cual es.
     }
 
     @isTest
