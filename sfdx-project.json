@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Setup guiado, Veleiro Link en dos direcciones e idiomas",
-      "versionNumber": "1.2.0.NEXT",
+      "versionName": "Arreglo: la credencial lleva el namespace",
+      "versionNumber": "1.3.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Pestana Veleiro Setup con los pasos verificados contra la org, Veleiro Link ahora tambien envia registros de Salesforce a Veleiro, y toda la interfaz en el idioma del usuario (es/pt/en).",
+      "versionDescription": "Corrige el callout a Veleiro dentro del paquete administrado (la Named Credential es veleiro__Veleiro_API). Incluye la pestana Veleiro Setup, Veleiro Link en dos direcciones y la interfaz en el idioma del usuario (es/pt/en).",
       "ancestorVersion": "HIGHEST"
     }
   ],
