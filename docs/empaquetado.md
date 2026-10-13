@@ -76,7 +76,8 @@ Dos condiciones para que eso ocurra:
 | 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | Released · **NO ENTREGAR**: arrastra el bug de la Named Credential. Sustituida por la 1.3.0.1. |
 | 1.3.0.1 | `04tPe0000010w8HIAQ` | 94% | Released · arregla el callout. Superada por la 1.4.0.1. |
 | 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | Released · arregla los mapeos en blanco y el theme. Superada por la 1.5.0.1. |
-| 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | **Released · la que se entrega hoy** · pantallas a todo lo ancho y controles redondos |
+| 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | Released · pantallas a todo lo ancho y controles redondos. Superada por la 1.6.0.1. |
+| 1.6.0.1 | `04tPe0000010yrdIAA` | 94% | **Released · la que se entrega hoy** · el project puede nacer al crear la oportunidad, solo al ganarla, o nunca sola |
 
 ## La trampa del namespace (nos costó dos versiones)
 
@@ -107,6 +108,16 @@ Una org puede traer un Lightning theme propio (UMM tiene uno). Un componente que
 ## Un solo lugar para los clientes
 
 El `04t` del enlace **es** la versión: cada release tiene su propio link y no existe uno que apunte "al último". Para que el cliente tenga una sola dirección, el enlace vive detrás de la página de descargas (`docs/descargas/`); al publicar una versión se actualiza ahí y nadie más se entera. La URL permanente de verdad es el listado de AppExchange, que llega con la revisión de seguridad — la misma que desbloquea los push upgrades.
+
+## Los flows llegan activos (en el paquete, no desde el código fuente)
+
+**Verificado el 13/10/2026** en una org recién creada con instalación limpia de la 1.5.0.1: los tres flows quedan `IsActive = true` sin que nadie los toque. Es lo contrario de un deploy desde código fuente, donde entran como Draft si el `flowDefinition` no fija la versión — el problema que tuvimos en Veleiro Main.
+
+## En un paquete publicado no se puede cambiar el tipo de un campo
+
+`Auto_Sync_Opportunity__c` nació Checkbox, y para darle un tercer estado hubo que **agregar** `Opportunity_Sync_Mode__c` en vez de convertirlo. El campo nuevo manda; en blanco se deduce del checkbox, así que una org configurada antes se comporta igual sin que nadie la toque, y `save()` mantiene el checkbox en sintonía para las orgs que todavía corran la versión anterior.
+
+**Verificado el 13/10/2026 (1.5.0.1 → 1.6.0.1):** una org con el checkbox en `false` llegó al upgrade con el campo nuevo vacío y siguió sin sincronizar. Y con el modo en `won`, crear una oportunidad abierta no disparó ningún intento, mientras que pasarla a Closed Won sí llamó a Veleiro.
 
 ## Pendientes antes de entregar a un cliente en producción
 
