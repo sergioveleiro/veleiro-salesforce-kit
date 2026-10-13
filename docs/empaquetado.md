@@ -69,7 +69,20 @@ Dos condiciones para que eso ocurra:
 |---|---|---|---|
 | 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | **Released** · primera versión · es la que tiene UMM-PRD |
 | 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización. **Rama muerta**: nunca se promovió, así que una org con esta versión no puede subir a la 1.2.0 (son hermanas, no línea). |
-| 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | **Released** · pestaña Veleiro Setup, Veleiro Link en dos direcciones, idiomas es/pt/en |
+| 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | Released · **NO ENTREGAR**: arrastra el bug de la Named Credential. Sustituida por la 1.3.0.1. |
+| 1.3.0.1 | `04tPe0000010w8HIAQ` | 94% | **Released · la que se entrega hoy** · arregla el callout + pestaña Veleiro Setup, Veleiro Link en dos direcciones, idiomas es/pt/en |
+
+## La trampa del namespace (nos costó dos versiones)
+
+Todo lo que el paquete entrega vive bajo el namespace: el objeto es `veleiro__Veleiro_Field_Mapping__c`, la pestaña es `veleiro__Veleiro_Setup` y **la Named Credential es `veleiro__Veleiro_API`**. Un `callout:Veleiro_API` pelado falla con *"the named credential might not exist"*, que es lo que vio un cliente con la 1.0.0.1 instalada: el paquete nunca pudo hablar con Veleiro.
+
+Lo peligroso es que **desde el código fuente no se reproduce**. Ahí el prefijo es vacío y el literal resulta correcto por casualidad, así que los tests pasan en `main` mientras el paquete está roto. Por eso:
+
+- los nombres de metadata propia se arman en runtime con `VeleiroSyncConfig.namespacePrefix()`, nunca como literal;
+- ese prefijo tiene una costura (`namespaceOverride`) y **todo lo que nombre metadata nuestra se prueba con el prefijo simulado**;
+- antes de promover, vale más una prueba de callout real en una org con el paquete instalado que cien tests verdes en el código fuente.
+
+**Verificado el 12/10/2026 (1.0.0.1 → 1.3.0.1):** en una org con la 1.0.0.1 y datos de cliente, crear una Account dispara el flow del paquete y el error que quedaba registrado era *"the named credential Veleiro_API might not exist"*. Tras el upgrade directo a la 1.3.0.1, el mismo camino registró *"invalid_token: The bearer token is missing or invalid"* — un error **de Veleiro**, o sea que el callout salió, llegó y fue respondido.
 
 ## Pendientes antes de entregar a un cliente en producción
 
