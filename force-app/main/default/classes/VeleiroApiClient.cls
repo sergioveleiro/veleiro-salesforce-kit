@@ -16,8 +16,24 @@ public with sharing class VeleiroApiClient {
     }
 
     // Defaults NO-secretos: el partner solo tiene que pegar su token; base URLs caen a estos.
-    private static final String DEFAULT_BASE = 'callout:Veleiro_API/api/v1'; // via Named Credential Veleiro_API
+    public static final String CRED_PROD = 'Veleiro_API';
+    public static final String CRED_BETA = 'Veleiro_API_Beta';
     private static final String DEFAULT_APP_BASE = 'https://app.veleiro.ai'; // produccion por defecto (beta: app.beta.veleiro.dev)
+
+    /**
+     * Ruta de callout a una Named Credential NUESTRA.
+     *
+     * Dentro del paquete administrado la credencial se llama veleiro__Veleiro_API, y un
+     * 'callout:Veleiro_API' pelado truena con "the named credential might not exist" — que es
+     * exactamente el error que veia un cliente con el paquete instalado. El prefijo se arma en
+     * runtime y queda vacio cuando el kit se desplego del codigo fuente, asi que el mismo
+     * codigo sirve en las dos ramas.
+     */
+    public static String calloutTo(String credential) {
+        return 'callout:' + VeleiroSyncConfig.namespacePrefix() + credential;
+    }
+
+    public static String defaultBase() { return calloutTo(CRED_PROD) + '/api/v1'; }
 
     // Lo UNICO obligatorio que el partner configura es el token (un secreto). Base_Url es opcional.
     private static Veleiro_Config__c cfg() {
@@ -52,9 +68,23 @@ public with sharing class VeleiroApiClient {
     private static String baseUrl(Veleiro_Config__c c) {
         String u = (c != null) ? c.Base_Url__c : null;
         if (String.isNotBlank(u) && (u.startsWith('callout:') || u.startsWithIgnoreCase('http'))) {
-            return u;
+            return withNamespace(u);
         }
-        return DEFAULT_BASE; // vacio o malformado (ej. sin el prefijo callout:) -> default correcto
+        return defaultBase(); // vacio o malformado (ej. sin el prefijo callout:) -> default correcto
+    }
+
+    /**
+     * Repara en el aire una base guardada sin el namespace. Hay orgs con el paquete instalado
+     * que ya tienen 'callout:Veleiro_API/api/v1' escrito en su custom setting; en vez de pedirles
+     * que lo editen a mano, se le pone el prefijo al vuelo. No reescribe el dato del cliente.
+     */
+    @TestVisible
+    private static String withNamespace(String url) {
+        String prefix = VeleiroSyncConfig.namespacePrefix();
+        if (String.isBlank(prefix) || !url.startsWith('callout:')) return url;
+        String credential = url.substring('callout:'.length());
+        if (credential.startsWithIgnoreCase(prefix)) return url;   // ya lo trae
+        return 'callout:' + prefix + credential;
     }
 
     // URL base humana del portal de Veleiro para los links "Open in Veleiro" (cualquier nivel de config).
