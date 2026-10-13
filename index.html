@@ -88,6 +88,16 @@
   .topbar a.site:hover { color: var(--blue); }
   .topbar .right { display: flex; align-items: center; gap: .9rem; }
   .specs .latest { font-weight: 600; color: var(--ink); }
+  .demo h3 { margin-bottom: .3rem; }
+  .demo-sub { color: var(--ink-soft); font-size: .95rem; margin-bottom: 1.1rem; max-width: 60ch; }
+  .howdygo {
+    width: 100%; max-width: 1512px; margin-inline: auto;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  /* El alto se deriva del ancho: la demo escala sin romperse en movil. */
+  .howdygo-wrapper { position: relative; width: 100%; height: 0; padding-bottom: calc(57.01058201058201% + 40px); }
+  .howdygo-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
   .lang button {
     appearance: none; border: 0; background: transparent; cursor: pointer;
@@ -257,6 +267,22 @@
 
 <main class="wrap">
 
+  <section class="block demo">
+    <h3 data-t="demo.title">Míralo funcionando</h3>
+    <p class="demo-sub" data-t="demo.sub">Una demo interactiva, no un video: haz clic como si fuera tu propio Salesforce.</p>
+    <!-- Embed de HowdyGo. Los colores del contenedor salen de los tokens de la pagina y no del
+         snippet original, que viene con blanco y gris fijos y romperia el tema oscuro. -->
+    <div id="howdygo-embed" class="howdygo">
+      <div id="howdygo-wrapper" class="howdygo-wrapper">
+        <iframe id="howdygo-frame"
+          src="https://app.howdygo.com/prescreen-embed/3438f0cc-2500-4efc-8cf6-e9da60b17500?mobileStrategy=newTab&amp;launchButton=Abrir+la+demo+interactiva"
+          title="Demo interactiva de Veleiro para Salesforce"
+          frameborder="0" scrolling="no" allow="clipboard-write; autoplay"
+          allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>
+
   <div class="packages">
 
     <article class="pkg">
@@ -367,6 +393,8 @@
   </div>
 </footer>
 
+<script src="https://js.howdygo.com/v1.2.1/index.js"></script>
+
 <script>
   /* ---- idioma ----
      Los textos viven aqui y se inyectan en los elementos marcados con data-t. El espanol es
@@ -412,6 +440,9 @@
       'r4.t': 'What gets installed',
       'r4.d': 'Metadata only: Apex, components, fields prefixed <code>veleiro__</code> and a permission set. Nothing replaces or removes what your org already has.',
       'footer': 'Veleiro AI · managed packages under the <code>veleiro</code> namespace. Each one installs, upgrades and uninstalls on its own.',
+      'demo.title': 'See it working',
+      'demo.sub': 'An interactive demo, not a video: click through it as if it were your own Salesforce.',
+      'demo.launch': 'Launch interactive demo',
       'theme.toLight': 'Light theme',
       'theme.toDark': 'Dark theme'
     },
@@ -454,6 +485,9 @@
       'r4.t': 'O que é instalado',
       'r4.d': 'Somente metadados: Apex, componentes, campos com prefixo <code>veleiro__</code> e um permission set. Nada substitui nem apaga o que a org já tem.',
       'footer': 'Veleiro AI · pacotes gerenciados sob o namespace <code>veleiro</code>. Cada um instala, atualiza e desinstala por conta própria.',
+      'demo.title': 'Veja funcionando',
+      'demo.sub': 'Uma demo interativa, não um vídeo: clique como se fosse o seu próprio Salesforce.',
+      'demo.launch': 'Abrir a demo interativa',
       'theme.toLight': 'Tema claro',
       'theme.toDark': 'Tema escuro'
     }
@@ -470,6 +504,7 @@
       var key = el.getAttribute('data-t');
       if (!(key in I18N.es)) I18N.es[key] = el.innerHTML;
     });
+    I18N.es['demo.launch'] = 'Abrir la demo interactiva';
     I18N.es['theme.toLight'] = 'Tema claro';
     I18N.es['theme.toDark'] = 'Tema oscuro';
 
@@ -483,6 +518,14 @@
         var value = dict[el.getAttribute('data-t')];
         if (value !== undefined) el.innerHTML = value;
       });
+      // El rotulo del boton de la demo vive dentro del iframe: solo se puede cambiar por URL.
+      // Se reescribe solo si cambio, para no recargar el embed en cada repintado.
+      var frame = document.getElementById('howdygo-frame');
+      if (frame) {
+        var wanted = frame.src.replace(/launchButton=[^&]*/,
+          'launchButton=' + encodeURIComponent(dict['demo.launch'] || 'Launch interactive demo'));
+        if (wanted !== frame.src) frame.src = wanted;
+      }
       root.setAttribute('lang', lang);
       langButtons.forEach(function (b) {
         b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false');
