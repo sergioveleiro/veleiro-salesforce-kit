@@ -59,12 +59,17 @@ Dos condiciones para que eso ocurra:
 
 **Verificado el 12/10/2026:** una org con la 1.0.0.1 instalada se actualizó a la 1.1.0.1 por el mismo camino que usaría un cliente. La instalación mantuvo su identidad (mismo registro), los 3 flows siguieron activos, las 44 clases presentes y el permission set asignado.
 
+**Verificado el 12/10/2026 (1.0.0.1 → 1.2.0.1), con datos de cliente:** se sembró en una org limpia lo que tendría un cliente trabajando — token, dirección `sf_to_veleiro`, winner `veleiro`, frecuencia `daily`, `Auto_Sync_Opportunity__c` apagado, 2 mapeos, una Account vinculada con versión 7 y un `Veleiro_Link__c` con versión 3 — y después del upgrade **todo quedó idéntico**, valor por valor. Al mismo tiempo llegó lo nuevo: el campo `Onboarding_Skipped__c`, las 3 clases nuevas, la pestaña `veleiro__Veleiro_Setup` y los 3 flows siguieron activos.
+
+**Por qué no se pisa nada:** el paquete entrega *metadata* (objetos, campos, clases, pestañas); la configuración del cliente son *registros* (el custom setting `Veleiro_Config__c`, los `Veleiro_Field_Mapping__c`, los valores en `Account.Veleiro_Client_Id__c`, los `Veleiro_Link__c`). Un upgrade reemplaza metadata y nunca toca datos del suscriptor. El único punto donde un upgrade sí cambia comportamiento son los flows: si una versión modifica un flow, hay que subir el `activeVersionNumber` del `flowDefinition`. La 1.2.0 no tocó ningún flow.
+
 ## Historial de versiones
 
 | Versión | Id de suscriptor | Cobertura | Estado |
 |---|---|---|---|
-| 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | **Released** · primera versión |
-| 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización |
+| 1.0.0.1 | `04tPe0000010onRIAQ` | 93% | **Released** · primera versión · es la que tiene UMM-PRD |
+| 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización. **Rama muerta**: nunca se promovió, así que una org con esta versión no puede subir a la 1.2.0 (son hermanas, no línea). |
+| 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | **Released** · pestaña Veleiro Setup, Veleiro Link en dos direcciones, idiomas es/pt/en |
 
 ## Pendientes antes de entregar a un cliente en producción
 
