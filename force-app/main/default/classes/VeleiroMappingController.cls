@@ -220,6 +220,7 @@ public with sharing class VeleiroMappingController {
             'trigger'   => VeleiroSyncConfig.syncTrigger(),
             'autoAccount' => String.valueOf(VeleiroSyncConfig.autoSyncAccountFlag()),
             'autoOpportunity' => String.valueOf(VeleiroSyncConfig.autoSyncOpportunityFlag()),
+            'opportunityMode' => VeleiroSyncConfig.opportunitySyncMode(),
             'pullWritesName' => String.valueOf(VeleiroSyncConfig.pullWritesName()),
             'lastError' => VeleiroSyncConfig.lastError(),
             'lastErrorAt' => VeleiroSyncConfig.lastErrorAt() == null ? null : VeleiroSyncConfig.lastErrorAt().format()
@@ -228,8 +229,10 @@ public with sharing class VeleiroMappingController {
 
     @AuraEnabled
     public static void saveSyncConfig(String direction, String winner, String frequency, String triggerMode,
-                                      Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName) {
-        VeleiroSyncConfig.save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity, pullWritesName);
+                                      Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName,
+                                      String opportunityMode) {
+        VeleiroSyncConfig.save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity,
+                               pullWritesName, opportunityMode);
     }
 
     // ---- conexion: guardar token + verificar estado (para el panel) ----

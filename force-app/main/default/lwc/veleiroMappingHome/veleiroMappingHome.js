@@ -72,6 +72,7 @@ export default class VeleiroMappingHome extends LightningElement {
     syncTrigger = 'manual';
     autoAccount = true;
     autoOpportunity = true;
+    opportunityMode = 'create';
     pullWritesName = false;
     lastError;
     lastErrorAt;
@@ -224,6 +225,7 @@ export default class VeleiroMappingHome extends LightningElement {
                     this.syncTrigger = c.trigger || 'manual';
                     this.autoAccount = c.autoAccount !== 'false';
                     this.autoOpportunity = c.autoOpportunity !== 'false';
+                    this.opportunityMode = c.opportunityMode || 'create';
                     this.pullWritesName = c.pullWritesName === 'true';
                     this.lastError = c.lastError;
                     this.lastErrorAt = c.lastErrorAt;
@@ -236,7 +238,6 @@ export default class VeleiroMappingHome extends LightningElement {
     handleFrequencyChange(event) { this.syncFrequency = event.detail.value; }
     handleTriggerChange(event) { this.syncTrigger = event.detail.value; }
     handleAutoAccountChange(event) { this.autoAccount = event.target.checked; }
-    handleAutoOpportunityChange(event) { this.autoOpportunity = event.target.checked; }
     handlePullNameChange(event) { this.pullWritesName = event.target.checked; }
 
     get hasLastError() { return !!this.lastError; }
@@ -244,12 +245,28 @@ export default class VeleiroMappingHome extends LightningElement {
 
     get triggerIsAuto() { return this.syncTrigger === 'auto'; }
 
+    /* Cuando nace el project. Separar "al ganarla" de "al crearla" es lo que pide un partner
+       que vende primero y entrega despues: la oportunidad vive su ciclo en Salesforce y el
+       project aparece cuando el trato se gana. */
+    get opportunityModeOptions() {
+        return [
+            { label: 'When the Opportunity is created', value: 'create' },
+            { label: 'Only when it is won (Closed Won)', value: 'won' },
+            { label: 'Manual — only with the Sync button', value: 'manual' }
+        ];
+    }
+
+    handleOpportunityModeChange(event) {
+        this.opportunityMode = event.detail.value;
+        this.autoOpportunity = this.opportunityMode !== 'manual';
+    }
+
     handleSaveConfig() {
         this.savingConfig = true;
         saveSyncConfig({
             direction: this.syncDirection, winner: this.syncWinner, frequency: this.syncFrequency,
             triggerMode: this.syncTrigger, autoAccount: this.autoAccount, autoOpportunity: this.autoOpportunity,
-            pullWritesName: this.pullWritesName
+            pullWritesName: this.pullWritesName, opportunityMode: this.opportunityMode
         })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({

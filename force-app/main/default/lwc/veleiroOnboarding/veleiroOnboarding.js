@@ -187,7 +187,8 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
                 triggerMode: this.syncTrigger,
                 autoAccount: this._config.autoAccount !== 'false',
                 autoOpportunity: this._config.autoOpportunity !== 'false',
-                pullWritesName: this._config.pullWritesName === 'true'
+                pullWritesName: this._config.pullWritesName === 'true',
+                opportunityMode: this._config.opportunityMode || 'create'
             });
             this._openKey = undefined;
             await this.load(false);

@@ -82,10 +82,10 @@
                     <lightning-input type="toggle" label="Account &#8594; client" message-toggle-active="Automatic"
                         message-toggle-inactive="Manual" checked={autoAccount}
                         onchange={handleAutoAccountChange}></lightning-input>
-                    <lightning-input type="toggle" label="Opportunity &#8594; project" message-toggle-active="Automatic"
-                        message-toggle-inactive="Manual" checked={autoOpportunity}
-                        onchange={handleAutoOpportunityChange}
-                        field-level-help="Incluye la creacion de la Opportunity y el paso a Closed Won."></lightning-input>
+                    <lightning-combobox label="Opportunity &#8594; project" options={opportunityModeOptions}
+                        value={opportunityMode} onchange={handleOpportunityModeChange}
+                        field-level-help="Cuándo nace el project: al crear la oportunidad, solo cuando se gana, o nunca sola."
+                        class="veleiro-opp-mode"></lightning-combobox>
                 </div>
             </template>
             <div class="veleiro-autopairs">

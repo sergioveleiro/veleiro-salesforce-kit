@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Opportunity_Sync_Mode__c</fullName>
+    <label>Opportunity Sync Mode</label>
+    <type>Text</type>
+    <length>16</length>
+    <required>false</required>
+    <description>Cuando el trigger global es Automatico, en que momento nace el project: create (al crear la Opportunity), won (solo cuando se gana) o manual (solo con el boton). En blanco se deduce del checkbox Auto_Sync_Opportunity__c, que es como se configuraba antes. Reemplaza a ese checkbox: el tipo de un campo ya publicado no se puede cambiar.</description>
+    <inlineHelpText>create = al crear la oportunidad · won = solo al pasar a Closed Won · manual = solo con el botón Sync. Se configura desde el panel de Veleiro Mappings.</inlineHelpText>
+</CustomField>

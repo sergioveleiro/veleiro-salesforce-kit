@@ -173,4 +173,57 @@ private class VeleiroSyncConfigTest {
         System.assertEquals(true, VeleiroSyncConfig.autoSyncAccountFlag());
         System.assertEquals(true, VeleiroSyncConfig.autoSyncOpportunityFlag());
     }
+
+    /**
+     * Una org que ya estaba configurada con el checkbox no tiene que reconfigurarse: el campo
+     * nuevo nace vacio y el modo se deduce del checkbox. El tipo de un campo ya publicado no se
+     * puede cambiar, por eso hay dos campos y no uno.
+     */
+    @isTest
+    static void theModeFallsBackToTheOldCheckbox() {
+        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
+        if (c == null || c.Id == null) c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
+        c.Sync_Trigger__c = 'auto';
+        c.Sync_Direction__c = 'bidirectional';
+        c.Opportunity_Sync_Mode__c = null;          // como queda una org que nunca vio el campo nuevo
+        c.Auto_Sync_Opportunity__c = true;          // configurada con la version anterior
+        upsert c;
+        System.assertEquals(VeleiroSyncConfig.OPP_CREATE, VeleiroSyncConfig.opportunitySyncMode(),
+            'checkbox encendido -> sincroniza al crear, como antes');
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncOpportunity());
+
+        c.Auto_Sync_Opportunity__c = false;
+        update c;
+        System.assertEquals(VeleiroSyncConfig.OPP_MANUAL, VeleiroSyncConfig.opportunitySyncMode());
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOpportunity());
+    }
+
+    @isTest
+    static void theModeWinsOverTheCheckboxOnceItIsSet() {
+        Test.startTest();
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false,
+                               VeleiroSyncConfig.OPP_WON);
+        Test.stopTest();
+
+        System.assertEquals(VeleiroSyncConfig.OPP_WON, VeleiroSyncConfig.opportunitySyncMode());
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncOpportunity(), 'won sigue siendo automatico');
+        // El checkbox queda en sintonia para las orgs que todavia corran la version anterior.
+        System.assertEquals(true, VeleiroSyncConfig.autoSyncOpportunityFlag());
+
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false,
+                               VeleiroSyncConfig.OPP_MANUAL);
+        System.assertEquals(VeleiroSyncConfig.OPP_MANUAL, VeleiroSyncConfig.opportunitySyncMode());
+        System.assertEquals(false, VeleiroSyncConfig.autoSyncOpportunityFlag(), 'manual apaga el checkbox');
+    }
+
+    // Account automatico y Opportunity en cualquiera de sus tres momentos: son independientes.
+    @isTest
+    static void accountStaysAutomaticWhateverTheOpportunityDoes() {
+        for (String mode : new List<String>{ VeleiroSyncConfig.OPP_CREATE, VeleiroSyncConfig.OPP_WON,
+                                             VeleiroSyncConfig.OPP_MANUAL }) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false, mode);
+            System.assertEquals(true, VeleiroSyncConfig.autoSyncAccount(), 'Account sigue en automatico con ' + mode);
+            System.assertEquals(mode, VeleiroSyncConfig.opportunitySyncMode());
+        }
+    }
 }
