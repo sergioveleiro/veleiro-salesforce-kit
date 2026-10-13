@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Prueba de actualizacion",
-      "versionNumber": "1.1.0.NEXT",
+      "versionName": "Setup guiado, Veleiro Link en dos direcciones e idiomas",
+      "versionNumber": "1.2.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Links Salesforce accounts and opportunities to Veleiro clients and projects, with delivery insights.",
+      "versionDescription": "Pestana Veleiro Setup con los pasos verificados contra la org, Veleiro Link ahora tambien envia registros de Salesforce a Veleiro, y toda la interfaz en el idioma del usuario (es/pt/en).",
       "ancestorVersion": "HIGHEST"
     }
   ],

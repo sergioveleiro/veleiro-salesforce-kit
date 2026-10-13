@@ -39,6 +39,10 @@
         <viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords>
     </objectPermissions>
     <tabSettings>
+        <tab>Veleiro_Setup</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>Veleiro_Home</tab>
         <visibility>Visible</visibility>
     </tabSettings>

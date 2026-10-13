@@ -1,23 +1,57 @@
 import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { LOGO as VELEIRO_LOGO } from 'c/veleiroBrand';
+import { LOGO as VELEIRO_LOGO, MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
+import { T, fmt } from 'c/veleiroI18n';
 import getSuggestions from '@salesforce/apex/VeleiroLinkController.getSuggestions';
 import linkAll from '@salesforce/apex/VeleiroLinkController.linkAll';
 import linkAndSync from '@salesforce/apex/VeleiroLinkController.linkAndSync';
 import searchRecords from '@salesforce/apex/VeleiroLinkController.searchRecords';
+import sendToVeleiro from '@salesforce/apex/VeleiroLinkController.sendToVeleiro';
+import getSendProgress from '@salesforce/apex/VeleiroLinkController.getSendProgress';
 
-export default class VeleiroLinkHome extends LightningElement {
+const POLL_MS = 2500;
+const SEARCH_DEBOUNCE_MS = 300;
+
+export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
+    labels = T;
     logoUrl = VELEIRO_LOGO;
+    mascotUrl = VELEIRO_MASCOT;
+
     loading = false;
     scanned = false;
     overview;
+    pairValue;                 // objeto|entidad, de lo configurado en Veleiro Mappings
+    mode;                      // 'send' | 'match' — se elige solo según dónde hay trabajo
+
+    // --- modo Enviar a Veleiro ---
+    selected = new Set();      // ids elegidos, sobrevive al buscador
+    useMatch = new Set();      // ids que se vincularán al parecido en vez de crear uno nuevo
+    sentIds = new Set();       // ya confirmados por el avance
+    sendTerm = '';
+    searchHits;                // resultados del buscador (null = mostrando la lista base)
+    sending = false;
+    progress;
+    _watching = [];
+    _pollId;
+    _searchId;
+
+    // --- modo Emparejar ---
     rows = [];
     onlySuggested = false;
-    // Par elegido (objeto|entidad). Sale de lo configurado en Veleiro Mappings.
-    pairValue;
 
     connectedCallback() {
         this.scan();
+    }
+
+    disconnectedCallback() {
+        this.stopPolling();
+        clearTimeout(this._searchId);
+    }
+
+    renderedCallback() {
+        const fill = this.template.querySelector('.vl-fill');
+        if (fill) fill.style.width = `${this.progressPercent}%`;
     }
 
     async scan() {
@@ -28,6 +62,13 @@ export default class VeleiroLinkHome extends LightningElement {
             this.overview = data;
             this.pairValue = data.sobjectName ? `${data.sobjectName}|${data.entity}` : undefined;
             this.rows = (data.rows || []).map((r) => this.toRow(r));
+            this.selected = new Set();
+            this.useMatch = new Set();
+            this.sentIds = new Set();
+            this.searchHits = undefined;
+            this.sendTerm = '';
+            // Arranca donde está el trabajo: Veleiro vacío -> hay que enviar, no emparejar.
+            if (!this.mode) this.mode = (data.veleiroUnlinked || 0) > 0 ? 'match' : 'send';
             this.scanned = true;
         } catch (e) {
             this.toastError(e);
@@ -36,23 +77,287 @@ export default class VeleiroLinkHome extends LightningElement {
         }
     }
 
+    // ================= modo Enviar a Veleiro =================
+
+    get candidates() {
+        const base = this.searching ? this.searchHits || [] : (this.overview && this.overview.candidates) || [];
+        return base.map((c) => {
+            const picked = this.selected.has(c.recordId);
+            const linking = this.useMatch.has(c.recordId);
+            const sent = this.sentIds.has(c.recordId);
+            return {
+                ...c,
+                selected: picked,
+                sent,
+                hasMatch: !!c.matchVeleiroId && !sent,
+                linking,
+                rowClass: `vl-row${picked ? ' vl-row-picked' : ''}${sent ? ' vl-row-sent' : ''}`,
+                matchLine: linking
+                    ? fmt(T.willLinkTo, [c.matchName])
+                    : fmt(T.mayExist, [c.matchName, c.matchReason]),
+                matchBtnLabel: linking ? T.createNewAnyway : T.linkToThat,
+                matchClass: linking ? 'vl-dup vl-dup-on' : 'vl-dup'
+            };
+        });
+    }
+
+    get searching() {
+        return this.sendTerm.trim().length >= 2;
+    }
+
+    handleSendSearch(event) {
+        this.sendTerm = event.target.value || '';
+        clearTimeout(this._searchId);
+        if (!this.searching) {
+            this.searchHits = undefined;
+            return;
+        }
+        const term = this.sendTerm;
+        // El buscador va al servidor: la lista base son los primeros 200, y una org puede
+        // tener miles de registros sin vincular.
+        this._searchId = setTimeout(async () => {
+            try {
+                const [sobjectName, entity] = this.pairValue.split('|');
+                const hits = await searchRecords({ sobjectName, entity, term });
+                this.searchHits = hits.map((h) => ({
+                    recordId: h.recordId,
+                    name: h.name,
+                    website: h.website
+                }));
+            } catch (e) {
+                this.toastError(e);
+            }
+        }, SEARCH_DEBOUNCE_MS);
+    }
+
+    handlePick(event) {
+        const id = event.target.dataset.id;
+        const next = new Set(this.selected);
+        if (event.target.checked) {
+            if (next.size >= this.maxPerBatch) {
+                event.target.checked = false;
+                this.toast(T.batchCap, fmt(T.batchCapMsg, [this.maxPerBatch]), 'warning');
+                return;
+            }
+            next.add(id);
+        } else {
+            next.delete(id);
+        }
+        this.selected = next;
+    }
+
+    handleSelectAll() {
+        const ids = this.candidates.filter((c) => !c.sent).map((c) => c.recordId);
+        this.selected = this.allVisibleSelected ? new Set() : new Set(ids.slice(0, this.maxPerBatch));
+    }
+
+    handleUseMatch(event) {
+        const id = event.currentTarget.dataset.id;
+        const next = new Set(this.useMatch);
+        if (next.has(id)) {
+            next.delete(id);
+        } else {
+            next.add(id);
+            this.selected = new Set([...this.selected, id]);   // elegirlo implica mandarlo
+        }
+        this.useMatch = next;
+    }
+
+    async handleSend() {
+        const all = [...(this.overview.candidates || []), ...(this.searchHits || [])];
+        const byId = new Map(all.map((c) => [c.recordId, c]));
+        const rows = [...this.selected].map((id) => ({
+            recordId: id,
+            veleiroId: this.useMatch.has(id) && byId.get(id) ? byId.get(id).matchVeleiroId : null
+        }));
+        if (!rows.length) return;
+
+        this.loading = true;
+        try {
+            const [sobjectName, entity] = this.pairValue.split('|');
+            const res = await sendToVeleiro({ sobjectName, entity, rowsJson: JSON.stringify(rows) });
+            this._watching = rows.map((r) => r.recordId);
+            this.progress = { total: res.queued, sent: 0, running: true };
+            this.sending = res.queued > 0;
+            if (res.skipped) {
+                this.toast(T.someWereLinked, fmt(T.someWereLinkedMsg, [res.skipped]), 'info');
+            }
+            if (this.sending) this.startPolling();
+        } catch (e) {
+            this.toastError(e);
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    startPolling() {
+        this.stopPolling();
+        this._pollId = setInterval(() => this.poll(), POLL_MS);
+        this.poll();
+    }
+
+    stopPolling() {
+        if (this._pollId) clearInterval(this._pollId);
+        this._pollId = undefined;
+    }
+
+    async poll() {
+        try {
+            const [sobjectName, entity] = this.pairValue.split('|');
+            const p = await getSendProgress({
+                sobjectName,
+                entity,
+                recordIdsJson: JSON.stringify(this._watching)
+            });
+            this.sentIds = new Set(p.doneIds || []);
+            this.progress = { total: p.total, sent: p.sent, running: p.running, lastError: p.lastError };
+            if (!p.running) this.finishSending(p);
+        } catch (e) {
+            this.stopPolling();
+            this.sending = false;
+            this.toastError(e);
+        }
+    }
+
+    finishSending(p) {
+        this.stopPolling();
+        this.sending = false;
+        const failed = p.total - p.sent;
+        if (failed > 0) {
+            this.toast(
+                fmt(T.nOfMArrived, [p.sent, p.total]),
+                fmt(T.nFailed, [failed, p.lastError || T.checkLastError]),
+                'warning'
+            );
+        } else {
+            this.toast(
+                fmt(p.sent === 1 ? T.oneNowInVeleiro : T.nowInVeleiro, [p.sent]),
+                T.nowInVeleiroMsg,
+                'success'
+            );
+        }
+        this.scan();
+    }
+
+    get maxPerBatch() {
+        return (this.overview && this.overview.maxPerBatch) || 200;
+    }
+
+    get selectedCount() {
+        return this.selected.size;
+    }
+
+    get nothingSelected() {
+        return this.selected.size === 0 || this.sending;
+    }
+
+    get sendLabel() {
+        const n = this.selected.size;
+        return n ? fmt(T.sendNToVeleiro, [n]) : T.sendToVeleiro;
+    }
+
+    get allVisibleSelected() {
+        const ids = this.candidates.filter((c) => !c.sent).map((c) => c.recordId);
+        return ids.length > 0 && ids.every((id) => this.selected.has(id));
+    }
+
+    get selectAllLabel() {
+        if (this.allVisibleSelected) return T.clearSelection;
+        const n = Math.min(this.candidates.filter((c) => !c.sent).length, this.maxPerBatch);
+        return fmt(T.selectN, [n]);
+    }
+
+    get selectionLabel() {
+        const total = (this.overview && this.overview.recordsUnlinked) || 0;
+        const shown = this.candidates.length;
+        const base = this.searching
+            ? (shown === 1 ? T.oneResult : fmt(T.nResults, [shown]))
+            : fmt(T.shownOfUnsent, [shown, total]);
+        return this.selected.size ? `${base} · ${fmt(T.nChosen, [this.selected.size])}` : base;
+    }
+
+    get moreThanShown() {
+        return !this.searching && ((this.overview && this.overview.recordsUnlinked) || 0) > this.candidates.length;
+    }
+
+    get progressLabel() {
+        if (!this.progress) return '';
+        return fmt(T.sendingProgress, [this.progress.sent, this.progress.total]);
+    }
+
+    get progressPercent() {
+        if (!this.progress || !this.progress.total) return 0;
+        return Math.round((this.progress.sent / this.progress.total) * 100);
+    }
+
+    get hasCandidates() {
+        return this.candidates.length > 0;
+    }
+
+    get sendEmptyMessage() {
+        if (this.searching) return fmt(T.noMatchFor, [this.recordColumnLabel, this.sendTerm]);
+        if (this.overview && this.overview.truncated) return T.tooManyToList;
+        return fmt(T.allAlreadyThere, [this.recordColumnLabel]);
+    }
+
+    // ================= modos =================
+
+    handleMode(event) {
+        this.mode = event.currentTarget.dataset.mode;
+    }
+
+    get isSend() {
+        return this.mode === 'send';
+    }
+
+    get isMatch() {
+        return this.mode === 'match';
+    }
+
+    get sendModeClass() {
+        return this.isSend ? 'vl-mode vl-mode-on' : 'vl-mode';
+    }
+
+    get matchModeClass() {
+        return this.isMatch ? 'vl-mode vl-mode-on' : 'vl-mode';
+    }
+
+    get sendModeSub() {
+        const n = (this.overview && this.overview.recordsUnlinked) || 0;
+        return n ? fmt(T.nUnsent, [n, this.recordColumnLabel]) : T.nothingPending;
+    }
+
+    get matchModeSub() {
+        const n = (this.overview && this.overview.veleiroUnlinked) || 0;
+        return n ? fmt(T.nInVeleiroToLink, [n]) : T.nothingToMatch;
+    }
+
+    get subtitle() {
+        return this.isSend ? T.linkSubSend : T.linkSubMatch;
+    }
+
+    get statWithoutLinkLabel() {
+        return fmt(T.statWithoutLink, [this.recordColumnLabel]);
+    }
+
+    // ================= modo Emparejar (igual que antes) =================
+
     toRow(r) {
         const selected = r.suggestedRecordId || null;
         return { ...r, selectedRecordId: selected, term: '', results: [], ...this.describe(r, selected) };
     }
 
-    // Estado de la fila: que esta elegido, que alternativas quedan y que decir debajo.
     describe(row, selectedId) {
         const options = [...(row.options || []), ...(row.results || [])];
         const chosen = options.find((o) => o.recordId === selectedId);
         const alternatives = options.filter((o) => o.recordId !== selectedId);
         let note;
         if (selectedId) {
-            note = chosen ? `${chosen.name} — ${chosen.reason}` : 'Record chosen';
+            note = chosen ? `${chosen.name} — ${chosen.reason}` : T.recordChosen;
         } else if (options.length) {
-            note = 'Not sure about these — pick one if it fits';
+            note = T.notSureAbout;
         } else {
-            note = 'No suggestion — type a name to search';
+            note = T.noSuggestion;
         }
         return {
             chosen: !!selectedId,
@@ -71,7 +376,6 @@ export default class VeleiroLinkHome extends LightningElement {
         });
     }
 
-    // Busca registros del objeto mapeado y los ofrece como opciones de esa fila.
     async handleSearch(event) {
         const veleiroId = event.target.dataset.veleiro;
         const term = event.target.value;
@@ -104,6 +408,7 @@ export default class VeleiroLinkHome extends LightningElement {
 
     handlePairChange(event) {
         this.pairValue = event.detail.value;
+        this.mode = undefined;   // el par nuevo decide de nuevo dónde está el trabajo
         this.scan();
     }
 
@@ -115,64 +420,6 @@ export default class VeleiroLinkHome extends LightningElement {
         this.rows = this.rows.map((r) => ({ ...r, selectedRecordId: null, ...this.describe(r, null) }));
     }
 
-    get pairOptions() {
-        return ((this.overview && this.overview.pairs) || []).map((p) => ({ label: p.label, value: p.value }));
-    }
-
-    get hasPairs() {
-        return this.pairOptions.length > 0;
-    }
-
-    get objectApiName() {
-        return this.overview ? this.overview.sobjectName : null;
-    }
-
-    get visibleRows() {
-        return this.onlySuggested ? this.rows.filter((r) => (r.options || []).length > 0) : this.rows;
-    }
-
-    get hasRows() {
-        return this.visibleRows.length > 0;
-    }
-
-    get recordColumnLabel() {
-        return this.overview && this.overview.sobjectLabel ? this.overview.sobjectLabel : 'Salesforce record';
-    }
-
-    get veleiroColumnLabel() {
-        return this.overview && this.overview.entity === 'project' ? 'Veleiro project' : 'Veleiro client';
-    }
-
-    get selectedCount() {
-        return this.rows.filter((r) => r.selectedRecordId).length;
-    }
-
-    get linkLabel() {
-        return `Link ${this.selectedCount} selected`;
-    }
-
-    get linkAndSyncLabel() {
-        return `Link and sync ${this.selectedCount}`;
-    }
-
-    get nothingToLink() {
-        return this.selectedCount === 0;
-    }
-
-    get emptyMessage() {
-        if (!this.overview) return '';
-        if (!this.hasPairs) {
-            return 'Nothing is mapped yet. Configure a mapping in the Veleiro Mappings tab first — this screen follows whatever you map there.';
-        }
-        if (this.overview.truncated) {
-            return 'This org has too many records to match here. Link them with Data Loader instead.';
-        }
-        if (this.overview.veleiroUnlinked === 0) {
-            return 'Everything on the Veleiro side is already linked for this pair.';
-        }
-        return 'Nothing to show for this pair.';
-    }
-
     handleLink() {
         return this.apply(false);
     }
@@ -181,7 +428,6 @@ export default class VeleiroLinkHome extends LightningElement {
         return this.apply(true);
     }
 
-    // push=true tambien manda a Veleiro los campos mapeados de cada registro vinculado.
     async apply(push) {
         const pairs = this.rows
             .filter((r) => r.selectedRecordId)
@@ -193,16 +439,12 @@ export default class VeleiroLinkHome extends LightningElement {
             const [sobjectName, entity] = this.pairValue.split('|');
             const args = { sobjectName, entity, pairsJson: JSON.stringify(pairs) };
             const res = push ? await linkAndSync(args) : await linkAll(args);
-            const skipped = res.skipped ? ` ${res.skipped} skipped: already linked.` : '';
-            const message = res.syncing
-                ? `Their mapped fields are being sent to Veleiro in the background.${skipped}`
-                : `Sync them when you want Veleiro to carry the mapped fields too.${skipped}`;
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: `${res.linked} record${res.linked === 1 ? '' : 's'} linked to Veleiro`,
-                    message,
-                    variant: res.linked ? 'success' : 'warning'
-                })
+            const skipped = res.skipped ? fmt(T.nSkippedLinked, [res.skipped]) : '';
+            const message = (res.syncing ? T.linkedSyncing : T.linkedNotSyncing) + skipped;
+            this.toast(
+                fmt(res.linked === 1 ? T.oneLinked : T.nLinked, [res.linked]),
+                message,
+                res.linked ? 'success' : 'warning'
             );
             await this.scan();
         } catch (e) {
@@ -212,8 +454,98 @@ export default class VeleiroLinkHome extends LightningElement {
         }
     }
 
+    // ================= comunes =================
+
+    get pairOptions() {
+        return ((this.overview && this.overview.pairs) || []).map((p) => ({ label: p.label, value: p.value }));
+    }
+
+    get hasPairs() {
+        return this.pairOptions.length > 0;
+    }
+
+    get noMappings() {
+        return this.scanned && !this.loading && !this.hasPairs && !this.notConnected;
+    }
+
+    get notConnected() {
+        return !!(this.overview && this.overview.connectionError);
+    }
+
+    get connectionError() {
+        return this.overview ? this.overview.connectionError : '';
+    }
+
+    get ready() {
+        return this.scanned && this.hasPairs && !this.notConnected;
+    }
+
+    get pushDisabled() {
+        return !!this.overview && this.overview.pushEnabled === false;
+    }
+
+    get visibleRows() {
+        return this.onlySuggested ? this.rows.filter((r) => (r.options || []).length > 0) : this.rows;
+    }
+
+    get hasRows() {
+        return this.visibleRows.length > 0;
+    }
+
+    get recordColumnLabel() {
+        return this.overview && this.overview.sobjectLabel ? this.overview.sobjectLabel : T.salesforceRecord;
+    }
+
+    get veleiroColumnLabel() {
+        return this.overview && this.overview.entity === 'project' ? T.veleiroProject : T.veleiroClient;
+    }
+
+    get matchSelectedCount() {
+        return this.rows.filter((r) => r.selectedRecordId).length;
+    }
+
+    get linkLabel() {
+        return fmt(T.linkOnlyN, [this.matchSelectedCount]);
+    }
+
+    get linkAndSyncLabel() {
+        return fmt(T.linkAndSyncN, [this.matchSelectedCount]);
+    }
+
+    get nothingToLink() {
+        return this.matchSelectedCount === 0;
+    }
+
+    get matchEmptyMessage() {
+        if (!this.overview) return '';
+        if (this.overview.truncated) return T.tooManyToMatch;
+        if (this.overview.veleiroUnlinked === 0) return T.everythingLinked;
+        return T.nothingForPair;
+    }
+
+    handleOpenMappings() {
+        this.openTab(this.mappingsTab);
+    }
+
+    handleOpenSetup() {
+        this.openTab((this.overview && this.overview.setupTab) || 'Veleiro_Setup');
+    }
+
+    openTab(apiName) {
+        this[NavigationMixin.Navigate]({ type: 'standard__navItemPage', attributes: { apiName } });
+    }
+
+    // Apex resuelve el nombre: la pestaña lleva prefijo dentro del paquete administrado.
+    get mappingsTab() {
+        return (this.overview && this.overview.mappingsTab) || 'Veleiro_Mappings';
+    }
+
+    toast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+
     toastError(e) {
-        const msg = e && e.body && e.body.message ? e.body.message : 'Could not reach Veleiro';
-        this.dispatchEvent(new ShowToastEvent({ title: 'Veleiro error', message: msg, variant: 'error' }));
+        const msg = e && e.body && e.body.message ? e.body.message : T.cantReachVeleiro;
+        this.dispatchEvent(new ShowToastEvent({ title: T.veleiroError, message: msg, variant: 'error' }));
     }
 }

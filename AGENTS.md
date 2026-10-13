@@ -40,9 +40,12 @@ Two businesses, one link:
 | `classes/VeleiroMappingController.cls` | Backend for the interactive mapping **builder**: `getObjects`/`getFields` (pickers), `getMappingsFor`, `defaultTemplate` (auto-fill known pairs), `saveMappings`, `getMappings`. Maps any object → `client`/`project`. |
 | `classes/VeleiroSeed.cls` | `seed()` — inserts the 6 default field mappings (idempotent). |
 | `classes/VeleiroApiMock.cls` | `@isTest` HttpCalloutMock + `seedConfig()`. Use it in new tests. |
+| `classes/VeleiroI18n.cls` / `lwc/veleiroI18n` | Every user-facing string in es / pt / en, one dictionary per language, English as the per-key fallback. Apex reads `UserInfo.getLanguage()`, LWC reads `@salesforce/i18n/lang`. Add a string to all three dictionaries or it silently shows in English. |
 | `lwc/veleiroPanel` / `veleiroOppPanel` | Branded panel on Account / Opportunity record pages (sync + status + "Open in Veleiro"; the Opp one shows live progress). |
 | `lwc/veleiroDashboard` / `veleiroBriefing` / `veleiroInsight` | Home dashboard, Velly briefing + queues, Account insight strip. |
 | `lwc/veleiroMappingHome` | Field-mapping console (grouped by object). |
+| `classes/VeleiroOnboardingController.cls` / `lwc/veleiroOnboarding` | **Veleiro Setup** tab (first in the app): the step-by-step onboarding. `getState(verifyConnection)` measures each step against the org itself — no "I'm done" flags. Steps 1 and 2 (token and sync mode) are completed inline; the rest navigate to where the work happens. |
+| `lwc/veleiroSetupBanner` | Slim reminder at the top of Veleiro Home while the setup is incomplete; it disappears on its own. Calls `getState(false)` so opening the Home never spends a callout. |
 | `lwc/veleiroSyncAction` / `veleiroSyncOppAction` | Headless `lightning__RecordAction` LWCs — add them as record-page actions (no QuickAction wrapper needed). |
 | `flows/Create_Veleiro_Project_On_Closed_Won` | Record-triggered on Opportunity → Closed Won → async callout to the invocable. |
 | `flows/Auto_Sync_Account_On_Create` / `Auto_Sync_Opportunity_On_Create` | Record-triggered on create → async callout (`VeleiroSyncAccountAction` / `VeleiroSyncService`). Only run when `Sync_Trigger__c = auto`. |
@@ -50,7 +53,8 @@ Two businesses, one link:
 | `classes/VeleiroLinkStore.cls` | Where a record's Veleiro link lives: the native fields on Account/Opportunity, `Veleiro_Link__c` for every other object. |
 | `classes/VeleiroSyncRecordAction.cls` | Generic `@InvocableMethod` (record id + entity) so a partner automates any mapped object from their own flow. |
 | `classes/VeleiroLinkSyncQueueable.cls` | Pushes the mapped fields of freshly linked accounts to Veleiro, 20 per transaction (callouts first, one DML at the end), chaining the rest. |
-| `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab: bulk-match unlinked Accounts against Veleiro clients and link the chosen pairs (field write only, no callouts). For orgs that had records on both sides before the kit. |
+| `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab, two directions off **one** Veleiro listing per scan. *Send to Veleiro* (`sendToVeleiro`, `getSendProgress`): pick Salesforce records and create them in Veleiro — the quick start for an org whose Veleiro is empty. *Match existing* (`linkAll`, `linkAndSync`): for records that existed on both sides before the kit. The matches found while scanning warn a send candidate that it may already exist over there, so the user links instead of duplicating. |
+| `classes/VeleiroBulkSendQueueable.cls` | Runs the bulk send. `Account -> client` goes dozens per transaction via `pushAccountWithoutSaving` (all callouts, then one partial-success DML); any other pair falls back to `syncRecord`, one per transaction. Batching matters because chaining Queueables is capped at 5 hops in Developer and trial orgs. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
 | `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
 | `objects/Veleiro_Config__c` | Hierarchy custom setting: `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. |
@@ -105,8 +109,9 @@ Queues: `expand`+`reference` → Expand; `protect`+`unblock` → At-risk; `onboa
 3. `sf apex run -o <org> -f scripts/apex/seedMappings.apex` to seed default mappings.
 4. `sf org assign permset -o <org> -n Veleiro_Integration_Access`.
 5. If the org already had accounts in Salesforce and clients in Veleiro, open the **Veleiro Link** tab and link them before syncing, so nothing is duplicated.
-6. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
-6. Verify: `sf apex run` calling `VeleiroSync.syncClients();` (pull) and `VeleiroSyncService.syncAccount('<accountId>');` (push).
+6. Open the **Veleiro Setup** tab: it walks the remaining steps and marks each one as it actually lands.
+7. In App Builder: add `veleiroPanel` to the Account record page, `veleiroOppPanel` to Opportunity, and add the `Veleiro_Home` / `Veleiro_Mappings` tabs to the app. Add the `veleiroSyncAction` / `veleiroSyncOppAction` LWCs as record-page actions.
+8. Verify: `sf apex run` calling `VeleiroSync.syncClients();` (pull) and `VeleiroSyncService.syncAccount('<accountId>');` (push).
 
 Full manual: `docs/setup.md`.
 

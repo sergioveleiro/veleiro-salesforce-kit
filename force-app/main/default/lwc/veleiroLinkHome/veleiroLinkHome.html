@@ -1,123 +1,240 @@
 <template>
-    <lightning-card>
-        <div slot="title" class="veleiro-title">
-            <img src={logoUrl} alt="Veleiro" class="veleiro-logo" />
+    <div class="vl">
+        <!-- Encabezado -->
+        <div class="vl-head">
+            <img src={logoUrl} alt="Veleiro" class="vl-logo" />
+            <div class="vl-head-text">
+                <h1 class="vl-h1">{labels.linkTitle}</h1>
+                <p class="vl-sub">{subtitle}</p>
+            </div>
+            <lightning-button-icon icon-name="utility:refresh" alternative-text={labels.rescan}
+                title={labels.rescan} variant="border-filled" onclick={scan}
+                class="vl-refresh"></lightning-button-icon>
         </div>
 
-        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
-            <div class="veleiro-accentbar"></div>
+        <template if:true={loading}>
+            <div class="vl-loading">
+                <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
+            </div>
+        </template>
 
-            <h2 class="slds-text-heading_small">Link existing records</h2>
-            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
-                For records that already existed on both sides. The pairs come from Veleiro Mappings:
-                each Veleiro record shows the Salesforce record we think it is — keep it, or type to
-                pick another.
-            </p>
+        <!-- Sin conexión no hay nada que esta pantalla pueda leer ni escribir -->
+        <template if:true={notConnected}>
+            <div class="vl-blank">
+                <img src={mascotUrl} alt="Velly" class="vl-mascot" />
+                <p class="vl-blank-title">{labels.connectFirstTitle}</p>
+                <p class="vl-blank-text">{labels.connectFirstText}</p>
+                <lightning-button variant="brand" label={labels.openSetup} onclick={handleOpenSetup}
+                    class="vl-brand-btn"></lightning-button>
+                <p class="vl-blank-why">{connectionError}</p>
+            </div>
+        </template>
 
-            <template if:true={loading}>
-                <lightning-spinner alternative-text="Reading Veleiro..." size="small"></lightning-spinner>
-            </template>
+        <!-- Sin mapeos no hay nada que esta pantalla pueda hacer -->
+        <template if:true={noMappings}>
+            <div class="vl-blank">
+                <img src={mascotUrl} alt="Velly" class="vl-mascot" />
+                <p class="vl-blank-title">{labels.noMappingTitle}</p>
+                <p class="vl-blank-text">{labels.noMappingText}</p>
+                <lightning-button variant="brand" label={labels.openMappings}
+                    onclick={handleOpenMappings} class="vl-brand-btn"></lightning-button>
+            </div>
+        </template>
 
-            <template if:true={hasPairs}>
-                <div class="veleiro-pair slds-m-bottom_medium">
-                    <lightning-combobox label="Mapping" value={pairValue} options={pairOptions}
-                        onchange={handlePairChange}></lightning-combobox>
+        <template if:true={ready}>
+            <!-- Qué par estamos trabajando -->
+            <div class="vl-pair">
+                <lightning-combobox label={labels.whatAreYouLinking} value={pairValue} options={pairOptions}
+                    onchange={handlePairChange}></lightning-combobox>
+            </div>
+
+            <!-- Las dos direcciones, con el trabajo pendiente a la vista -->
+            <div class="vl-modes">
+                <button type="button" class={sendModeClass} data-mode="send" onclick={handleMode}>
+                    <lightning-icon icon-name="utility:upload" size="small" class="vl-mode-icon"></lightning-icon>
+                    <span class="vl-mode-text">
+                        <span class="vl-mode-title">{labels.modeSend}</span>
+                        <span class="vl-mode-sub">{sendModeSub}</span>
+                    </span>
+                </button>
+                <button type="button" class={matchModeClass} data-mode="match" onclick={handleMode}>
+                    <lightning-icon icon-name="utility:merge" size="small" class="vl-mode-icon"></lightning-icon>
+                    <span class="vl-mode-text">
+                        <span class="vl-mode-title">{labels.modeMatch}</span>
+                        <span class="vl-mode-sub">{matchModeSub}</span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- ====================== ENVIAR A VELEIRO ====================== -->
+            <template if:true={isSend}>
+                <template if:true={pushDisabled}>
+                    <div class="vl-warn">{labels.pushDisabledWarn}</div>
+                </template>
+
+                <div class="vl-bar">
+                    <lightning-input type="search" variant="label-hidden" placeholder={labels.searchByName}
+                        value={sendTerm} onchange={handleSendSearch} oninput={handleSendSearch}
+                        class="vl-bar-search"></lightning-input>
+                    <span class="vl-bar-count">{selectionLabel}</span>
                 </div>
 
-                <div class="veleiro-stats slds-m-bottom_medium">
-                    <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.veleiroUnlinked}</span>
-                        <span class="veleiro-stat-label">{veleiroColumnLabel}s to link</span>
-                    </div>
-                    <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.recordsUnlinked}</span>
-                        <span class="veleiro-stat-label">{recordColumnLabel} records not linked</span>
-                    </div>
-                    <div class="veleiro-stat">
-                        <span class="veleiro-stat-num">{overview.alreadyLinked}</span>
-                        <span class="veleiro-stat-label">already linked</span>
-                    </div>
-                </div>
-            </template>
-
-            <template if:true={hasRows}>
-                <div class="veleiro-toolbar slds-m-bottom_small">
-                    <lightning-input type="checkbox" label="Only rows with a suggestion"
-                        checked={onlySuggested} onchange={handleToggleFilter}></lightning-input>
-                    <div>
-                        <lightning-button label="Clear" onclick={handleClear}></lightning-button>
-                        <lightning-button label={linkLabel} disabled={nothingToLink} onclick={handleLink}
-                            class="slds-m-left_x-small"
-                            title="Only writes the link. Mapped fields stay in Salesforce."></lightning-button>
-                        <lightning-button variant="brand" label={linkAndSyncLabel} disabled={nothingToLink}
-                            onclick={handleLinkAndSync} class="slds-m-left_x-small veleiro-brand-btn"
-                            title="Links and sends the mapped fields to Veleiro."></lightning-button>
-                    </div>
-                </div>
-
-                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
-                    <thead>
-                        <tr class="slds-line-height_reset">
-                            <th scope="col"><div class="slds-truncate">{veleiroColumnLabel}</div></th>
-                            <th scope="col"><div class="slds-truncate">{recordColumnLabel}</div></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template for:each={visibleRows} for:item="r">
-                            <tr key={r.veleiroId}>
-                                <td class="veleiro-client-cell">
-                                    <a href={r.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">
-                                        {r.veleiroName}
-                                    </a>
-                                    <div class="slds-text-body_small slds-text-color_weak">{r.veleiroWebsite}</div>
-                                </td>
-                                <td>
-                                    <!-- Buscador propio: escribe y elige; sin dependencias de configuracion. -->
-                                    <template if:true={r.chosen}>
-                                        <div class="veleiro-chosen">
-                                            <span class="veleiro-ok">{r.chosenName}</span>
-                                            <button type="button" class="veleiro-chip" data-veleiro={r.veleiroId}
-                                                onclick={handleUnpick}>change</button>
-                                        </div>
-                                        <div class="slds-text-body_small slds-text-color_weak">{r.note}</div>
-                                    </template>
-
-                                    <template if:false={r.chosen}>
-                                        <lightning-input type="search" variant="label-hidden" label="Search"
-                                            placeholder="Type a name…" value={r.term} data-veleiro={r.veleiroId}
-                                            onchange={handleSearch}></lightning-input>
-                                        <div class="slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
-                                            {r.note}
-                                        </div>
-                                    </template>
-
-                                    <template if:true={r.hasAlternatives}>
-                                        <div class="veleiro-suggestions">
-                                            <template for:each={r.alternatives} for:item="alt">
-                                                <button key={alt.recordId} type="button"
-                                                    class="veleiro-chip" data-veleiro={r.veleiroId}
-                                                    data-record={alt.recordId} onclick={handleUseSuggestion}>
-                                                    {alt.name} · {alt.reason}
-                                                </button>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </td>
-                            </tr>
+                <template if:true={hasCandidates}>
+                    <div class="vl-selectall">
+                        <button type="button" class="vl-linkbtn" onclick={handleSelectAll}>{selectAllLabel}</button>
+                        <template if:true={moreThanShown}>
+                            <span class="vl-hint">{labels.showingFirst}</span>
                         </template>
-                    </tbody>
-                </table>
+                    </div>
+
+                    <div class="vl-rows">
+                        <template for:each={candidates} for:item="c">
+                            <div key={c.recordId} class={c.rowClass}>
+                                <div class="vl-row-main">
+                                    <lightning-input type="checkbox" variant="label-hidden" label={c.name}
+                                        checked={c.selected} disabled={c.sent} data-id={c.recordId}
+                                        onchange={handlePick} class="vl-check"></lightning-input>
+                                    <span class="vl-row-name">{c.name}</span>
+                                    <span class="vl-row-site">{c.website}</span>
+                                    <div class="vl-row-spacer"></div>
+                                    <template if:true={c.sent}>
+                                        <span class="vl-sent">
+                                            <lightning-icon icon-name="utility:check" size="xx-small"
+                                                variant="inverse"></lightning-icon>
+                                            {labels.inVeleiro}
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <!-- Aviso de posible duplicado: la decisión se toma aquí, no después -->
+                                <template if:true={c.hasMatch}>
+                                    <div class={c.matchClass}>
+                                        <lightning-icon icon-name="utility:warning" size="xx-small"
+                                            class="vl-dup-icon"></lightning-icon>
+                                        <span class="vl-dup-text">{c.matchLine}</span>
+                                        <button type="button" class="vl-dup-btn" data-id={c.recordId}
+                                            onclick={handleUseMatch}>{c.matchBtnLabel}</button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template if:false={hasCandidates}>
+                    <template if:true={scanned}>
+                        <p class="vl-empty">{sendEmptyMessage}</p>
+                    </template>
+                </template>
+
+                <!-- Acción, o el avance del envío en su lugar -->
+                <div class="vl-foot">
+                    <template if:false={sending}>
+                        <template if:true={hasCandidates}>
+                            <lightning-button variant="brand" label={sendLabel} disabled={nothingSelected}
+                                onclick={handleSend} class="vl-brand-btn"></lightning-button>
+                            <span class="vl-hint">{labels.sendNote}</span>
+                        </template>
+                    </template>
+                    <template if:true={sending}>
+                        <div class="vl-progress">
+                            <span class="vl-progress-label">{progressLabel}</span>
+                            <div class="vl-track"><div class="vl-fill"></div></div>
+                            <span class="vl-hint">{labels.sendingNote}</span>
+                        </div>
+                    </template>
+                </div>
             </template>
 
-            <template if:false={hasRows}>
-                <template if:true={scanned}>
-                    <p class="slds-text-body_regular slds-text-color_weak">{emptyMessage}</p>
+            <!-- ====================== EMPAREJAR EXISTENTES ====================== -->
+            <template if:true={isMatch}>
+                <div class="vl-stats">
+                    <div class="vl-stat">
+                        <span class="vl-stat-num">{overview.veleiroUnlinked}</span>
+                        <span class="vl-stat-label">{labels.statToLink}</span>
+                    </div>
+                    <div class="vl-stat">
+                        <span class="vl-stat-num">{overview.recordsUnlinked}</span>
+                        <span class="vl-stat-label">{statWithoutLinkLabel}</span>
+                    </div>
+                    <div class="vl-stat">
+                        <span class="vl-stat-num">{overview.alreadyLinked}</span>
+                        <span class="vl-stat-label">{labels.statAlreadyLinked}</span>
+                    </div>
+                </div>
+
+                <template if:true={hasRows}>
+                    <div class="vl-bar">
+                        <lightning-input type="checkbox" label={labels.onlyWithSuggestion}
+                            checked={onlySuggested} onchange={handleToggleFilter}></lightning-input>
+                        <div class="vl-bar-actions">
+                            <lightning-button label={labels.clear} onclick={handleClear}></lightning-button>
+                            <lightning-button label={linkLabel} disabled={nothingToLink} onclick={handleLink}
+                                class="slds-m-left_x-small"
+                                title={labels.linkOnlyTitle}></lightning-button>
+                            <lightning-button variant="brand" label={linkAndSyncLabel} disabled={nothingToLink}
+                                onclick={handleLinkAndSync} class="slds-m-left_x-small vl-brand-btn"
+                                title={labels.linkAndSyncTitle}></lightning-button>
+                        </div>
+                    </div>
+
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th scope="col"><div class="slds-truncate">{veleiroColumnLabel}</div></th>
+                                <th scope="col"><div class="slds-truncate">{recordColumnLabel}</div></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={visibleRows} for:item="r">
+                                <tr key={r.veleiroId}>
+                                    <td class="vl-client-cell">
+                                        <a href={r.veleiroUrl} target="_blank" rel="noopener" class="vl-extlink">
+                                            {r.veleiroName}
+                                        </a>
+                                        <div class="vl-muted">{r.veleiroWebsite}</div>
+                                    </td>
+                                    <td>
+                                        <template if:true={r.chosen}>
+                                            <div class="vl-chosen">
+                                                <span class="vl-ok">{r.chosenName}</span>
+                                                <button type="button" class="vl-chip" data-veleiro={r.veleiroId}
+                                                    onclick={handleUnpick}>{labels.change}</button>
+                                            </div>
+                                            <div class="vl-muted">{r.note}</div>
+                                        </template>
+
+                                        <template if:false={r.chosen}>
+                                            <lightning-input type="search" variant="label-hidden" label={labels.searchByName}
+                                                placeholder={labels.typeAName} value={r.term}
+                                                data-veleiro={r.veleiroId} onchange={handleSearch}></lightning-input>
+                                            <div class="vl-muted">{r.note}</div>
+                                        </template>
+
+                                        <template if:true={r.hasAlternatives}>
+                                            <div class="vl-suggestions">
+                                                <template for:each={r.alternatives} for:item="alt">
+                                                    <button key={alt.recordId} type="button" class="vl-chip"
+                                                        data-veleiro={r.veleiroId} data-record={alt.recordId}
+                                                        onclick={handleUseSuggestion}>
+                                                        {alt.name} · {alt.reason}
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+
+                <template if:false={hasRows}>
+                    <template if:true={scanned}>
+                        <p class="vl-empty">{matchEmptyMessage}</p>
+                    </template>
                 </template>
             </template>
-
-            <div class="slds-m-top_medium">
-                <lightning-button label="Re-scan" onclick={scan}></lightning-button>
-            </div>
-        </div>
-    </lightning-card>
+        </template>
+    </div>
 </template>

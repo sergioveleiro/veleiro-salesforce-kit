@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Onboarding_Skipped__c</fullName>
+    <label>Onboarding Skipped Steps</label>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+    <description>Pasos opcionales del onboarding que el cliente marcó como "no aplica", separados por coma. Lo escribe VeleiroOnboardingController; no se edita a mano.</description>
+    <inlineHelpText>Pasos del setup que decidiste saltar. Se maneja desde la pestaña Veleiro Setup.</inlineHelpText>
+</CustomField>

@@ -1,0 +1,140 @@
+<template>
+    <div class="vo">
+        <!-- Hero: avance + Velly -->
+        <div class="vo-hero">
+            <div class="vo-hero-main">
+                <img src={logoUrl} class="vo-logo" alt="Veleiro" />
+                <h1 class="vo-title">{heroTitle}</h1>
+                <p class="vo-sub">{heroSub}</p>
+                <div class="vo-progress">
+                    <div class="vo-track"><div class="vo-track-fill"></div></div>
+                    <span class="vo-count">{progressLabel}</span>
+                </div>
+            </div>
+            <div class="vo-velly">
+                <div class="vo-speech">{vellyLine}</div>
+                <img src={mascotUrl} class="vo-mascot" alt="Velly" />
+            </div>
+        </div>
+
+        <template if:true={loading}>
+            <div class="vo-loading">
+                <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={error}>
+            <div class="vo-error">{error}</div>
+        </template>
+
+        <!-- Setup completo: queda el chequeo de salud -->
+        <template if:true={showHealth}>
+            <div class="vo-health">
+                <div class="vo-health-head">
+                    <span class="vo-health-title">{labels.healthTitle}</span>
+                    <lightning-button-icon icon-name="utility:refresh" alternative-text={labels.recheck}
+                        title={labels.recheck} variant="border-filled" onclick={handleRecheck}></lightning-button-icon>
+                </div>
+                <div class="vo-health-grid">
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hConnection}</span>
+                        <span class="vo-health-value">
+                            <span class={connectionClass}></span>{state.connectionMessage}
+                        </span>
+                    </div>
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hEnvironment}</span>
+                        <span class="vo-health-value">{environmentLabel}</span>
+                    </div>
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hMappedFields}</span>
+                        <span class="vo-health-value">{state.mappingCount}</span>
+                    </div>
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hLinkedRecords}</span>
+                        <span class="vo-health-value">{state.linkedCount}</span>
+                    </div>
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hSynced}</span>
+                        <span class="vo-health-value">{state.syncedCount}</span>
+                    </div>
+                    <div class="vo-health-item">
+                        <span class="vo-health-label">{labels.hMode}</span>
+                        <span class="vo-health-value">{state.syncTrigger}</span>
+                    </div>
+                </div>
+                <template if:true={hasLastError}>
+                    <div class="vo-health-error">{labels.lastSyncError} — {lastErrorLine}</div>
+                </template>
+                <button class="vo-linkbtn" onclick={handleShowSteps}>{stepsToggleLabel}</button>
+            </div>
+        </template>
+
+        <!-- Los pasos -->
+        <template if:true={showSteps}>
+            <template for:each={steps} for:item="s">
+                <div key={s.key} class={s.cardClass}>
+                    <div class="vo-step-head" data-key={s.key} onclick={handleToggle} role="button" tabindex="0">
+                        <span class={s.badgeClass}>
+                            <template if:true={s.isDone}>
+                                <lightning-icon icon-name="utility:check" size="xx-small"
+                                    variant="inverse"></lightning-icon>
+                            </template>
+                            <template if:false={s.isDone}>{s.number}</template>
+                        </span>
+                        <div class="vo-step-id">
+                            <span class="vo-step-title">{s.title}</span>
+                            <span class="vo-step-evidence">{s.evidence}</span>
+                        </div>
+                        <span class={s.pillClass}>{s.pillLabel}</span>
+                        <lightning-icon icon-name={s.chevron} size="xx-small" class="vo-chev"></lightning-icon>
+                    </div>
+
+                    <div class={s.bodyClass}>
+                        <p class="vo-step-summary">{s.summary}</p>
+
+                        <!-- Paso 1: el token se pega aquí mismo -->
+                        <template if:true={s.isToken}>
+                            <div class="vo-inline">
+                                <lightning-combobox label={labels.environment} options={environmentOptions}
+                                    value={environment} onchange={handleEnvChange}
+                                    class="vo-inline-field"></lightning-combobox>
+                                <lightning-input type="password" label={labels.apiToken}
+                                    placeholder={labels.pasteItHere} value={tokenInput} onchange={handleTokenChange}
+                                    class="vo-inline-field"></lightning-input>
+                                <lightning-button variant="brand" label={labels.connect} onclick={handleSaveToken}
+                                    disabled={saving} class="vo-inline-btn"></lightning-button>
+                            </div>
+                            <p class="vo-note">{labels.tokenNote}</p>
+                        </template>
+
+                        <!-- Paso 2: dirección y disparador -->
+                        <template if:true={s.isConfig}>
+                            <div class="vo-inline">
+                                <lightning-combobox label={labels.direction} options={directionOptions}
+                                    value={direction} onchange={handleDirectionChange}
+                                    class="vo-inline-field"></lightning-combobox>
+                                <lightning-combobox label={labels.whenItSyncs} options={triggerOptions}
+                                    value={syncTrigger} onchange={handleTriggerChange}
+                                    class="vo-inline-field"></lightning-combobox>
+                                <lightning-button variant="brand" label={labels.save} onclick={handleSaveConfig}
+                                    disabled={saving} class="vo-inline-btn"></lightning-button>
+                            </div>
+                            <p class="vo-note">{labels.configNote}</p>
+                        </template>
+
+                        <div class="vo-step-actions">
+                            <template if:true={s.actionLabel}>
+                                <lightning-button variant={s.actionVariant} label={s.actionLabel}
+                                    data-key={s.key} onclick={handleAction}></lightning-button>
+                            </template>
+                            <template if:true={s.canSkip}>
+                                <button class="vo-skip" data-key={s.key} onclick={handleSkip}>{s.skipLabel}</button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

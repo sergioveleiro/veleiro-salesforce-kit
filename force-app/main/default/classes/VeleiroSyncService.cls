@@ -161,6 +161,17 @@ public with sharing class VeleiroSyncService {
         return pushAccount(accountId, false, null).account;
     }
 
+    /**
+     * Igual que el anterior, pero vinculando a un client que el usuario ya eligio.
+     * autoLink va en false a proposito: el matcher hace su propio listado de clients por
+     * cuenta, y en un envio masivo eso seria un callout por registro. Quien llama (la
+     * pestaña Veleiro Link) ya comparo contra UN listado para todas, y manda aqui el
+     * client elegido cuando encontro uno.
+     */
+    public static Account pushAccountWithoutSaving(Id accountId, String linkClientId) {
+        return pushAccount(accountId, false, linkClientId).account;
+    }
+
     private class PushOutcome {
         ClientResult result;
         Account account; // con el id/version de Veleiro ya puestos, listo para guardar

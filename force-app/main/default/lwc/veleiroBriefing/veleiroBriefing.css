@@ -1,12 +1,14 @@
 :host {
     --veleiro-navy: #040b25;
+    --veleiro-blue: #0084fb;
+    --veleiro-cyan: #5eecfc;
     --veleiro-accent: #cfe6f8;
     --veleiro-line: #e7eef6;
     --veleiro-muted: #5a6b82;
 }
 
 .velly-wrap {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 /* Briefing bubble */
@@ -15,8 +17,8 @@
     gap: 16px;
     align-items: flex-start;
     background: linear-gradient(135deg, #0a1740 0%, #040b25 100%);
-    border-radius: 16px;
-    padding: 18px 20px;
+    border-radius: 14px;
+    padding: 14px 16px;
 }
 .velly-avatar-col {
     display: flex;
@@ -26,7 +28,7 @@
     flex: none;
 }
 .velly-avatar {
-    height: 56px;
+    height: 48px;
     width: auto;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
 }
@@ -89,7 +91,7 @@
 .velly-col {
     background: #f7fafd;
     border: 1px solid var(--veleiro-line);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 12px;
 }
 .velly-col-head {
