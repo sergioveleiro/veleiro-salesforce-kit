@@ -1,6 +1,10 @@
 @isTest
 private class VeleiroBulkSendQueueableTest {
 
+    // Con namespace el objeto se llama veleiro__Veleiro_Field_Mapping__c: se lee del describe,
+    // nunca del literal, o el test pasa aqui y truena al construir el paquete administrado.
+    private static final String KIT_OBJECT = String.valueOf(Veleiro_Field_Mapping__c.SObjectType);
+
     @testSetup
     static void setup() {
         VeleiroApiMock.seedConfig();
@@ -96,7 +100,7 @@ private class VeleiroBulkSendQueueableTest {
     @isTest
     static void anObjectWithoutANativePairGoesOneAtATime() {
         insert new Veleiro_Field_Mapping__c(
-            Name = 'Kit Name', SObject__c = 'Veleiro_Field_Mapping__c', Veleiro_Entity__c = 'client',
+            Name = 'Kit Name', SObject__c = KIT_OBJECT, Veleiro_Entity__c = 'client',
             SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard', Active__c = true
         );
         List<Veleiro_Field_Mapping__c> records = new List<Veleiro_Field_Mapping__c>();
