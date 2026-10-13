@@ -1,4 +1,12 @@
 :host {
+    /* Forma de los controles de Salesforce. Son styling hooks de SLDS: atraviesan el shadow
+       DOM, que es la unica manera de redondear un lightning-combobox desde fuera. */
+    --slds-c-input-radius-border: 999px;
+    --slds-c-button-radius-border: 999px;
+    --slds-c-checkbox-radius-border: 6px;
+    /* Nombre anterior del mismo hook: segun la version de SLDS de la org aplica uno u otro. */
+    --sds-c-input-radius-border: 999px;
+    --sds-c-button-radius-border: 999px;
     --veleiro-navy: #040b25;
     --veleiro-blue: #0084fb;
     --veleiro-cyan: #5eecfc;
@@ -15,7 +23,6 @@
    Fijar fondo y color aqui hace que el kit se vea igual en cualquier org. */
 .vo {
     padding: 18px;
-    max-width: 920px;
     background: var(--veleiro-canvas);
     color: var(--veleiro-ink);
     border-radius: 12px;
