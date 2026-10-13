@@ -2,12 +2,19 @@
     --veleiro-navy: #040b25;
     --veleiro-navy-hover: #0a1740;
     --veleiro-accent: #cfe6f8;
+    --veleiro-canvas: #f4f8fc;
+    --veleiro-ink: #040b25;
     --veleiro-line: #e7eef6;
     --veleiro-muted: #5a6b82;
 }
 
+/* El kit pinta su propia superficie: una org puede traer un theme con fondo oscuro y texto
+   claro, y heredarlo deja los textos ilegibles y las tarjetas flotando sobre un gris sucio. */
 .veleiro-home {
-    padding: 4px;
+    padding: 16px;
+    background: var(--veleiro-canvas);
+    color: var(--veleiro-ink);
+    border-radius: 12px;
 }
 .veleiro-hero {
     display: flex;

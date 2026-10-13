@@ -271,15 +271,15 @@ export default class VeleiroMappingHome extends LightningElement {
             .then((data) => {
                 const byPair = {};
                 (data || []).forEach((m, i) => {
-                    const key = m.SObject__c + '|' + (m.Veleiro_Entity__c || '');
+                    const key = m.sobjectName + '|' + (m.entity || '');
                     if (!byPair[key]) {
-                        byPair[key] = { key, object: m.SObject__c, entity: m.Veleiro_Entity__c || '—', rows: [] };
+                        byPair[key] = { key, object: m.sobjectName, entity: m.entity || '—', rows: [] };
                     }
                     byPair[key].rows.push({
-                        key: key + '|' + m.SF_Field__c + '|' + i, // indice: nunca colisiona aunque haya repetidos
-                        sfField: m.SF_Field__c,
-                        target: m.Veleiro_Target__c,
-                        type: m.Target_Type__c
+                        key: key + '|' + m.sfField + '|' + i, // indice: nunca colisiona aunque haya repetidos
+                        sfField: m.sfField,
+                        target: m.target,
+                        type: m.type
                     });
                 });
                 this.summary = Object.values(byPair);
@@ -364,7 +364,7 @@ export default class VeleiroMappingHome extends LightningElement {
         getMappingsFor({ sobjectName: this.selectedObject, entity: this.selectedEntity })
             .then((existing) => {
                 if (existing && existing.length) {
-                    this.rows = existing.map((m) => this.toRow(m.Id, m.SF_Field__c, m.Veleiro_Target__c));
+                    this.rows = existing.map((m) => this.toRow(m.id, m.sfField, m.target));
                     return null;
                 }
                 return defaultTemplate({ sobjectName: this.selectedObject, entity: this.selectedEntity });
@@ -372,7 +372,7 @@ export default class VeleiroMappingHome extends LightningElement {
             .then((tpl) => {
                 if (tpl === null) return;
                 if (tpl && tpl.length) {
-                    this.rows = tpl.map((m) => this.toRow(null, m.SF_Field__c, m.Veleiro_Target__c));
+                    this.rows = tpl.map((m) => this.toRow(null, m.sfField, m.target));
                     this.hint = 'Default mapping auto-filled — review and Save.';
                 } else {
                     this.rows = [this.toRow(null, '', '')];

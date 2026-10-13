@@ -7,12 +7,12 @@ private class VeleiroMappingControllerTest {
         System.assertEquals(6, seeded);
 
         Test.startTest();
-        List<Veleiro_Field_Mapping__c> ms = VeleiroMappingController.getMappings();
+        List<VeleiroMappingController.SavedMapping> ms = VeleiroMappingController.getMappings();
         Test.stopTest();
 
         System.assertEquals(6, ms.size());
         Set<String> objs = new Set<String>();
-        for (Veleiro_Field_Mapping__c m : ms) objs.add(m.SObject__c);
+        for (VeleiroMappingController.SavedMapping m : ms) objs.add(m.sobjectName);
         System.assert(objs.contains('Account'));
         System.assert(objs.contains('Opportunity'));
     }
@@ -37,9 +37,9 @@ private class VeleiroMappingControllerTest {
     @isTest
     static void defaultTemplateForKnownPairs() {
         Test.startTest();
-        List<Veleiro_Field_Mapping__c> acc = VeleiroMappingController.defaultTemplate('Account', 'client');
-        List<Veleiro_Field_Mapping__c> opp = VeleiroMappingController.defaultTemplate('Opportunity', 'project');
-        List<Veleiro_Field_Mapping__c> unknown = VeleiroMappingController.defaultTemplate('Case', 'client');
+        List<VeleiroMappingController.SavedMapping> acc = VeleiroMappingController.defaultTemplate('Account', 'client');
+        List<VeleiroMappingController.SavedMapping> opp = VeleiroMappingController.defaultTemplate('Opportunity', 'project');
+        List<VeleiroMappingController.SavedMapping> unknown = VeleiroMappingController.defaultTemplate('Case', 'client');
         Test.stopTest();
 
         System.assertEquals(3, acc.size(), 'Account->client tiene 3 defaults');
@@ -58,7 +58,7 @@ private class VeleiroMappingControllerTest {
         Test.startTest();
         VeleiroMappingController.saveMappings('Case', 'project',
             new List<VeleiroMappingController.MappingRow>{ r1, r2, blank }, null, null);
-        List<Veleiro_Field_Mapping__c> saved = VeleiroMappingController.getMappingsFor('Case', 'project');
+        List<VeleiroMappingController.SavedMapping> saved = VeleiroMappingController.getMappingsFor('Case', 'project');
         Test.stopTest();
 
         System.assertEquals(2, saved.size(), 'guarda 2 (ignora la fila vacia)');
@@ -66,9 +66,9 @@ private class VeleiroMappingControllerTest {
         // Reemplazo por par: reenviar solo r2 deja el par con 1 (r1 se elimina).
         VeleiroMappingController.saveMappings('Case', 'project',
             new List<VeleiroMappingController.MappingRow>{ r2 }, null, null);
-        List<Veleiro_Field_Mapping__c> after = VeleiroMappingController.getMappingsFor('Case', 'project');
+        List<VeleiroMappingController.SavedMapping> after = VeleiroMappingController.getMappingsFor('Case', 'project');
         System.assertEquals(1, after.size(), 'quedo 1');
-        System.assertEquals('Priority', after[0].SF_Field__c, 'quedo el reenviado, no el omitido');
+        System.assertEquals('Priority', after[0].sfField, 'quedo el reenviado, no el omitido');
     }
 
     @isTest
@@ -96,7 +96,7 @@ private class VeleiroMappingControllerTest {
         r.sfField = 'Name'; r.target = 'name'; r.type = 'Standard';
         VeleiroMappingController.saveMappings('Account', 'client',
             new List<VeleiroMappingController.MappingRow>{ r }, null, null);
-        Veleiro_Field_Mapping__c existing = VeleiroMappingController.getMappingsFor('Account', 'client')[0];
+        VeleiroMappingController.SavedMapping existing = VeleiroMappingController.getMappingsFor('Account', 'client')[0];
 
         VeleiroMappingController.MappingRow upd = new VeleiroMappingController.MappingRow();
         upd.id = existing.Id; upd.sfField = 'Name'; upd.target = 'display_name'; upd.type = 'Standard';
@@ -106,9 +106,9 @@ private class VeleiroMappingControllerTest {
             new List<VeleiroMappingController.MappingRow>{ upd }, null, null);
         Test.stopTest();
 
-        List<Veleiro_Field_Mapping__c> after = VeleiroMappingController.getMappingsFor('Account', 'client');
+        List<VeleiroMappingController.SavedMapping> after = VeleiroMappingController.getMappingsFor('Account', 'client');
         System.assertEquals(1, after.size(), 'no duplica, actualiza');
-        System.assertEquals('display_name', after[0].Veleiro_Target__c);
+        System.assertEquals('display_name', after[0].target);
     }
 
     @isTest
@@ -176,14 +176,14 @@ private class VeleiroMappingControllerTest {
             new List<VeleiroMappingController.MappingRow>{ messy, std }, null, null);
         Test.stopTest();
 
-        Map<String, Veleiro_Field_Mapping__c> byField = new Map<String, Veleiro_Field_Mapping__c>();
-        for (Veleiro_Field_Mapping__c m : VeleiroMappingController.getMappingsFor('Account', 'client')) {
-            byField.put(m.SF_Field__c, m);
+        Map<String, VeleiroMappingController.SavedMapping> byField = new Map<String, VeleiroMappingController.SavedMapping>();
+        for (VeleiroMappingController.SavedMapping m : VeleiroMappingController.getMappingsFor('Account', 'client')) {
+            byField.put(m.sfField, m);
         }
-        System.assertEquals('web_site', byField.get('Website').Veleiro_Target__c, 'target normalizado');
-        System.assertEquals('Additional Field', byField.get('Website').Target_Type__c);
-        System.assertEquals('name', byField.get('Name').Veleiro_Target__c);
-        System.assertEquals('Standard', byField.get('Name').Target_Type__c, 'name -> top-level Standard');
+        System.assertEquals('web_site', byField.get('Website').target, 'target normalizado');
+        System.assertEquals('Additional Field', byField.get('Website').type);
+        System.assertEquals('name', byField.get('Name').target);
+        System.assertEquals('Standard', byField.get('Name').type, 'name -> top-level Standard');
     }
 
     @isTest
@@ -211,5 +211,39 @@ private class VeleiroMappingControllerTest {
         System.assertEquals(true, threw, 'todas las filas invalidas -> lanza error, no guarda en silencio');
         System.assertEquals(1, VeleiroMappingController.getMappingsFor('Account', 'client').size(),
             'el mapping previo NO se destruye');
+    }
+
+    /**
+     * Lo que viaja al UI no puede llevar nombres de campo de Salesforce.
+     *
+     * Devolver el sObject crudo funciona desde el codigo fuente y se rompe dentro del paquete
+     * administrado, donde el campo pasa a ser veleiro__SObject__c y el componente que lee
+     * m.SObject__c recibe undefined. En la org de un cliente eso se vio como una lista de
+     * mapeos con todos los nombres en blanco. La asercion del JSON es la que cuida la regla:
+     * si alguien vuelve a devolver un sObject, este test truena aqui, no en produccion.
+     */
+    @isTest
+    static void whatTravelsToTheUiCarriesNoSalesforceFieldNames() {
+        insert new Veleiro_Field_Mapping__c(
+            Name = 'Account Name', SObject__c = 'Account', Veleiro_Entity__c = 'client',
+            SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard', Active__c = true
+        );
+
+        List<VeleiroMappingController.SavedMapping> rows = VeleiroMappingController.getMappings();
+        System.assertEquals(1, rows.size());
+        System.assertEquals('Account', rows[0].sobjectName);
+        System.assertEquals('client', rows[0].entity);
+        System.assertEquals('Name', rows[0].sfField);
+        System.assertEquals('name', rows[0].target);
+        System.assertEquals('Standard', rows[0].type);
+
+        for (String payload : new List<String>{
+            JSON.serialize(rows),
+            JSON.serialize(VeleiroMappingController.getMappingsFor('Account', 'client')),
+            JSON.serialize(VeleiroMappingController.defaultTemplate('Account', 'client'))
+        }) {
+            System.assert(!payload.contains('__c'),
+                'un nombre de campo se filtro al UI y bajo namespace llegaria vacio: ' + payload);
+        }
     }
 }

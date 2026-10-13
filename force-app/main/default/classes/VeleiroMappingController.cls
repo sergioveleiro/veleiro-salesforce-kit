@@ -12,6 +12,38 @@ public with sharing class VeleiroMappingController {
         public Option(String v, String l) { value = v; label = l; }
     }
 
+    /**
+     * Mapeo guardado, tal como lo lee el UI.
+     *
+     * NUNCA se devuelve el sObject crudo: dentro del paquete administrado sus campos se
+     * llaman veleiro__SObject__c, y el LWC que lee m.SObject__c recibe undefined. Eso se vio
+     * en la org de un cliente como una lista de mapeos con todos los nombres en blanco.
+     * Un DTO con nombres propios se comporta igual con namespace y sin el.
+     */
+    public class SavedMapping {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String sobjectName;
+        @AuraEnabled public String entity;
+        @AuraEnabled public String sfField;
+        @AuraEnabled public String target;
+        @AuraEnabled public String type;
+
+        private SavedMapping(Veleiro_Field_Mapping__c m) {
+            id = m.Id;
+            sobjectName = m.SObject__c;
+            entity = m.Veleiro_Entity__c;
+            sfField = m.SF_Field__c;
+            target = m.Veleiro_Target__c;
+            type = m.Target_Type__c;
+        }
+    }
+
+    private static List<SavedMapping> asRows(List<Veleiro_Field_Mapping__c> records) {
+        List<SavedMapping> out = new List<SavedMapping>();
+        for (Veleiro_Field_Mapping__c m : records) out.add(new SavedMapping(m));
+        return out;
+    }
+
     // Fila de mapeo que viaja LWC <-> Apex.
     public class MappingRow {
         @AuraEnabled public String id;
@@ -25,31 +57,31 @@ public with sharing class VeleiroMappingController {
     // Todos los mapeos activos (para el resumen), agrupables por objeto+entidad.
     // NO cacheable: debe leer fresco tras cada Save (si no, la UI muestra data vieja).
     @AuraEnabled
-    public static List<Veleiro_Field_Mapping__c> getMappings() {
-        return [
+    public static List<SavedMapping> getMappings() {
+        return asRows([
             SELECT Name, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c,
                    Target_Type__c, Is_Standard__c, Active__c
             FROM Veleiro_Field_Mapping__c
             WHERE Active__c = true
             ORDER BY SObject__c, Veleiro_Entity__c, Is_Standard__c DESC, SF_Field__c
-        ];
+        ]);
     }
 
     // Mapeos guardados para un par (objeto, entidad). NO cacheable (lectura fresca tras Save).
     @AuraEnabled
-    public static List<Veleiro_Field_Mapping__c> getMappingsFor(String sobjectName, String entity) {
-        return [
+    public static List<SavedMapping> getMappingsFor(String sobjectName, String entity) {
+        return asRows([
             SELECT Id, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c, Target_Type__c
             FROM Veleiro_Field_Mapping__c
             WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
             ORDER BY SF_Field__c
-        ];
+        ]);
     }
 
     // Template default (sin guardar) para un par conocido; vacio si no aplica.
     @AuraEnabled(cacheable=true)
-    public static List<Veleiro_Field_Mapping__c> defaultTemplate(String sobjectName, String entity) {
-        return VeleiroSeed.defaultsFor(sobjectName, entity);
+    public static List<SavedMapping> defaultTemplate(String sobjectName, String entity) {
+        return asRows(VeleiroSeed.defaultsFor(sobjectName, entity));
     }
 
     // Objetos de Salesforce disponibles para mapear (creables/consultables).
