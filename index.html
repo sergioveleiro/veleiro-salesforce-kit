@@ -88,6 +88,12 @@
   .topbar a.site:hover { color: var(--blue); }
   .topbar .right { display: flex; align-items: center; gap: .9rem; }
   .specs .latest { font-weight: 600; color: var(--ink); }
+  .soon {
+    display: inline-flex; align-items: center;
+    font-size: .84rem; font-weight: 700; letter-spacing: .02em;
+    color: var(--blue-ink); background: var(--wash);
+    border: 1px dashed var(--blue); border-radius: 999px; padding: .5rem 1.05rem;
+  }
   .demo { margin-bottom: clamp(2.4rem, 6vw, 3.4rem); }
   .demo h3 { margin-bottom: .3rem; }
   .demo-sub { color: var(--ink-soft); font-size: .95rem; margin-bottom: 1.1rem; max-width: 60ch; }
@@ -318,19 +324,18 @@
         <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="tkt.f3">Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.install">Instalar o actualizar</a>
-        <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.sandbox">Sandbox</a>
+        <span class="soon" data-t="soon">Próximamente</span>
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake" data-t="btn.code">Código</a>
       </div>
       <div class="specs">
-        <span class="latest"><span data-t="spec.version">Versión más reciente</span> <b>1.1.0.1</b></span>
+        <span data-t="soon.note">Avísanos si lo quieres probar antes y te lo habilitamos.</span>
       </div>
     </article>
 
   </div>
 
   <div class="notice">
-    <span data-t="notice"><b>Siempre apuntan a la última versión.</b> Si tu org ya tiene una anterior, Salesforce
+    <span data-t="notice"><b>El enlace siempre apunta a la última versión.</b> Si tu org ya tiene una anterior, Salesforce
     reconoce el paquete y te ofrece <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.</span>
   </div>
 
@@ -423,7 +428,7 @@
       'btn.sandbox': 'Sandbox',
       'btn.code': 'Source',
       'spec.version': 'Latest version',
-      'notice': '<b>These always point at the latest version.</b> If your org already has an earlier one, Salesforce recognises the package and offers <b>Upgrade</b> instead of Install: your token, your mappings and your links are kept.',
+      'notice': '<b>The link always points at the latest version.</b> If your org already has an earlier one, Salesforce recognises the package and offers <b>Upgrade</b> instead of Install: your token, your mappings and your links are kept.',
       'steps.title': 'How the install goes',
       's1.t': 'Install the package',
       's1.d': 'From the link above, for admins or for all users.',
@@ -444,6 +449,8 @@
       'r4.t': 'What gets installed',
       'r4.d': 'Metadata only: Apex, components, fields prefixed <code>veleiro__</code> and a permission set. Nothing replaces or removes what your org already has.',
       'footer': 'Veleiro AI · managed packages under the <code>veleiro</code> namespace. Each one installs, upgrades and uninstalls on its own.',
+      'soon': 'Coming soon',
+      'soon.note': 'Tell us if you want it early and we will turn it on for you.',
       'demo.title': 'See it working',
       'demo.sub': 'An interactive demo, not a video: click through it as if it were your own Salesforce.',
       'demo.launch': 'Launch interactive demo',
@@ -468,7 +475,7 @@
       'btn.sandbox': 'Sandbox',
       'btn.code': 'Código',
       'spec.version': 'Versão mais recente',
-      'notice': '<b>Sempre apontam para a versão mais recente.</b> Se a sua org já tem uma anterior, o Salesforce reconhece o pacote e oferece <b>Upgrade</b> em vez de Install: seu token, seus mapeamentos e seus vínculos são mantidos.',
+      'notice': '<b>O link sempre aponta para a versão mais recente.</b> Se a sua org já tem uma anterior, o Salesforce reconhece o pacote e oferece <b>Upgrade</b> em vez de Install: seu token, seus mapeamentos e seus vínculos são mantidos.',
       'steps.title': 'Como é a instalação',
       's1.t': 'Instalar o pacote',
       's1.d': 'Pelo link acima, para administradores ou para todos os usuários.',
@@ -489,6 +496,8 @@
       'r4.t': 'O que é instalado',
       'r4.d': 'Somente metadados: Apex, componentes, campos com prefixo <code>veleiro__</code> e um permission set. Nada substitui nem apaga o que a org já tem.',
       'footer': 'Veleiro AI · pacotes gerenciados sob o namespace <code>veleiro</code>. Cada um instala, atualiza e desinstala por conta própria.',
+      'soon': 'Em breve',
+      'soon.note': 'Avise se quiser testar antes e a gente libera para você.',
       'demo.title': 'Veja funcionando',
       'demo.sub': 'Uma demo interativa, não um vídeo: clique como se fosse o seu próprio Salesforce.',
       'demo.launch': 'Abrir a demo interativa',
