@@ -86,15 +86,15 @@ public with sharing class VeleiroOnboardingController {
             try {
                 VeleiroApiClient.doGet('/clients', new Map<String, String>{ 'limit' => '1' });
                 s.connected = true;
-                s.connectionMessage = 'Conectado a Veleiro';
+                s.connectionMessage = VeleiroI18n.t('ev.connected');
             } catch (Exception e) {
                 s.connectionMessage = e.getMessage();
             }
         } else if (tokenSet) {
             s.connected = true;   // sin ping: el token existe, es lo mas que sabemos sin callout
-            s.connectionMessage = 'Token guardado';
+            s.connectionMessage = VeleiroI18n.t('ev.tokenSaved');
         } else {
-            s.connectionMessage = 'Falta el token de Veleiro';
+            s.connectionMessage = VeleiroI18n.t('ev.noToken');
         }
         s.environment = VeleiroApiClient.appBaseUrl();
         s.direction = VeleiroSyncConfig.direction();
@@ -102,8 +102,8 @@ public with sharing class VeleiroOnboardingController {
         s.lastError = VeleiroSyncConfig.lastError();
         s.lastErrorAt = VeleiroSyncConfig.lastErrorAt() == null ? null : VeleiroSyncConfig.lastErrorAt().format();
 
-        Step conn = new Step('connection', 'Conecta tu cuenta de Veleiro',
-            'Pega el API token de Veleiro. Salesforce habla con Veleiro de servidor a servidor: el token se queda en la org y nunca llega al navegador.');
+        Step conn = new Step('connection', VeleiroI18n.t('step.connection.title'),
+            VeleiroI18n.t('step.connection.summary'));
         conn.inline = 'token';
         conn.state = s.connected ? DONE : TODO;
         conn.evidence = s.connectionMessage;
@@ -111,63 +111,63 @@ public with sharing class VeleiroOnboardingController {
 
         // --- como sincroniza ---
         Boolean configured = String.isNotBlank(storedTrigger());
-        Step cfg = new Step('config', 'Elige cómo sincroniza',
-            'Define si Salesforce empuja, jala o las dos, y si lo hace al crear el registro o solo cuando das clic. Mientras no lo guardes, el kit se queda en manual y no toca nada por su cuenta.');
+        Step cfg = new Step('config', VeleiroI18n.t('step.config.title'),
+            VeleiroI18n.t('step.config.summary'));
         cfg.inline = 'config';
         cfg.state = configured ? DONE : TODO;
         cfg.evidence = configured
             ? label(s.direction) + ' · ' + label(s.syncTrigger)
-            : 'Sin guardar — por ahora, manual';
+            : VeleiroI18n.t('ev.configUnsaved');
         s.steps.add(cfg);
 
         // --- mapeo ---
         s.mappingCount = [SELECT COUNT() FROM Veleiro_Field_Mapping__c WHERE Active__c = true];
-        Step mapStep = new Step('mapping', 'Mapea tus campos',
-            'Elige qué objeto de Salesforce corresponde a un client o a un project en Veleiro, y qué campo va a dónde. Sin un mapeo no hay nada que sincronizar ni que vincular.');
+        Step mapStep = new Step('mapping', VeleiroI18n.t('step.mapping.title'),
+            VeleiroI18n.t('step.mapping.summary'));
         mapStep.state = s.mappingCount > 0 ? DONE : TODO;
         mapStep.evidence = s.mappingCount > 0
-            ? s.mappingCount + (s.mappingCount == 1 ? ' campo mapeado' : ' campos mapeados')
-            : 'Ningún campo mapeado todavía';
-        mapStep.actionLabel = 'Abrir Veleiro Mappings';
+            ? VeleiroI18n.plural(s.mappingCount, 'ev.mappedField', 'ev.mappedFields')
+            : VeleiroI18n.t('ev.noMappings');
+        mapStep.actionLabel = VeleiroI18n.t('act.openMappings');
         mapStep.actionTab = tab('Veleiro_Mappings');
         s.steps.add(mapStep);
 
         // --- vincular lo que ya existe (opcional: hay orgs sin historia) ---
         s.linkedCount = linkedCount();
-        Step linkStep = new Step('link', 'Trae tus clientes a Veleiro',
-            'En la pestaña Veleiro Link eliges los registros de Salesforce y se crean en Veleiro, de a muchos. Y si tus clientes ya existían en los dos lados desde antes del kit, ahí mismo los emparejas en vez de duplicarlos.');
+        Step linkStep = new Step('link', VeleiroI18n.t('step.link.title'),
+            VeleiroI18n.t('step.link.summary'));
         linkStep.optional = true;
         linkStep.state = s.linkedCount > 0 ? DONE : (skips.contains('link') ? SKIPPED : TODO);
         linkStep.evidence = s.linkedCount > 0
-            ? s.linkedCount + (s.linkedCount == 1 ? ' registro vinculado' : ' registros vinculados')
-            : 'Ningún registro está en Veleiro todavía';
-        linkStep.actionLabel = 'Abrir Veleiro Link';
+            ? VeleiroI18n.plural(s.linkedCount, 'ev.linkedRecord', 'ev.linkedRecords')
+            : VeleiroI18n.t('ev.nothingLinked');
+        linkStep.actionLabel = VeleiroI18n.t('act.openLink');
         linkStep.actionTab = tab('Veleiro_Link');
         s.steps.add(linkStep);
 
         // --- primer sync real ---
         s.syncedCount = syncedCount();
-        Step syncStep = new Step('sync', 'Sincroniza tu primera cuenta',
-            'Abre una Account y dale Sync. Es la prueba de que todo el camino funciona: Salesforce crea o actualiza el client en Veleiro y se trae su versión de vuelta.');
+        Step syncStep = new Step('sync', VeleiroI18n.t('step.sync.title'),
+            VeleiroI18n.t('step.sync.summary'));
         syncStep.state = s.syncedCount > 0 ? DONE : TODO;
         syncStep.evidence = s.syncedCount > 0
-            ? s.syncedCount + (s.syncedCount == 1 ? ' registro sincronizado' : ' registros sincronizados')
-            : 'Ningún registro ha viajado a Veleiro';
-        syncStep.actionLabel = 'Ver mis Accounts';
+            ? VeleiroI18n.plural(s.syncedCount, 'ev.syncedRecord', 'ev.syncedRecords')
+            : VeleiroI18n.t('ev.nothingSynced');
+        syncStep.actionLabel = VeleiroI18n.t('act.myAccounts');
         syncStep.actionObject = 'Account';
         s.steps.add(syncStep);
 
         // --- flows: solo importan con el trigger en auto, y es justo lo que se rompe callado ---
         if (s.syncTrigger == VeleiroSyncConfig.TRIG_AUTO) {
-            Step flows = new Step('flows', 'Activa los flows de sincronización automática',
-                'Pediste sincronización automática, y eso lo hacen tres flows. En producción los flows se instalan inactivos: si no los enciendes, nada se sincroniza solo y no sale ningún error.');
+            Step flows = new Step('flows', VeleiroI18n.t('step.flows.title'),
+                VeleiroI18n.t('step.flows.summary'));
             flows.state = flowState(flows);
             s.steps.add(flows);
         }
 
         // --- acceso: el permission set es lo UNICO que da acceso (los profiles no se empaquetan) ---
-        Step team = new Step('team', 'Dale acceso a tu equipo',
-            'El permission set Veleiro Integration Access es lo único que da acceso al app, a los campos y a los paneles. Sin él, un usuario entra y no ve nada — y eso incluye a quien instaló el kit.');
+        Step team = new Step('team', VeleiroI18n.t('step.team.title'),
+            VeleiroI18n.t('step.team.summary'));
         // teamState decide tambien si es opcional: si le falta a quien esta configurando, no lo es.
         team.state = teamState(team, skips);
         s.steps.add(team);
@@ -223,16 +223,16 @@ public with sharing class VeleiroOnboardingController {
                 if (f.IsActive) { active++; } else { inactive.add(f.Label); }
             }
             if (active >= FLOWS.size()) {
-                st.evidence = 'Los 3 flows están activos';
+                st.evidence = VeleiroI18n.t('ev.flowsActive');
                 return DONE;
             }
             st.evidence = inactive.isEmpty()
-                ? 'No encontré los flows en esta org'
-                : 'Inactivos: ' + String.join(inactive, ', ');
-            st.actionLabel = 'Cómo activarlos';
+                ? VeleiroI18n.t('ev.flowsMissing')
+                : VeleiroI18n.t('ev.flowsInactive', new List<Object>{ String.join(inactive, ', ') });
+            st.actionLabel = VeleiroI18n.t('act.howToActivate');
             return TODO;
         } catch (Exception e) {
-            st.evidence = 'No pude revisarlo — hace falta permiso para ver la configuración de la org';
+            st.evidence = VeleiroI18n.t('ev.flowsUnknown');
             return UNKNOWN;
         }
     }
@@ -254,24 +254,24 @@ public with sharing class VeleiroOnboardingController {
                 SELECT COUNT() FROM PermissionSetAssignment
                 WHERE PermissionSet.Name = :PERMSET AND AssigneeId != :UserInfo.getUserId()
             ];
-            st.actionLabel = 'Asignar el permission set';
+            st.actionLabel = VeleiroI18n.t('act.assignPermset');
             st.optional = true;
             if (mine == 0) {
                 // Nada del kit se ve sin esto: no es un consejo que se pueda saltar.
                 st.optional = false;
-                st.evidence = 'Ni tú lo tienes: sin él no ves los campos de Veleiro ni los paneles';
+                st.evidence = VeleiroI18n.t('ev.teamNobody');
                 return TODO;
             }
             if (others > 0) {
-                st.evidence = others + (others == 1 ? ' persona más tiene acceso' : ' personas más tienen acceso');
+                st.evidence = VeleiroI18n.plural(others, 'ev.teamOther', 'ev.teamOthers');
                 st.actionLabel = null;
                 return DONE;
             }
-            st.evidence = 'Solo tú lo tienes — tu equipo todavía no ve nada';
+            st.evidence = VeleiroI18n.t('ev.teamOnlyYou');
             return skips.contains('team') ? SKIPPED : TODO;
         } catch (Exception e) {
             st.optional = true;
-            st.evidence = 'No pude revisar las asignaciones del permission set';
+            st.evidence = VeleiroI18n.t('ev.teamUnknown');
             return UNKNOWN;
         }
     }
@@ -299,11 +299,11 @@ public with sharing class VeleiroOnboardingController {
     private static String tab(String apiName) { return VeleiroSyncConfig.namespacePrefix() + apiName; }
 
     private static String label(String raw) {
-        if (raw == VeleiroSyncConfig.DIR_BOTH) return 'Salesforce ⇄ Veleiro';
-        if (raw == VeleiroSyncConfig.DIR_SF) return 'Salesforce → Veleiro';
-        if (raw == VeleiroSyncConfig.DIR_VELEIRO) return 'Veleiro → Salesforce';
-        if (raw == VeleiroSyncConfig.TRIG_AUTO) return 'automático';
-        if (raw == VeleiroSyncConfig.TRIG_MANUAL) return 'manual';
+        if (raw == VeleiroSyncConfig.DIR_BOTH) return VeleiroI18n.t('cfg.both');
+        if (raw == VeleiroSyncConfig.DIR_SF) return VeleiroI18n.t('cfg.sfToVeleiro');
+        if (raw == VeleiroSyncConfig.DIR_VELEIRO) return VeleiroI18n.t('cfg.veleiroToSf');
+        if (raw == VeleiroSyncConfig.TRIG_AUTO) return VeleiroI18n.t('cfg.auto');
+        if (raw == VeleiroSyncConfig.TRIG_MANUAL) return VeleiroI18n.t('cfg.manual');
         return raw;
     }
 }

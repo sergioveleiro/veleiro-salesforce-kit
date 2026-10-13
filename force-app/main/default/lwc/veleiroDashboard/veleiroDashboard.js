@@ -1,5 +1,6 @@
 import { LightningElement } from 'lwc';
 import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
+import { T, fmt } from 'c/veleiroI18n';
 import getOverview from '@salesforce/apex/VeleiroDashboardController.getOverview';
 
 // Cuantos clients se ven antes de pedir "ver todos". Un partner con 80 clients no deberia
@@ -8,6 +9,7 @@ const FIRST_PAGE = 8;
 const MAX_PROJECTS_SHOWN = 5;
 
 export default class VeleiroDashboard extends LightningElement {
+    labels = T;
     mascotUrl = VELEIRO_MASCOT;
     overview;
     loading = true;
@@ -31,7 +33,7 @@ export default class VeleiroDashboard extends LightningElement {
             this.overview = ov;
             this._all = ov.clients || [];
         } catch (e) {
-            this.error = e && e.body && e.body.message ? e.body.message : 'Could not load Veleiro data';
+            this.error = e && e.body && e.body.message ? e.body.message : T.dashLoadError;
         } finally {
             this.loading = false;
         }
@@ -68,9 +70,9 @@ export default class VeleiroDashboard extends LightningElement {
                 barVariant: p.progress >= 100 ? 'base-autocomplete' : 'base',
                 barClass: p.progress >= 100 ? 'veleiro-bar veleiro-bar-done' : 'veleiro-bar'
             })),
-            hiddenProjects: Math.max(projects.length - MAX_PROJECTS_SHOWN, 0),
+            hiddenProjects: fmt(T.moreInVeleiro, [Math.max(projects.length - MAX_PROJECTS_SHOWN, 0)]),
             hasHiddenProjects: projects.length > MAX_PROJECTS_SHOWN,
-            countLabel: projects.length === 1 ? '1 project' : `${projects.length} projects`,
+            countLabel: projects.length === 1 ? T.projectCount : fmt(T.projectsCount, [projects.length]),
             iconName: open ? 'utility:chevrondown' : 'utility:chevronright',
             bodyClass: open ? 'veleiro-projects' : 'veleiro-projects veleiro-collapsed',
             cardClass: open ? 'veleiro-client veleiro-client-open' : 'veleiro-client',
@@ -114,9 +116,9 @@ export default class VeleiroDashboard extends LightningElement {
 
     get sortOptions() {
         return [
-            { label: 'Most projects', value: 'projects' },
-            { label: 'Name (A–Z)', value: 'name' },
-            { label: 'Least progress', value: 'progress' }
+            { label: T.sortMostProjects, value: 'projects' },
+            { label: T.sortName, value: 'name' },
+            { label: T.sortLeastProgress, value: 'progress' }
         ];
     }
 
@@ -127,8 +129,8 @@ export default class VeleiroDashboard extends LightningElement {
 
     get countLabel() {
         const n = this.matchCount;
-        const noun = n === 1 ? 'client' : 'clients';
-        return this.search.trim() ? `${n} ${noun} found` : `${n} ${noun}`;
+        if (this.search.trim()) return fmt(n === 1 ? T.clientFound : T.clientsFound, [n]);
+        return fmt(n === 1 ? T.clientCount : T.clientsCount, [n]);
     }
 
     get hasMore() {
@@ -136,7 +138,7 @@ export default class VeleiroDashboard extends LightningElement {
     }
 
     get showAllLabel() {
-        return this.showAll ? 'Show fewer' : `Show all ${this.matchCount}`;
+        return this.showAll ? T.showFewer : fmt(T.showAllN, [this.matchCount]);
     }
 
     get canCollapse() {
@@ -154,6 +156,10 @@ export default class VeleiroDashboard extends LightningElement {
 
     get noMatches() {
         return this.hasClients && this.matchCount === 0;
+    }
+
+    get noMatchesLine() {
+        return fmt(T.noClientMatches, [this.search.trim()]);
     }
 
     get isEmpty() {

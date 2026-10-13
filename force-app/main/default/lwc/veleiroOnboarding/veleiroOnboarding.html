@@ -19,7 +19,7 @@
 
         <template if:true={loading}>
             <div class="vo-loading">
-                <lightning-spinner alternative-text="Revisando tu setup…" size="small"></lightning-spinner>
+                <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
             </div>
         </template>
 
@@ -31,40 +31,40 @@
         <template if:true={showHealth}>
             <div class="vo-health">
                 <div class="vo-health-head">
-                    <span class="vo-health-title">Estado de la integración</span>
-                    <lightning-button-icon icon-name="utility:refresh" alternative-text="Volver a revisar"
-                        title="Volver a revisar" variant="border-filled" onclick={handleRecheck}></lightning-button-icon>
+                    <span class="vo-health-title">{labels.healthTitle}</span>
+                    <lightning-button-icon icon-name="utility:refresh" alternative-text={labels.recheck}
+                        title={labels.recheck} variant="border-filled" onclick={handleRecheck}></lightning-button-icon>
                 </div>
                 <div class="vo-health-grid">
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Conexión</span>
+                        <span class="vo-health-label">{labels.hConnection}</span>
                         <span class="vo-health-value">
                             <span class={connectionClass}></span>{state.connectionMessage}
                         </span>
                     </div>
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Entorno</span>
+                        <span class="vo-health-label">{labels.hEnvironment}</span>
                         <span class="vo-health-value">{environmentLabel}</span>
                     </div>
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Campos mapeados</span>
+                        <span class="vo-health-label">{labels.hMappedFields}</span>
                         <span class="vo-health-value">{state.mappingCount}</span>
                     </div>
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Registros vinculados</span>
+                        <span class="vo-health-label">{labels.hLinkedRecords}</span>
                         <span class="vo-health-value">{state.linkedCount}</span>
                     </div>
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Ya sincronizados</span>
+                        <span class="vo-health-label">{labels.hSynced}</span>
                         <span class="vo-health-value">{state.syncedCount}</span>
                     </div>
                     <div class="vo-health-item">
-                        <span class="vo-health-label">Modo</span>
+                        <span class="vo-health-label">{labels.hMode}</span>
                         <span class="vo-health-value">{state.syncTrigger}</span>
                     </div>
                 </div>
                 <template if:true={hasLastError}>
-                    <div class="vo-health-error">Último error de sync — {lastErrorLine}</div>
+                    <div class="vo-health-error">{labels.lastSyncError} — {lastErrorLine}</div>
                 </template>
                 <button class="vo-linkbtn" onclick={handleShowSteps}>{stepsToggleLabel}</button>
             </div>
@@ -96,33 +96,31 @@
                         <!-- Paso 1: el token se pega aquí mismo -->
                         <template if:true={s.isToken}>
                             <div class="vo-inline">
-                                <lightning-combobox label="Entorno" options={environmentOptions}
+                                <lightning-combobox label={labels.environment} options={environmentOptions}
                                     value={environment} onchange={handleEnvChange}
                                     class="vo-inline-field"></lightning-combobox>
-                                <lightning-input type="password" label="API token de Veleiro"
-                                    placeholder="Pégalo aquí" value={tokenInput} onchange={handleTokenChange}
+                                <lightning-input type="password" label={labels.apiToken}
+                                    placeholder={labels.pasteItHere} value={tokenInput} onchange={handleTokenChange}
                                     class="vo-inline-field"></lightning-input>
-                                <lightning-button variant="brand" label="Conectar" onclick={handleSaveToken}
+                                <lightning-button variant="brand" label={labels.connect} onclick={handleSaveToken}
                                     disabled={saving} class="vo-inline-btn"></lightning-button>
                             </div>
-                            <p class="vo-note">El token se guarda en tu org y nunca sale al navegador: todas las
-                               llamadas a Veleiro salen desde Apex.</p>
+                            <p class="vo-note">{labels.tokenNote}</p>
                         </template>
 
                         <!-- Paso 2: dirección y disparador -->
                         <template if:true={s.isConfig}>
                             <div class="vo-inline">
-                                <lightning-combobox label="Dirección" options={directionOptions}
+                                <lightning-combobox label={labels.direction} options={directionOptions}
                                     value={direction} onchange={handleDirectionChange}
                                     class="vo-inline-field"></lightning-combobox>
-                                <lightning-combobox label="Cuándo sincroniza" options={triggerOptions}
+                                <lightning-combobox label={labels.whenItSyncs} options={triggerOptions}
                                     value={syncTrigger} onchange={handleTriggerChange}
                                     class="vo-inline-field"></lightning-combobox>
-                                <lightning-button variant="brand" label="Guardar" onclick={handleSaveConfig}
+                                <lightning-button variant="brand" label={labels.save} onclick={handleSaveConfig}
                                     disabled={saving} class="vo-inline-btn"></lightning-button>
                             </div>
-                            <p class="vo-note">El resto de los ajustes (quién gana un conflicto, cada cuánto jalamos
-                               de Veleiro, los interruptores por objeto) viven en Veleiro Mappings.</p>
+                            <p class="vo-note">{labels.configNote}</p>
                         </template>
 
                         <div class="vo-step-actions">

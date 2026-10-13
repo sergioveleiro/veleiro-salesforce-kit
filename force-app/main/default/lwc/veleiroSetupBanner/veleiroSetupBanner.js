@@ -5,9 +5,11 @@
 import { LightningElement } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
+import { T, fmt } from 'c/veleiroI18n';
 import getState from '@salesforce/apex/VeleiroOnboardingController.getState';
 
 export default class VeleiroSetupBanner extends NavigationMixin(LightningElement) {
+    labels = T;
     mascotUrl = VELEIRO_MASCOT;
     state;
     ready = false;
@@ -50,13 +52,13 @@ export default class VeleiroSetupBanner extends NavigationMixin(LightningElement
     get headline() {
         if (!this.state) return '';
         return this.state.done === 0
-            ? 'Veleiro todavía no está conectado'
-            : `Te faltan ${this.state.total - this.state.done} de ${this.state.total} pasos del setup`;
+            ? T.bannerNotConnected
+            : fmt(T.bannerStepsLeft, [this.state.total - this.state.done, this.state.total]);
     }
 
     get nextStep() {
         if (!this.state) return '';
         const pending = (this.state.steps || []).find((s) => s.state === 'todo' || s.state === 'unknown');
-        return pending ? `Sigue: ${pending.title}` : '';
+        return pending ? fmt(T.bannerNext, [pending.title]) : '';
     }
 }

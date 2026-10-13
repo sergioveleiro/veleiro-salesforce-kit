@@ -203,6 +203,7 @@ private class VeleiroOnboardingControllerTest {
 
     // Las asignaciones reales de la org donde corren los tests no deben decidir el resultado.
     private static VeleiroOnboardingController.Step teamStep(Integer mine, Integer others) {
+        VeleiroI18n.languageOverride = 'es';   // el idioma del usuario no decide si el test pasa
         VeleiroOnboardingController.assignedToMe = mine;
         VeleiroOnboardingController.assignedToOthers = others;
         return step(VeleiroOnboardingController.getState(false), 'team');

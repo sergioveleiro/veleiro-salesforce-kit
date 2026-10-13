@@ -2,6 +2,7 @@ import { LightningElement } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { LOGO as VELEIRO_LOGO, MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
+import { T, fmt } from 'c/veleiroI18n';
 import getSuggestions from '@salesforce/apex/VeleiroLinkController.getSuggestions';
 import linkAll from '@salesforce/apex/VeleiroLinkController.linkAll';
 import linkAndSync from '@salesforce/apex/VeleiroLinkController.linkAndSync';
@@ -13,6 +14,7 @@ const POLL_MS = 2500;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
+    labels = T;
     logoUrl = VELEIRO_LOGO;
     mascotUrl = VELEIRO_MASCOT;
 
@@ -91,9 +93,9 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
                 linking,
                 rowClass: `vl-row${picked ? ' vl-row-picked' : ''}${sent ? ' vl-row-sent' : ''}`,
                 matchLine: linking
-                    ? `Se vinculará a “${c.matchName}” en vez de crear uno nuevo`
-                    : `Puede que ya exista en Veleiro: “${c.matchName}” — ${c.matchReason}`,
-                matchBtnLabel: linking ? 'No, crear uno nuevo' : 'Vincular con ese',
+                    ? fmt(T.willLinkTo, [c.matchName])
+                    : fmt(T.mayExist, [c.matchName, c.matchReason]),
+                matchBtnLabel: linking ? T.createNewAnyway : T.linkToThat,
                 matchClass: linking ? 'vl-dup vl-dup-on' : 'vl-dup'
             };
         });
@@ -134,11 +136,7 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
         if (event.target.checked) {
             if (next.size >= this.maxPerBatch) {
                 event.target.checked = false;
-                this.toast(
-                    'Tope por tanda',
-                    `Puedes enviar ${this.maxPerBatch} a la vez. Manda esta tanda y sigue con la siguiente.`,
-                    'warning'
-                );
+                this.toast(T.batchCap, fmt(T.batchCapMsg, [this.maxPerBatch]), 'warning');
                 return;
             }
             next.add(id);
@@ -182,7 +180,7 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
             this.progress = { total: res.queued, sent: 0, running: true };
             this.sending = res.queued > 0;
             if (res.skipped) {
-                this.toast('Algunos ya estaban', `${res.skipped} ya tenían vínculo y no se mandaron.`, 'info');
+                this.toast(T.someWereLinked, fmt(T.someWereLinkedMsg, [res.skipped]), 'info');
             }
             if (this.sending) this.startPolling();
         } catch (e) {
@@ -227,14 +225,14 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
         const failed = p.total - p.sent;
         if (failed > 0) {
             this.toast(
-                `${p.sent} de ${p.total} llegaron a Veleiro`,
-                `${failed} no pudieron: ${p.lastError || 'revisa el último error en Veleiro Mappings'}`,
+                fmt(T.nOfMArrived, [p.sent, p.total]),
+                fmt(T.nFailed, [failed, p.lastError || T.checkLastError]),
                 'warning'
             );
         } else {
             this.toast(
-                `${p.sent} ${p.sent === 1 ? 'registro' : 'registros'} en Veleiro`,
-                'Ya quedaron creados y vinculados.',
+                fmt(p.sent === 1 ? T.oneNowInVeleiro : T.nowInVeleiro, [p.sent]),
+                T.nowInVeleiroMsg,
                 'success'
             );
         }
@@ -255,8 +253,7 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
 
     get sendLabel() {
         const n = this.selected.size;
-        if (!n) return 'Enviar a Veleiro';
-        return `Enviar ${n} a Veleiro`;
+        return n ? fmt(T.sendNToVeleiro, [n]) : T.sendToVeleiro;
     }
 
     get allVisibleSelected() {
@@ -265,18 +262,18 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
     }
 
     get selectAllLabel() {
-        if (this.allVisibleSelected) return 'Quitar la selección';
+        if (this.allVisibleSelected) return T.clearSelection;
         const n = Math.min(this.candidates.filter((c) => !c.sent).length, this.maxPerBatch);
-        return `Seleccionar ${n}`;
+        return fmt(T.selectN, [n]);
     }
 
     get selectionLabel() {
         const total = (this.overview && this.overview.recordsUnlinked) || 0;
         const shown = this.candidates.length;
         const base = this.searching
-            ? `${shown} ${shown === 1 ? 'resultado' : 'resultados'}`
-            : `${shown} de ${total} sin enviar`;
-        return this.selected.size ? `${base} · ${this.selected.size} elegidos` : base;
+            ? (shown === 1 ? T.oneResult : fmt(T.nResults, [shown]))
+            : fmt(T.shownOfUnsent, [shown, total]);
+        return this.selected.size ? `${base} · ${fmt(T.nChosen, [this.selected.size])}` : base;
     }
 
     get moreThanShown() {
@@ -285,7 +282,7 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
 
     get progressLabel() {
         if (!this.progress) return '';
-        return `Enviando a Veleiro… ${this.progress.sent} de ${this.progress.total}`;
+        return fmt(T.sendingProgress, [this.progress.sent, this.progress.total]);
     }
 
     get progressPercent() {
@@ -298,11 +295,9 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
     }
 
     get sendEmptyMessage() {
-        if (this.searching) return `Ningún ${this.recordColumnLabel} sin vincular coincide con “${this.sendTerm}”.`;
-        if (this.overview && this.overview.truncated) {
-            return 'Esta org tiene demasiados registros para listarlos aquí. Usa el buscador para mandarlos por tandas.';
-        }
-        return `Todos tus registros de ${this.recordColumnLabel} ya están en Veleiro. No queda nada por enviar.`;
+        if (this.searching) return fmt(T.noMatchFor, [this.recordColumnLabel, this.sendTerm]);
+        if (this.overview && this.overview.truncated) return T.tooManyToList;
+        return fmt(T.allAlreadyThere, [this.recordColumnLabel]);
     }
 
     // ================= modos =================
@@ -329,20 +324,20 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
 
     get sendModeSub() {
         const n = (this.overview && this.overview.recordsUnlinked) || 0;
-        if (!n) return 'Nada pendiente';
-        return `${n} ${this.recordColumnLabel} sin enviar`;
+        return n ? fmt(T.nUnsent, [n, this.recordColumnLabel]) : T.nothingPending;
     }
 
     get matchModeSub() {
         const n = (this.overview && this.overview.veleiroUnlinked) || 0;
-        if (!n) return 'Nada por emparejar';
-        return `${n} en Veleiro por vincular`;
+        return n ? fmt(T.nInVeleiroToLink, [n]) : T.nothingToMatch;
     }
 
     get subtitle() {
-        return this.isSend
-            ? 'Elige los registros de Salesforce que quieres crear en Veleiro. Si alguno ya existe allá, te lo advertimos antes de duplicarlo.'
-            : 'Para lo que ya existía en los dos lados. Cada registro de Veleiro muestra el de Salesforce que creemos que es — confírmalo o busca otro.';
+        return this.isSend ? T.linkSubSend : T.linkSubMatch;
+    }
+
+    get statWithoutLinkLabel() {
+        return fmt(T.statWithoutLink, [this.recordColumnLabel]);
     }
 
     // ================= modo Emparejar (igual que antes) =================
@@ -358,11 +353,11 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
         const alternatives = options.filter((o) => o.recordId !== selectedId);
         let note;
         if (selectedId) {
-            note = chosen ? `${chosen.name} — ${chosen.reason}` : 'Registro elegido';
+            note = chosen ? `${chosen.name} — ${chosen.reason}` : T.recordChosen;
         } else if (options.length) {
-            note = 'No estamos seguros — elige uno si encaja';
+            note = T.notSureAbout;
         } else {
-            note = 'Sin sugerencia — escribe un nombre para buscar';
+            note = T.noSuggestion;
         }
         return {
             chosen: !!selectedId,
@@ -444,12 +439,10 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
             const [sobjectName, entity] = this.pairValue.split('|');
             const args = { sobjectName, entity, pairsJson: JSON.stringify(pairs) };
             const res = push ? await linkAndSync(args) : await linkAll(args);
-            const skipped = res.skipped ? ` ${res.skipped} se saltaron: ya estaban vinculados.` : '';
-            const message = res.syncing
-                ? `Sus campos mapeados se están enviando a Veleiro en segundo plano.${skipped}`
-                : `Sincronízalos cuando quieras que Veleiro cargue también los campos mapeados.${skipped}`;
+            const skipped = res.skipped ? fmt(T.nSkippedLinked, [res.skipped]) : '';
+            const message = (res.syncing ? T.linkedSyncing : T.linkedNotSyncing) + skipped;
             this.toast(
-                `${res.linked} ${res.linked === 1 ? 'registro' : 'registros'} vinculados`,
+                fmt(res.linked === 1 ? T.oneLinked : T.nLinked, [res.linked]),
                 message,
                 res.linked ? 'success' : 'warning'
             );
@@ -500,11 +493,11 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
     }
 
     get recordColumnLabel() {
-        return this.overview && this.overview.sobjectLabel ? this.overview.sobjectLabel : 'registro';
+        return this.overview && this.overview.sobjectLabel ? this.overview.sobjectLabel : T.salesforceRecord;
     }
 
     get veleiroColumnLabel() {
-        return this.overview && this.overview.entity === 'project' ? 'Veleiro project' : 'Veleiro client';
+        return this.overview && this.overview.entity === 'project' ? T.veleiroProject : T.veleiroClient;
     }
 
     get matchSelectedCount() {
@@ -512,11 +505,11 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
     }
 
     get linkLabel() {
-        return `Solo vincular ${this.matchSelectedCount}`;
+        return fmt(T.linkOnlyN, [this.matchSelectedCount]);
     }
 
     get linkAndSyncLabel() {
-        return `Vincular y sincronizar ${this.matchSelectedCount}`;
+        return fmt(T.linkAndSyncN, [this.matchSelectedCount]);
     }
 
     get nothingToLink() {
@@ -525,13 +518,9 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
 
     get matchEmptyMessage() {
         if (!this.overview) return '';
-        if (this.overview.truncated) {
-            return 'Esta org tiene demasiados registros para emparejarlos aquí. Hazlo con Data Loader.';
-        }
-        if (this.overview.veleiroUnlinked === 0) {
-            return 'Todo lo que hay en Veleiro ya está vinculado para este par. Si lo que quieres es llevar registros de Salesforce a Veleiro, usa “Enviar a Veleiro”.';
-        }
-        return 'Nada que mostrar para este par.';
+        if (this.overview.truncated) return T.tooManyToMatch;
+        if (this.overview.veleiroUnlinked === 0) return T.everythingLinked;
+        return T.nothingForPair;
     }
 
     handleOpenMappings() {
@@ -556,7 +545,7 @@ export default class VeleiroLinkHome extends NavigationMixin(LightningElement) {
     }
 
     toastError(e) {
-        const msg = e && e.body && e.body.message ? e.body.message : 'No pudimos hablar con Veleiro';
-        this.dispatchEvent(new ShowToastEvent({ title: 'Error de Veleiro', message: msg, variant: 'error' }));
+        const msg = e && e.body && e.body.message ? e.body.message : T.cantReachVeleiro;
+        this.dispatchEvent(new ShowToastEvent({ title: T.veleiroError, message: msg, variant: 'error' }));
     }
 }

@@ -2,6 +2,7 @@ import { LightningElement } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { LOGO as VELEIRO_LOGO, MASCOT as VELEIRO_MASCOT } from 'c/veleiroBrand';
+import { T, fmt } from 'c/veleiroI18n';
 import getState from '@salesforce/apex/VeleiroOnboardingController.getState';
 import skipStep from '@salesforce/apex/VeleiroOnboardingController.skipStep';
 import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
@@ -15,14 +16,8 @@ const SETUP_PAGES = {
     team: '/lightning/setup/PermSets/home'
 };
 
-const VELLY = {
-    start: 'Arranquemos. Son unos pasos y queda listo para siempre.',
-    going: 'Vas bien. El siguiente es de un minuto.',
-    almost: 'Ya casi. Falta uno y cerramos.',
-    done: 'Todo listo ⛵ De aquí en adelante yo me encargo.'
-};
-
 export default class VeleiroOnboarding extends NavigationMixin(LightningElement) {
+    labels = T;
     logoUrl = VELEIRO_LOGO;
     mascotUrl = VELEIRO_MASCOT;
 
@@ -65,7 +60,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
             this.environment = (state.environment || '').includes('beta') ? 'Beta' : 'Production';
             this.decorate();
         } catch (e) {
-            this.error = this.messageOf(e, 'No pude leer el estado del setup.');
+            this.error = this.messageOf(e, T.setupReadError);
         } finally {
             this.loading = false;
         }
@@ -88,7 +83,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
                 isToken: s.inline === 'token',
                 isConfig: s.inline === 'config',
                 canSkip: s.optional && !done,
-                skipLabel: skipped ? 'Retomar este paso' : 'No aplica, saltar',
+                skipLabel: skipped ? T.unskipStep : T.skipStep,
                 skipNext: !skipped,
                 pillLabel: this.pillLabel(s.state),
                 pillClass: `vo-pill vo-pill-${s.state}`,
@@ -104,10 +99,10 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
     }
 
     pillLabel(state) {
-        if (state === 'done') return 'Listo';
-        if (state === 'skipped') return 'No aplica';
-        if (state === 'unknown') return 'Sin verificar';
-        return 'Pendiente';
+        if (state === 'done') return T.pillDone;
+        if (state === 'skipped') return T.pillSkipped;
+        if (state === 'unknown') return T.pillUnknown;
+        return T.pillTodo;
     }
 
     // ---- interaccion ----
@@ -149,7 +144,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
             this._openKey = undefined;
             await this.load(false);
         } catch (e) {
-            this.toast('No se pudo guardar', this.messageOf(e, 'Intenta de nuevo.'), 'error');
+            this.toast(T.couldNotSave, this.messageOf(e, T.tryAgain), 'error');
         }
     }
 
@@ -160,7 +155,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
 
     async handleSaveToken() {
         if (!this.tokenInput) {
-            this.toast('Falta el token', 'Pégalo tal como aparece en Veleiro.', 'warning');
+            this.toast(T.tokenMissing, T.tokenMissingMsg, 'warning');
             return;
         }
         this.saving = true;
@@ -171,12 +166,12 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
             await this.load(true);                     // verifica de verdad contra la API
             const conn = (this.state.steps || []).find((s) => s.key === 'connection');
             if (conn && conn.state === 'done') {
-                this.toast('Conectado', 'Salesforce ya habla con Veleiro.', 'success');
+                this.toast(T.connected, T.connectedMsg, 'success');
             } else {
-                this.toast('Token guardado, pero sin conexión', conn ? conn.evidence : '', 'warning');
+                this.toast(T.tokenNoConnection, conn ? conn.evidence : '', 'warning');
             }
         } catch (e) {
-            this.toast('No se pudo guardar el token', this.messageOf(e, ''), 'error');
+            this.toast(T.couldNotSaveToken, this.messageOf(e, ''), 'error');
         } finally {
             this.saving = false;
         }
@@ -196,9 +191,9 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
             });
             this._openKey = undefined;
             await this.load(false);
-            this.toast('Configuración guardada', 'Así va a sincronizar el kit.', 'success');
+            this.toast(T.configSaved, T.configSavedMsg, 'success');
         } catch (e) {
-            this.toast('No se pudo guardar', this.messageOf(e, ''), 'error');
+            this.toast(T.couldNotSave, this.messageOf(e, ''), 'error');
         } finally {
             this.saving = false;
         }
@@ -220,28 +215,24 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
 
     get progressLabel() {
         if (!this.state) return '';
-        return `${this.state.done} de ${this.state.total} pasos`;
+        return fmt(T.stepsOf, [this.state.done, this.state.total]);
     }
 
     get complete() { return !!(this.state && this.state.complete); }
     get showHealth() { return this.complete && !this.loading; }
     get showSteps() { return !this.loading && !this.error && (!this.complete || this.showStepsAnyway); }
-    get stepsToggleLabel() { return this.showStepsAnyway ? 'Ocultar los pasos' : 'Ver los pasos'; }
+    get stepsToggleLabel() { return this.showStepsAnyway ? T.hideSteps : T.showSteps; }
 
-    get heroTitle() { return this.complete ? 'Veleiro está listo' : 'Pon a andar Veleiro'; }
+    get heroTitle() { return this.complete ? T.setupTitleDone : T.setupTitle; }
 
-    get heroSub() {
-        return this.complete
-            ? 'Tu Salesforce y tu entrega en Veleiro ya están conectados.'
-            : 'Conecta, mapea y sincroniza. Cada paso se marca solo cuando de verdad quedó hecho.';
-    }
+    get heroSub() { return this.complete ? T.setupSubDone : T.setupSub; }
 
     get vellyLine() {
-        if (!this.state) return VELLY.start;
+        if (!this.state) return T.vellyStart;
         const left = this.state.total - this.state.done;
-        if (left === 0) return VELLY.done;
-        if (left === 1) return VELLY.almost;
-        return this.state.done === 0 ? VELLY.start : VELLY.going;
+        if (left === 0) return T.vellyDone;
+        if (left === 1) return T.vellyAlmost;
+        return this.state.done === 0 ? T.vellyStart : T.vellyGoing;
     }
 
     get connectionClass() {
@@ -250,7 +241,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
 
     get environmentLabel() {
         if (!this.state || !this.state.environment) return '';
-        return this.state.environment.includes('beta') ? 'Beta' : 'Producción';
+        return this.state.environment.includes('beta') ? T.beta : T.production;
     }
 
     get hasLastError() { return !!(this.state && this.state.lastError); }
@@ -262,23 +253,23 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
 
     get environmentOptions() {
         return [
-            { label: 'Production — app.veleiro.ai', value: 'Production' },
-            { label: 'Beta — solo para pruebas', value: 'Beta' }
+            { label: T.envProduction, value: 'Production' },
+            { label: T.envBeta, value: 'Beta' }
         ];
     }
 
     get directionOptions() {
         return [
-            { label: 'Salesforce ⇄ Veleiro (las dos)', value: 'bidirectional' },
-            { label: 'Salesforce → Veleiro', value: 'sf_to_veleiro' },
-            { label: 'Veleiro → Salesforce', value: 'veleiro_to_sf' }
+            { label: T.dirBoth, value: 'bidirectional' },
+            { label: T.dirSfToVeleiro, value: 'sf_to_veleiro' },
+            { label: T.dirVeleiroToSf, value: 'veleiro_to_sf' }
         ];
     }
 
     get triggerOptions() {
         return [
-            { label: 'Manual — solo cuando doy clic en Sync', value: 'manual' },
-            { label: 'Automático — al crear el registro', value: 'auto' }
+            { label: T.trigManual, value: 'manual' },
+            { label: T.trigAuto, value: 'auto' }
         ];
     }
 

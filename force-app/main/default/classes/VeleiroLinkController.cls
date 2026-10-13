@@ -404,14 +404,12 @@ public with sharing class VeleiroLinkController {
     public static SendResult sendToVeleiro(String sobjectName, String entity, String rowsJson) {
         SendResult out = new SendResult();
         if (!VeleiroSyncConfig.pushEnabled()) {
-            throw new VeleiroApiClient.VeleiroApiException(
-                'La direccion configurada es "Veleiro -> Salesforce", asi que Salesforce no puede'
-                + ' crear nada en Veleiro. Cambiala en Veleiro Mappings para poder enviar.');
+            throw new VeleiroApiClient.VeleiroApiException(VeleiroI18n.t('err.pushDisabled'));
         }
         if (String.isBlank(sobjectName) || String.isBlank(entity)) return out;
         if (!VeleiroSyncService.hasMappings(sobjectName, entity)) {
             throw new VeleiroApiClient.VeleiroApiException(
-                'No hay mapeo de ' + sobjectName + ' -> ' + entity + '. Configuralo en Veleiro Mappings.');
+                VeleiroI18n.t('err.noMapping', new List<Object>{ sobjectName, entity }));
         }
 
         Set<Id> alreadyLinked = VeleiroLinkStore.linkedRecords(sobjectName, entity);
@@ -435,8 +433,7 @@ public with sharing class VeleiroLinkController {
 
         if (toSend.size() > maxPerBatch) {
             throw new VeleiroApiClient.VeleiroApiException(
-                'Son ' + toSend.size() + ' registros y el maximo por tanda es ' + maxPerBatch
-                + '. Manda una tanda, espera a que termine y sigue con la siguiente.');
+                VeleiroI18n.t('err.batchTooBig', new List<Object>{ toSend.size(), maxPerBatch }));
         }
         if (toSend.isEmpty()) return out;
 

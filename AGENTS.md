@@ -40,6 +40,7 @@ Two businesses, one link:
 | `classes/VeleiroMappingController.cls` | Backend for the interactive mapping **builder**: `getObjects`/`getFields` (pickers), `getMappingsFor`, `defaultTemplate` (auto-fill known pairs), `saveMappings`, `getMappings`. Maps any object → `client`/`project`. |
 | `classes/VeleiroSeed.cls` | `seed()` — inserts the 6 default field mappings (idempotent). |
 | `classes/VeleiroApiMock.cls` | `@isTest` HttpCalloutMock + `seedConfig()`. Use it in new tests. |
+| `classes/VeleiroI18n.cls` / `lwc/veleiroI18n` | Every user-facing string in es / pt / en, one dictionary per language, English as the per-key fallback. Apex reads `UserInfo.getLanguage()`, LWC reads `@salesforce/i18n/lang`. Add a string to all three dictionaries or it silently shows in English. |
 | `lwc/veleiroPanel` / `veleiroOppPanel` | Branded panel on Account / Opportunity record pages (sync + status + "Open in Veleiro"; the Opp one shows live progress). |
 | `lwc/veleiroDashboard` / `veleiroBriefing` / `veleiroInsight` | Home dashboard, Velly briefing + queues, Account insight strip. |
 | `lwc/veleiroMappingHome` | Field-mapping console (grouped by object). |

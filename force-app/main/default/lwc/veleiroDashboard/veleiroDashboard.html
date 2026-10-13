@@ -3,17 +3,17 @@
         <!-- Encabezado: una sola línea de título, los KPIs van juntos abajo -->
         <div class="veleiro-head">
             <div>
-                <h1 class="veleiro-h1">Delivery overview</h1>
-                <p class="veleiro-sub">Your clients &amp; projects, live from Veleiro</p>
+                <h1 class="veleiro-h1">{labels.dashTitle}</h1>
+                <p class="veleiro-sub">{labels.dashSub}</p>
             </div>
-            <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh"
-                title="Refresh" variant="border-filled" onclick={handleRefresh}
+            <lightning-button-icon icon-name="utility:refresh" alternative-text={labels.refresh}
+                title={labels.refresh} variant="border-filled" onclick={handleRefresh}
                 class="veleiro-refresh"></lightning-button-icon>
         </div>
 
         <template if:true={loading}>
             <div class="veleiro-loading">
-                <lightning-spinner alternative-text="Loading Veleiro data..." size="small"></lightning-spinner>
+                <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
             </div>
         </template>
 
@@ -26,23 +26,23 @@
             <div class="veleiro-kpis">
                 <div class="veleiro-kpi">
                     <span class="veleiro-kpi-num">{overview.clientCount}</span>
-                    <span class="veleiro-kpi-lbl">Clients</span>
+                    <span class="veleiro-kpi-lbl">{labels.kpiClients}</span>
                 </div>
                 <div class="veleiro-kpi">
                     <span class="veleiro-kpi-num">{overview.projectCount}</span>
-                    <span class="veleiro-kpi-lbl">Projects</span>
+                    <span class="veleiro-kpi-lbl">{labels.kpiProjects}</span>
                 </div>
                 <div class="veleiro-kpi">
                     <span class="veleiro-kpi-num">{overview.openProjectCount}</span>
-                    <span class="veleiro-kpi-lbl">Open</span>
+                    <span class="veleiro-kpi-lbl">{labels.kpiOpen}</span>
                 </div>
                 <div class="veleiro-kpi">
                     <span class="veleiro-kpi-num">{overview.completedProjectCount}</span>
-                    <span class="veleiro-kpi-lbl">Completed</span>
+                    <span class="veleiro-kpi-lbl">{labels.kpiCompleted}</span>
                 </div>
                 <div class="veleiro-kpi veleiro-kpi-accent">
                     <span class="veleiro-kpi-num">{overview.avgProgress}%</span>
-                    <span class="veleiro-kpi-lbl">Avg. completion</span>
+                    <span class="veleiro-kpi-lbl">{labels.kpiAvg}</span>
                 </div>
             </div>
         </template>
@@ -51,7 +51,7 @@
         <template if:true={isEmpty}>
             <div class="veleiro-empty">
                 <img src={mascotUrl} alt="Velly" class="veleiro-mascot-lg" />
-                <p>No clients or projects in Veleiro yet.</p>
+                <p>{labels.dashEmpty}</p>
             </div>
         </template>
 
@@ -60,7 +60,7 @@
             <div class="veleiro-toolbar">
                 <span class="veleiro-toolbar-count">{countLabel}</span>
                 <div class="veleiro-toolbar-controls">
-                    <lightning-input type="search" variant="label-hidden" placeholder="Find a client"
+                    <lightning-input type="search" variant="label-hidden" placeholder={labels.findClient}
                         value={search} onchange={handleSearch} oninput={handleSearch}
                         class="veleiro-toolbar-search"></lightning-input>
                     <lightning-combobox variant="label-hidden" options={sortOptions} value={sortBy}
@@ -69,7 +69,7 @@
             </div>
 
             <template if:true={noMatches}>
-                <p class="veleiro-nomatch">No client matches “{search}”.</p>
+                <p class="veleiro-nomatch">{noMatchesLine}</p>
             </template>
 
             <div class={listClass}>
@@ -94,7 +94,7 @@
                             <div class="veleiro-proj-head">
                                 <span class="veleiro-proj-count">{c.countLabel}</span>
                                 <a href={c.url} target="_blank" rel="noopener" class="veleiro-openlink">
-                                    Open client in Veleiro &#8599;
+                                    {labels.openClientInVeleiro} &#8599;
                                 </a>
                             </div>
                             <template for:each={c.projects} for:item="p">
@@ -113,7 +113,7 @@
                             </template>
                             <template if:true={c.hasHiddenProjects}>
                                 <a href={c.url} target="_blank" rel="noopener" class="veleiro-openlink">
-                                    + {c.hiddenProjects} more in Veleiro &#8599;
+                                    {c.hiddenProjects} &#8599;
                                 </a>
                             </template>
                         </div>
