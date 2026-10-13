@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Arreglo: mapeos en blanco y theme del cliente",
-      "versionNumber": "1.4.0.NEXT",
+      "versionName": "Pantallas a todo lo ancho y controles redondos",
+      "versionNumber": "1.5.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Corrige la lista de mapeos que salia en blanco dentro del paquete administrado y hace que el kit pinte su propia superficie, para que un theme personalizado de la org no lo deje ilegible.",
+      "versionDescription": "Veleiro Setup y Veleiro Link usan todo el ancho de la pantalla, y los pickers, inputs y botones toman forma de pildora via styling hooks de SLDS.",
       "ancestorVersion": "HIGHEST"
     }
   ],
