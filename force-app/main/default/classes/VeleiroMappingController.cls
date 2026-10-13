@@ -222,11 +222,12 @@ public with sharing class VeleiroMappingController {
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
         }
+        // El nombre de la credencial lleva el prefijo del namespace dentro del paquete administrado.
         if (environment == 'Beta') {
-            c.Base_Url__c = 'callout:Veleiro_API_Beta/api/v1';
+            c.Base_Url__c = VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_BETA) + '/api/v1';
             c.App_Base_Url__c = 'https://app.beta.veleiro.dev';
         } else { // Production (default)
-            c.Base_Url__c = 'callout:Veleiro_API/api/v1';
+            c.Base_Url__c = VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_PROD) + '/api/v1';
             c.App_Base_Url__c = 'https://app.veleiro.ai';
         }
         upsert c;

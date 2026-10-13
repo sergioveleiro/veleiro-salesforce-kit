@@ -80,7 +80,13 @@ public with sharing class VeleiroSyncConfig {
      * namespace son 2 partes ('Veleiro_Field_Mapping', 'c'), con namespace son 3. Lo usan las
      * pantallas que navegan a otra pestaña, porque las pestañas tambien llevan prefijo.
      */
+    // Costura para los tests: sin namespace el bug del prefijo es INVISIBLE, porque aqui siempre
+    // sale vacio. Simularlo es la unica forma de probar en el codigo fuente lo que solo falla
+    // dentro del paquete administrado.
+    @TestVisible private static String namespaceOverride;
+
     public static String namespacePrefix() {
+        if (namespaceOverride != null) return namespaceOverride;
         List<String> parts = String.valueOf(Veleiro_Field_Mapping__c.SObjectType).split('__');
         return parts.size() >= 3 ? parts[0] + '__' : '';
     }

@@ -117,4 +117,45 @@ private class VeleiroApiClientTest {
             return res;
         }
     }
+
+    /**
+     * Dentro del paquete administrado la Named Credential se llama veleiro__Veleiro_API. Un
+     * 'callout:Veleiro_API' pelado truena con "the named credential might not exist", y eso le
+     * paso a un cliente con el paquete instalado: el kit nunca pudo llamar a Veleiro.
+     *
+     * Sin namespace el prefijo sale vacio y el bug es invisible, por eso se simula.
+     */
+    @isTest
+    static void theCalloutCarriesTheNamespaceOfTheManagedPackage() {
+        VeleiroSyncConfig.namespaceOverride = '';
+        System.assertEquals('callout:Veleiro_API', VeleiroApiClient.calloutTo('Veleiro_API'),
+            'desplegado del codigo fuente no lleva prefijo');
+        System.assertEquals('callout:Veleiro_API/api/v1', VeleiroApiClient.defaultBase());
+
+        VeleiroSyncConfig.namespaceOverride = 'veleiro__';
+        System.assertEquals('callout:veleiro__Veleiro_API', VeleiroApiClient.calloutTo('Veleiro_API'),
+            'dentro del paquete, con prefijo o no resuelve');
+        System.assertEquals('callout:veleiro__Veleiro_API/api/v1', VeleiroApiClient.defaultBase());
+        System.assertEquals('callout:veleiro__Veleiro_API_Beta',
+            VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_BETA));
+    }
+
+    // Hay orgs que ya tienen guardada la base sin prefijo: se repara al vuelo, sin pedirles nada.
+    @isTest
+    static void anOldBaseUrlWithoutTheNamespaceIsHealedOnTheFly() {
+        VeleiroSyncConfig.namespaceOverride = 'veleiro__';
+        System.assertEquals('callout:veleiro__Veleiro_API/api/v1',
+            VeleiroApiClient.withNamespace('callout:Veleiro_API/api/v1'));
+        System.assertEquals('callout:veleiro__Veleiro_API/api/v1',
+            VeleiroApiClient.withNamespace('callout:veleiro__Veleiro_API/api/v1'),
+            'si ya lo trae, no se le pone dos veces');
+        System.assertEquals('https://app.veleiro.ai/api/v1',
+            VeleiroApiClient.withNamespace('https://app.veleiro.ai/api/v1'),
+            'una URL cruda no se toca');
+
+        VeleiroSyncConfig.namespaceOverride = '';
+        System.assertEquals('callout:Veleiro_API/api/v1',
+            VeleiroApiClient.withNamespace('callout:Veleiro_API/api/v1'),
+            'sin namespace se queda igual');
+    }
 }
