@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Arreglo: la credencial lleva el namespace",
-      "versionNumber": "1.3.0.NEXT",
+      "versionName": "Arreglo: mapeos en blanco y theme del cliente",
+      "versionNumber": "1.4.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Corrige el callout a Veleiro dentro del paquete administrado (la Named Credential es veleiro__Veleiro_API). Incluye la pestana Veleiro Setup, Veleiro Link en dos direcciones y la interfaz en el idioma del usuario (es/pt/en).",
+      "versionDescription": "Corrige la lista de mapeos que salia en blanco dentro del paquete administrado y hace que el kit pinte su propia superficie, para que un theme personalizado de la org no lo deje ilegible.",
       "ancestorVersion": "HIGHEST"
     }
   ],
