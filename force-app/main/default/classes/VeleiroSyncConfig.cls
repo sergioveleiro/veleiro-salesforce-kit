@@ -17,6 +17,10 @@ public with sharing class VeleiroSyncConfig {
     public static final String FREQ_OFF    = 'off';
     public static final String FREQ_HOURLY = 'hourly';
     public static final String FREQ_DAILY  = 'daily';
+    // Momento en que nace el project de una Opportunity (con el trigger global en auto).
+    public static final String OPP_CREATE = 'create';   // al crear la oportunidad
+    public static final String OPP_WON    = 'won';      // solo cuando se gana
+    public static final String OPP_MANUAL = 'manual';   // nunca sola: solo con el boton
     public static final String TRIG_AUTO   = 'auto';    // sincroniza al crear el registro
     public static final String TRIG_MANUAL = 'manual';  // solo cuando el usuario da clic al boton
     public static final String JOB_NAME    = 'Veleiro Pull Job';
@@ -49,7 +53,20 @@ public with sharing class VeleiroSyncConfig {
     // Interruptores por par: con el trigger global en 'auto', cada uno decide si ese par
     // se sincroniza solo. Sin config guardada, ambos vienen encendidos (checkbox default true).
     public static Boolean autoSyncAccount() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
-    public static Boolean autoSyncOpportunity() { return autoSyncOnCreate() && flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
+    public static Boolean autoSyncOpportunity() { return autoSyncOnCreate() && opportunitySyncMode() != OPP_MANUAL; }
+
+    /**
+     * Cuando nace el project: al crear la Opportunity, solo al ganarla, o nunca sola.
+     *
+     * El campo nuevo manda; en blanco se deduce del checkbox Auto_Sync_Opportunity__c, que es
+     * como se configuraba antes. Asi una org que ya tenia el checkbox encendido sigue creando
+     * el project al crear la oportunidad, sin que nadie tenga que volver a configurar nada.
+     */
+    public static String opportunitySyncMode() {
+        String m = str(cfg() != null ? cfg().Opportunity_Sync_Mode__c : null);
+        if (m == OPP_CREATE || m == OPP_WON || m == OPP_MANUAL) return m;
+        return flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null) ? OPP_CREATE : OPP_MANUAL;
+    }
 
     // El pull solo pisa Account.Name si el cliente lo enciende a proposito.
     public static Boolean pullWritesName() { return cfg() != null && cfg().Pull_Writes_Name__c == true; }
@@ -106,6 +123,14 @@ public with sharing class VeleiroSyncConfig {
 
     public static void save(String direction, String winner, String frequency, String triggerMode,
                             Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName) {
+        // Sin modo explicito se respeta el que ya este guardado (o el que deduce el checkbox).
+        save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity, pullWritesName,
+             autoOpportunity == false ? OPP_MANUAL : opportunitySyncMode());
+    }
+
+    public static void save(String direction, String winner, String frequency, String triggerMode,
+                            Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName,
+                            String opportunityMode) {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
@@ -115,7 +140,10 @@ public with sharing class VeleiroSyncConfig {
         c.Pull_Frequency__c = normalizeFreq(frequency);
         c.Sync_Trigger__c = normalizeTrigger(triggerMode);
         c.Auto_Sync_Account__c = flag(autoAccount);
-        c.Auto_Sync_Opportunity__c = flag(autoOpportunity);
+        String mode = normalizeOppMode(opportunityMode);
+        c.Opportunity_Sync_Mode__c = mode;
+        // El checkbox se mantiene en sintonia: hay orgs con la version anterior leyendolo.
+        c.Auto_Sync_Opportunity__c = (mode != OPP_MANUAL);
         c.Pull_Writes_Name__c = pullWritesName == true; // por defecto NO se pisa el nombre
         upsert c;
         reschedule(c.Pull_Frequency__c);
@@ -144,6 +172,11 @@ public with sharing class VeleiroSyncConfig {
         String v = str(f);
         if (v == FREQ_HOURLY || v == FREQ_DAILY) return v;
         return FREQ_OFF;
+    }
+    private static String normalizeOppMode(String m) {
+        String v = str(m);
+        if (v == OPP_WON || v == OPP_MANUAL) return v;
+        return OPP_CREATE;
     }
     private static String normalizeTrigger(String tm) {
         return str(tm) == TRIG_AUTO ? TRIG_AUTO : TRIG_MANUAL;

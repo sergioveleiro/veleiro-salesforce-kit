@@ -622,6 +622,22 @@ public with sharing class VeleiroSyncService {
         // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
         if (!VeleiroSyncConfig.autoSyncOpportunity()) return;
         if (VeleiroAutoSyncGuard.tooManyForAutoSync(opportunityIds, 'opportunities')) return;
+
+        /*
+         * En modo 'won' el project nace cuando se gana el trato, no al abrir la oportunidad.
+         * El filtro vive aqui y no en los flows a proposito: los dos flows de Opportunity
+         * llaman a este mismo invocable, y tocar un flow obliga a subir el activeVersionNumber
+         * de su flowDefinition en cada org que ya lo tenga activo. Se filtra por IsWon, no por
+         * el nombre de la etapa, porque un cliente puede llamarle distinto a "Closed Won".
+         */
+        if (VeleiroSyncConfig.opportunitySyncMode() == VeleiroSyncConfig.OPP_WON) {
+            Set<Id> won = new Set<Id>();
+            for (Opportunity o : [SELECT Id FROM Opportunity WHERE Id IN :opportunityIds AND IsWon = true]) {
+                won.add(o.Id);
+            }
+            if (won.isEmpty()) return;
+            opportunityIds = new List<Id>(won);
+        }
         // Si el Account se creo en la misma operacion (conversion de Lead), su propio auto-sync
         // esta creando el client: esperamos a ese en vez de crear un duplicado.
         Set<Id> waiting = VeleiroOppSyncQueueable.waitingForAccountSync(opportunityIds);

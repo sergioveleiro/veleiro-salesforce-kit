@@ -155,13 +155,14 @@ private class VeleiroMappingControllerTest {
         Test.startTest();
         VeleiroMappingController.saveToken('vlr_test');
         Map<String, String> st = VeleiroMappingController.getStatus();
-        VeleiroMappingController.saveSyncConfig('bidirectional', 'salesforce', 'off', 'manual', true, false, false);
+        VeleiroMappingController.saveSyncConfig('bidirectional', 'salesforce', 'off', 'manual', true, false, false, 'manual');
         Map<String, String> cfg = VeleiroMappingController.getSyncConfig();
         Test.stopTest();
 
         System.assertEquals('true', st.get('tokenSet'), 'token guardado');
         System.assert(st.containsKey('connected'), 'getStatus evalua la conexion');
         System.assertEquals('bidirectional', cfg.get('direction'));
+        System.assertEquals('manual', cfg.get('opportunityMode'), 'el panel necesita el momento elegido');
     }
 
     @isTest

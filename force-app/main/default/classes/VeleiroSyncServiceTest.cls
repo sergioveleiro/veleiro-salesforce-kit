@@ -292,4 +292,65 @@ private class VeleiroSyncServiceTest {
 
         System.assertEquals(null, mock.lastPostBody, 'Account en manual -> no se crea el client');
     }
+
+    /**
+     * El caso que pide un partner que vende primero y entrega despues: la oportunidad vive su
+     * ciclo en Salesforce y el project nace cuando el trato se gana, no al abrirla.
+     *
+     * Los dos flows de Opportunity llaman al mismo invocable, asi que el filtro tiene que estar
+     * aqui: en modo 'won' la creacion pasa de largo y el paso a ganada si sincroniza.
+     */
+    @isTest
+    static void inWonModeTheProjectIsBornWhenTheDealIsWon() {
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false,
+                               VeleiroSyncConfig.OPP_WON);
+        Account a = newAccount('org_test');
+        Opportunity open = newOpp(a.Id, null);
+        VeleiroApiMock mock = new VeleiroApiMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroSyncService.syncOpportunitiesInvocable(new List<Id>{ open.Id });
+        Test.stopTest();
+
+        System.assertEquals(null, mock.lastPostBody, 'abierta todavia: el project no nace aqui');
+        System.assertEquals(null,
+            [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :open.Id].Veleiro_Project_Id__c);
+    }
+
+    @isTest
+    static void inWonModeAWonOpportunityDoesSync() {
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false,
+                               VeleiroSyncConfig.OPP_WON);
+        Account a = newAccount('org_test');
+        Opportunity won = newOpp(a.Id, null);
+        won.StageName = 'Closed Won';
+        update won;
+        Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+
+        Test.startTest();
+        VeleiroSyncService.syncOpportunitiesInvocable(new List<Id>{ won.Id });
+        Test.stopTest();
+
+        System.assertEquals('prjct_test',
+            [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :won.Id].Veleiro_Project_Id__c,
+            'ganada: aqui si nace el project');
+    }
+
+    // Modo 'create': sigue sincronizando al abrir la oportunidad, como siempre.
+    @isTest
+    static void inCreateModeAnOpenOpportunitySyncs() {
+        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true, false,
+                               VeleiroSyncConfig.OPP_CREATE);
+        Account a = newAccount('org_test');
+        Opportunity open = newOpp(a.Id, null);
+        Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+
+        Test.startTest();
+        VeleiroSyncService.syncOpportunitiesInvocable(new List<Id>{ open.Id });
+        Test.stopTest();
+
+        System.assertEquals('prjct_test',
+            [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :open.Id].Veleiro_Project_Id__c);
+    }
 }
