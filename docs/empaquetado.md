@@ -22,6 +22,10 @@ Cómo se construye y publica el kit como paquete administrado de 2ª generación
 
 Cualquier cambio funcional se hace en `main` y se trae a `packaging`. Cuando todos los clientes estén en el paquete administrado, `packaging` se vuelve `main`.
 
+## No cambies de rama mientras se construye una versión
+
+`sf package version create` escribe el alias de la versión nueva en `sfdx-project.json` **cuando termina**, sobre el archivo que haya en ese momento en el árbol de trabajo. Si entre tanto te moviste a `main`, los alias del paquete acaban en la rama que no es. Quédate en `packaging` hasta que el build termine, o revisa `git status` antes de commitear.
+
 ## Publicar una versión
 
 ```bash
@@ -71,7 +75,8 @@ Dos condiciones para que eso ocurra:
 | 1.1.0.1 | `04tPe0000010vc1IAA` | 93% | Beta · usada para probar la actualización. **Rama muerta**: nunca se promovió, así que una org con esta versión no puede subir a la 1.2.0 (son hermanas, no línea). |
 | 1.2.0.1 | `04tPe0000010w6fIAA` | 94% | Released · **NO ENTREGAR**: arrastra el bug de la Named Credential. Sustituida por la 1.3.0.1. |
 | 1.3.0.1 | `04tPe0000010w8HIAQ` | 94% | Released · arregla el callout. Superada por la 1.4.0.1. |
-| 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | **Released · la que se entrega hoy** · arregla los mapeos en blanco y hace al kit independiente del theme de la org |
+| 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | Released · arregla los mapeos en blanco y el theme. Superada por la 1.5.0.1. |
+| 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | **Released · la que se entrega hoy** · pantallas a todo lo ancho y controles redondos |
 
 ## La trampa del namespace (nos costó dos versiones)
 
