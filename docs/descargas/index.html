@@ -87,6 +87,7 @@
   }
   .topbar a.site:hover { color: var(--blue); }
   .topbar .right { display: flex; align-items: center; gap: .9rem; }
+  .specs .latest { font-weight: 600; color: var(--ink); }
   .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
   .lang button {
     appearance: none; border: 0; background: transparent; cursor: pointer;
@@ -268,12 +269,12 @@
         <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="kit.f3">Mapeo de campos propio y vinculación masiva de lo que ya existía</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY" data-t="btn.install">Instalar en producción</a>
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY" data-t="btn.install">Instalar o actualizar</a>
         <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wBVIAY" data-t="btn.sandbox">Sandbox</a>
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-salesforce-kit" data-t="btn.code">Código</a>
       </div>
       <div class="specs">
-        <span><span data-t="spec.version">Versión</span> <b>1.5.0.1</b></span>
+        <span class="latest"><span data-t="spec.version">Versión más reciente</span> <b>1.5.0.1</b></span>
       </div>
     </article>
 
@@ -287,20 +288,20 @@
         <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#0084fb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="tkt.f3">Con el kit instalado, cae en el cliente o proyecto del registro de origen</span></li>
       </ul>
       <div class="cta">
-        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.install">Instalar en producción</a>
+        <a class="btn solid" href="https://login.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.install">Instalar o actualizar</a>
         <a class="btn" href="https://test.salesforce.com/packaging/installPackage.apexp?p0=04tPe0000010wD7IAI" data-t="btn.sandbox">Sandbox</a>
         <a class="btn" href="https://github.com/sergioveleiro/veleiro-ticket-intake" data-t="btn.code">Código</a>
       </div>
       <div class="specs">
-        <span><span data-t="spec.version">Versión</span> <b>1.1.0.1</b></span>
+        <span class="latest"><span data-t="spec.version">Versión más reciente</span> <b>1.1.0.1</b></span>
       </div>
     </article>
 
   </div>
 
   <div class="notice">
-    <span data-t="notice"><b>Ya instalan en producción.</b> Si tu org ya tiene una versión anterior, el enlace te va a ofrecer
-    <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.</span>
+    <span data-t="notice"><b>Siempre apuntan a la última versión.</b> Si tu org ya tiene una anterior, Salesforce
+    reconoce el paquete y te ofrece <b>Upgrade</b> en vez de Install: tu token, tus mapeos y tus vínculos se conservan.</span>
   </div>
 
   <section class="block">
@@ -386,11 +387,11 @@
       'tkt.f1': 'A form in the utility bar, with attachments and the originating URL',
       'tkt.f2': 'Resend a ticket that never arrived, without typing it again',
       'tkt.f3': 'With the kit installed, it lands on the client or project of the record it came from',
-      'btn.install': 'Install in production',
+      'btn.install': 'Install or upgrade',
       'btn.sandbox': 'Sandbox',
       'btn.code': 'Source',
-      'spec.version': 'Version',
-      'notice': '<b>These install in production.</b> If your org already has an earlier version, the link offers <b>Upgrade</b> instead of Install: your token, your mappings and your links are kept.',
+      'spec.version': 'Latest version',
+      'notice': '<b>These always point at the latest version.</b> If your org already has an earlier one, Salesforce recognises the package and offers <b>Upgrade</b> instead of Install: your token, your mappings and your links are kept.',
       'steps.title': 'How the install goes',
       's1.t': 'Install the package',
       's1.d': 'From the link above, for admins or for all users.',
@@ -428,11 +429,11 @@
       'tkt.f1': 'Formulário na barra de utilidades, com anexos e a URL de origem',
       'tkt.f2': 'Reenvio de um ticket que não chegou, sem escrever tudo de novo',
       'tkt.f3': 'Com o kit instalado, cai no client ou project do registro de origem',
-      'btn.install': 'Instalar em produção',
+      'btn.install': 'Instalar ou atualizar',
       'btn.sandbox': 'Sandbox',
       'btn.code': 'Código',
-      'spec.version': 'Versão',
-      'notice': '<b>Já instalam em produção.</b> Se a sua org já tem uma versão anterior, o link oferece <b>Upgrade</b> em vez de Install: seu token, seus mapeamentos e seus vínculos são mantidos.',
+      'spec.version': 'Versão mais recente',
+      'notice': '<b>Sempre apontam para a versão mais recente.</b> Se a sua org já tem uma anterior, o Salesforce reconhece o pacote e oferece <b>Upgrade</b> em vez de Install: seu token, seus mapeamentos e seus vínculos são mantidos.',
       'steps.title': 'Como é a instalação',
       's1.t': 'Instalar o pacote',
       's1.d': 'Pelo link acima, para administradores ou para todos os usuários.',
