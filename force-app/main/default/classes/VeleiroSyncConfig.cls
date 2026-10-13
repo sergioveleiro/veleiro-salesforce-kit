@@ -74,6 +74,17 @@ public with sharing class VeleiroSyncConfig {
     public static Boolean autoSyncAccountFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Account__c : null); }
     public static Boolean autoSyncOpportunityFlag() { return flag(cfg() != null ? cfg().Auto_Sync_Opportunity__c : null); }
 
+    /**
+     * Prefijo del namespace cuando el kit corre como paquete administrado ('veleiro__'), vacio
+     * cuando se desplego del codigo fuente. Se deduce del nombre real de un objeto nuestro: sin
+     * namespace son 2 partes ('Veleiro_Field_Mapping', 'c'), con namespace son 3. Lo usan las
+     * pantallas que navegan a otra pestaña, porque las pestañas tambien llevan prefijo.
+     */
+    public static String namespacePrefix() {
+        List<String> parts = String.valueOf(Veleiro_Field_Mapping__c.SObjectType).split('__');
+        return parts.size() >= 3 ? parts[0] + '__' : '';
+    }
+
     // Un checkbox sin registro de config todavia cuenta como encendido.
     private static Boolean flag(Boolean value) { return value == null ? true : value; }
 

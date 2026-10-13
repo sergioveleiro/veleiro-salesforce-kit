@@ -1,6 +1,16 @@
 /**
- * Vinculacion masiva al instalar el kit en una org con historia: registros en Salesforce y
- * clients/projects en Veleiro creados antes, sin relacion entre si.
+ * La pestaña Veleiro Link, que resuelve las dos situaciones de arranque:
+ *
+ *  1. "Enviar a Veleiro": el cliente acaba de instalar el kit y su Veleiro esta VACIO. Lo que
+ *     tiene son cuentas en Salesforce, y lo que necesita es crearlas alla. Se eligen registros
+ *     y se encolan (VeleiroBulkSendQueueable); la pantalla sigue el avance.
+ *  2. "Emparejar existentes": habia registros en los dos lados desde antes del kit, sin
+ *     relacion entre si. Se parte de los recursos de Veleiro sin vincular y se les propone el
+ *     registro que se les parece.
+ *
+ * Las dos salen del MISMO listado de Veleiro (un solo callout por escaneo): los recursos sin
+ * vincular alimentan el modo 2, y los parecidos que se encuentran en el camino se usan en el
+ * modo 1 para avisar "esto quizas ya existe alla" antes de crear un duplicado.
  *
  * Lo que manda es el panel de Veleiro Mappings: esta pantalla solo ofrece los pares
  * (objeto -> client|project) que el partner haya mapeado. Sin mapeo no hay nada que vincular.
@@ -40,6 +50,33 @@ public with sharing class VeleiroLinkController {
         @AuraEnabled public String confidence;
     }
 
+    // Registro de Salesforce que todavia no esta en Veleiro (modo "Enviar a Veleiro").
+    public class SendCandidate {
+        @AuraEnabled public Id recordId;
+        @AuraEnabled public String name;
+        @AuraEnabled public String website;
+        // Si al comparar contra el listado de Veleiro algo se le parecio, va aqui: la pantalla
+        // lo advierte y deja vincular en vez de crear un duplicado.
+        @AuraEnabled public String matchVeleiroId;
+        @AuraEnabled public String matchName;
+        @AuraEnabled public String matchReason;
+        @AuraEnabled public String matchConfidence;
+    }
+
+    public class SendResult {
+        @AuraEnabled public Integer queued = 0;
+        @AuraEnabled public Integer skipped = 0;    // ya vinculados entre el escaneo y el clic
+    }
+
+    public class SendProgress {
+        @AuraEnabled public Integer total = 0;
+        @AuraEnabled public Integer sent = 0;
+        @AuraEnabled public Boolean running = false;
+        @AuraEnabled public List<Id> doneIds = new List<Id>();
+        @AuraEnabled public String lastError;
+        @AuraEnabled public String lastErrorAt;
+    }
+
     public class Overview {
         @AuraEnabled public List<Pair> pairs = new List<Pair>();
         @AuraEnabled public String sobjectName;
@@ -50,10 +87,22 @@ public with sharing class VeleiroLinkController {
         @AuraEnabled public Integer recordsUnlinked = 0;
         @AuraEnabled public Integer alreadyLinked = 0;
         @AuraEnabled public Boolean truncated = false;
+        @AuraEnabled public List<SendCandidate> candidates = new List<SendCandidate>();
+        @AuraEnabled public Boolean pushEnabled = true;    // false -> la direccion configurada no deja empujar
+        @AuraEnabled public Integer maxPerBatch = 0;
+        @AuraEnabled public String mappingsTab;    // a donde manda el "configura un mapeo"
+        @AuraEnabled public String setupTab;
+        // Si Veleiro no contesta, esta pantalla no puede hacer nada: el UI lo dice y manda
+        // a conectar, en vez de escupir el error crudo en un toast rojo.
+        @AuraEnabled public String connectionError;
     }
 
     @TestVisible private static Integer maxRecords = 20000;
     private static final Integer MAX_OPTIONS = 5;
+    // Cuantos candidatos viajan al UI de un jalon (el buscador alcanza al resto).
+    @TestVisible private static Integer maxCandidates = 200;
+    // Tope por tanda de envio: protege los limites async del org del cliente.
+    @TestVisible private static Integer maxPerBatch = 200;
 
     // Pares configurados en Veleiro Mappings: es lo unico que esta pantalla puede vincular.
     @AuraEnabled(cacheable=true)
@@ -86,6 +135,10 @@ public with sharing class VeleiroLinkController {
     public static Overview getSuggestions(String sobjectName, String entity) {
         Overview o = new Overview();
         o.pairs = getPairs();
+        o.pushEnabled = VeleiroSyncConfig.pushEnabled();
+        o.maxPerBatch = maxPerBatch;
+        o.mappingsTab = VeleiroSyncConfig.namespacePrefix() + 'Veleiro_Mappings';
+        o.setupTab = VeleiroSyncConfig.namespacePrefix() + 'Veleiro_Setup';
         if (o.pairs.isEmpty()) return o; // sin mapeos no hay nada que hacer
 
         String so = String.isNotBlank(sobjectName) ? sobjectName : o.pairs[0].sobjectName;
@@ -96,7 +149,13 @@ public with sharing class VeleiroLinkController {
         if (type == null || !VeleiroSyncService.hasMappings(so, ent)) return o;
         o.sobjectLabel = type.getDescribe().getLabel();
 
-        List<Object> resources = VeleiroApiClient.listAll(ent == 'client' ? '/clients' : '/projects', null);
+        List<Object> resources;
+        try {
+            resources = VeleiroApiClient.listAll(ent == 'client' ? '/clients' : '/projects', null);
+        } catch (Exception e) {
+            o.connectionError = e.getMessage();
+            return o;
+        }
         Set<String> linkedVeleiroIds = VeleiroLinkStore.linkedIds(so, ent);
         Set<Id> linkedRecordIds = VeleiroLinkStore.linkedRecords(so, ent);
         o.alreadyLinked = linkedVeleiroIds.size();
@@ -133,6 +192,8 @@ public with sharing class VeleiroLinkController {
             addTo(byName, n, r);
             if (String.isNotBlank(n)) addTo(byFirstWord, n.split(' ')[0], r);
         }
+
+        Map<Id, SendCandidate> matchByRecord = new Map<Id, SendCandidate>();
 
         for (Object obj : resources) {
             Map<String, Object> c = (Map<String, Object>) obj;
@@ -189,6 +250,18 @@ public with sharing class VeleiroLinkController {
             }
 
             row.options = rank(found.values());
+            // El mismo trabajo sirve para el otro modo: si este recurso se parece a un registro,
+            // ese registro queda avisado de que quizas ya existe en Veleiro.
+            for (RecordOption op : row.options) {
+                SendCandidate prev = matchByRecord.get(op.recordId);
+                if (prev != null && rank(prev.matchConfidence) <= rank(op.confidence)) continue;
+                SendCandidate similar = new SendCandidate();
+                similar.matchVeleiroId = veleiroId;
+                similar.matchName = row.veleiroName;
+                similar.matchReason = op.reason;
+                similar.matchConfidence = op.confidence;
+                matchByRecord.put(op.recordId, similar);
+            }
             if (!row.options.isEmpty()) {
                 RecordOption best = row.options[0];
                 if (best.confidence != VeleiroClientMatcher.WEAK) row.suggestedRecordId = best.recordId;
@@ -196,6 +269,22 @@ public with sharing class VeleiroLinkController {
                 row.confidence = best.confidence;
             }
             o.rows.add(row);
+        }
+
+        for (SObject r : unlinked) {
+            if (o.candidates.size() >= maxCandidates) break;
+            SendCandidate cand = new SendCandidate();
+            cand.recordId = r.Id;
+            cand.name = str(r.get(nameField));
+            cand.website = String.isNotBlank(siteField) ? str(r.get(siteField)) : null;
+            SendCandidate similar = matchByRecord.get(r.Id);
+            if (similar != null) {
+                cand.matchVeleiroId = similar.matchVeleiroId;
+                cand.matchName = similar.matchName;
+                cand.matchReason = similar.matchReason;
+                cand.matchConfidence = similar.matchConfidence;
+            }
+            o.candidates.add(cand);
         }
 
         // Sugerencias fuertes primero; los que no tienen ninguna, al final.
@@ -302,6 +391,90 @@ public with sharing class VeleiroLinkController {
             result.syncing = true;
         }
         return result;
+    }
+
+    /**
+     * "Enviar a Veleiro": encola la creacion de esos registros alla. No hace callouts aqui
+     * (seria un timeout en el UI con 200 registros), solo valida y encola.
+     *
+     * rowsJson: [{"recordId":"001...","veleiroId":"org_..."}] — veleiroId es opcional y
+     * significa "no lo crees, vinculalo a este que ya existe".
+     */
+    @AuraEnabled
+    public static SendResult sendToVeleiro(String sobjectName, String entity, String rowsJson) {
+        SendResult out = new SendResult();
+        if (!VeleiroSyncConfig.pushEnabled()) {
+            throw new VeleiroApiClient.VeleiroApiException(
+                'La direccion configurada es "Veleiro -> Salesforce", asi que Salesforce no puede'
+                + ' crear nada en Veleiro. Cambiala en Veleiro Mappings para poder enviar.');
+        }
+        if (String.isBlank(sobjectName) || String.isBlank(entity)) return out;
+        if (!VeleiroSyncService.hasMappings(sobjectName, entity)) {
+            throw new VeleiroApiClient.VeleiroApiException(
+                'No hay mapeo de ' + sobjectName + ' -> ' + entity + '. Configuralo en Veleiro Mappings.');
+        }
+
+        Set<Id> alreadyLinked = VeleiroLinkStore.linkedRecords(sobjectName, entity);
+        List<Id> toSend = new List<Id>();
+        Map<Id, String> linkTo = new Map<Id, String>();
+        Set<Id> seen = new Set<Id>();
+
+        for (Object obj : (List<Object>) JSON.deserializeUntyped(rowsJson)) {
+            Map<String, Object> row = (Map<String, Object>) obj;
+            String recordId = str(row.get('recordId'));
+            if (String.isBlank(recordId) || recordId == 'null') continue;
+            Id rid;
+            try { rid = Id.valueOf(recordId); } catch (Exception e) { continue; }
+            if (!seen.add(rid)) continue;
+            // Entre el escaneo y el clic alguien pudo vincularlo: no se manda dos veces.
+            if (alreadyLinked.contains(rid)) { out.skipped++; continue; }
+            toSend.add(rid);
+            String veleiroId = str(row.get('veleiroId'));
+            if (String.isNotBlank(veleiroId) && veleiroId != 'null') linkTo.put(rid, veleiroId);
+        }
+
+        if (toSend.size() > maxPerBatch) {
+            throw new VeleiroApiClient.VeleiroApiException(
+                'Son ' + toSend.size() + ' registros y el maximo por tanda es ' + maxPerBatch
+                + '. Manda una tanda, espera a que termine y sigue con la siguiente.');
+        }
+        if (toSend.isEmpty()) return out;
+
+        System.enqueueJob(new VeleiroBulkSendQueueable(toSend, entity, linkTo));
+        out.queued = toSend.size();
+        return out;
+    }
+
+    /**
+     * Avance del envio. Se mide por el vinculo guardado (es la prueba de que Veleiro respondio
+     * y Salesforce lo anoto), no por un contador propio que podria mentir si el job muere.
+     */
+    @AuraEnabled
+    public static SendProgress getSendProgress(String sobjectName, String entity, String recordIdsJson) {
+        SendProgress p = new SendProgress();
+        if (String.isBlank(sobjectName) || String.isBlank(entity) || String.isBlank(recordIdsJson)) return p;
+
+        Set<Id> watching = new Set<Id>();
+        for (Object o : (List<Object>) JSON.deserializeUntyped(recordIdsJson)) {
+            try { watching.add(Id.valueOf(String.valueOf(o))); } catch (Exception e) { /* ignorar */ }
+        }
+        p.total = watching.size();
+
+        for (Id rid : VeleiroLinkStore.linkedRecords(sobjectName, entity)) {
+            if (watching.contains(rid)) p.doneIds.add(rid);
+        }
+        p.sent = p.doneIds.size();
+
+        p.running = [
+            SELECT COUNT() FROM AsyncApexJob
+            WHERE JobType = 'Queueable'
+              AND ApexClass.Name IN ('VeleiroBulkSendQueueable', 'VeleiroLinkSyncQueueable')
+              AND Status IN ('Queued', 'Processing', 'Preparing', 'Holding')
+        ] > 0;
+
+        p.lastError = VeleiroSyncConfig.lastError();
+        p.lastErrorAt = VeleiroSyncConfig.lastErrorAt() == null ? null : VeleiroSyncConfig.lastErrorAt().format();
+        return p;
     }
 
     // ---- helpers ----

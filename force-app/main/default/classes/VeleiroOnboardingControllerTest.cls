@@ -172,6 +172,8 @@ private class VeleiroOnboardingControllerTest {
             Target_Type__c = 'Standard', Active__c = true
         );
         insert new Account(Name = 'Sincronizada', Veleiro_Client_Id__c = 'org_done', Veleiro_Version__c = 1);
+        VeleiroOnboardingController.assignedToMe = 1;      // con acceso propio, el paso es opcional
+        VeleiroOnboardingController.assignedToOthers = 0;
 
         Test.startTest();
         VeleiroOnboardingController.State s = VeleiroOnboardingController.getState(true);
@@ -199,13 +201,47 @@ private class VeleiroOnboardingControllerTest {
         System.assert(String.isNotBlank(flows.evidence), 'y dice como esta: ' + flows.evidence);
     }
 
+    // Las asignaciones reales de la org donde corren los tests no deben decidir el resultado.
+    private static VeleiroOnboardingController.Step teamStep(Integer mine, Integer others) {
+        VeleiroOnboardingController.assignedToMe = mine;
+        VeleiroOnboardingController.assignedToOthers = others;
+        return step(VeleiroOnboardingController.getState(false), 'team');
+    }
+
+    /**
+     * Sin el permission set no se ven los campos de Veleiro ni los paneles: el kit se ve roto.
+     * Si le falta a quien esta configurando, el paso NO es opcional.
+     */
     @isTest
-    static void theTeamStepIsAlwaysReported() {
+    static void accessIsRequiredWhenTheAdminIsMissingItToo() {
         VeleiroApiMock.seedConfig();
-        VeleiroOnboardingController.Step team = step(VeleiroOnboardingController.getState(false), 'team');
-        System.assertNotEquals(null, team);
-        System.assertEquals(true, team.optional, 'una org de una sola persona es legitima');
-        System.assert(String.isNotBlank(team.evidence));
+        VeleiroOnboardingController.Step team = teamStep(0, 0);
+        System.assertEquals(VeleiroOnboardingController.TODO, team.state);
+        System.assertEquals(false, team.optional, 'nada del kit funciona sin esto');
+        System.assert(team.evidence.contains('Ni tú'), team.evidence);
+        System.assertEquals('Asignar el permission set', team.actionLabel);
+    }
+
+    // Con acceso propio pero sin equipo, es un consejo: funciona, y se puede saltar.
+    @isTest
+    static void accessIsAdviceOnceTheAdminHasIt() {
+        VeleiroApiMock.seedConfig();
+        VeleiroOnboardingController.Step team = teamStep(1, 0);
+        System.assertEquals(VeleiroOnboardingController.TODO, team.state);
+        System.assertEquals(true, team.optional);
+        System.assert(team.evidence.contains('Solo tú'), team.evidence);
+
+        VeleiroOnboardingController.skipStep('team', true);
+        System.assertEquals(VeleiroOnboardingController.SKIPPED, teamStep(1, 0).state);
+    }
+
+    @isTest
+    static void accessIsDoneWhenSomeoneElseHasItToo() {
+        VeleiroApiMock.seedConfig();
+        VeleiroOnboardingController.Step team = teamStep(1, 2);
+        System.assertEquals(VeleiroOnboardingController.DONE, team.state);
+        System.assert(team.evidence.contains('2'), team.evidence);
+        System.assertEquals(null, team.actionLabel, 'ya no hay nada que hacer');
     }
 
     // Sin namespace no hay prefijo; dentro del paquete administrado, las pestanas lo llevan.

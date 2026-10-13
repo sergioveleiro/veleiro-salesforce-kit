@@ -242,4 +242,164 @@ private class VeleiroLinkControllerTest {
         System.assertEquals(1, found.size());
         System.assertEquals('Buscable Registro', found[0].name);
     }
+
+    // ================= Enviar a Veleiro =================
+
+    // El escaneo trae, del MISMO listado, lo que falta por enviar y lo que falta por emparejar.
+    @isTest
+    static void theScanAlsoListsWhatIsNotInVeleiroYet() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        insert new List<Account>{ new Account(Name = 'Alfa'), new Account(Name = 'Beta') };
+        mockClients('{"data":[],"has_more":false}');   // Veleiro vacio: cliente nuevo
+
+        Test.startTest();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
+        Test.stopTest();
+
+        System.assertEquals(2, o.candidates.size(), 'las dos cuentas estan listas para enviarse');
+        System.assertEquals(0, o.veleiroUnlinked, 'y no hay nada que emparejar');
+        System.assertEquals(true, o.pushEnabled);
+        System.assert(o.maxPerBatch > 0, 'el UI necesita el tope por tanda');
+        System.assert(o.mappingsTab.endsWith('Veleiro_Mappings'));
+        for (VeleiroLinkController.SendCandidate c : o.candidates) {
+            System.assertEquals(null, c.matchVeleiroId, 'nada se le parece: no hay duplicado posible');
+        }
+    }
+
+    // Lo que ya existe en Veleiro queda avisado en el candidato, para no crear un duplicado.
+    @isTest
+    static void aCandidateWarnsWhenSomethingLikeItIsAlreadyInVeleiro() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        insert new Account(Name = 'Globex');
+        mockClients('{"data":[{"id":"org_globex","name":"Globex","additional_fields":{}}],"has_more":false}');
+
+        Test.startTest();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
+        Test.stopTest();
+
+        System.assertEquals(1, o.candidates.size());
+        VeleiroLinkController.SendCandidate c = o.candidates[0];
+        System.assertEquals('org_globex', c.matchVeleiroId, 'se avisa cual podria ser');
+        System.assertEquals('Globex', c.matchName);
+        System.assert(String.isNotBlank(c.matchReason), 'y por que: ' + c.matchReason);
+    }
+
+    @isTest
+    static void sendingQueuesTheRecordsAndSkipsTheLinkedOnes() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        Account fresh = new Account(Name = 'Sin vinculo');
+        Account linked = new Account(Name = 'Ya vinculada', Veleiro_Client_Id__c = 'org_done');
+        insert new List<Account>{ fresh, linked };
+
+        Test.startTest();
+        VeleiroLinkController.SendResult res = VeleiroLinkController.sendToVeleiro('Account', 'client',
+            JSON.serialize(new List<Object>{
+                new Map<String, Object>{ 'recordId' => fresh.Id },
+                new Map<String, Object>{ 'recordId' => linked.Id },
+                new Map<String, Object>{ 'recordId' => fresh.Id },      // repetido
+                new Map<String, Object>{ 'recordId' => 'no-es-un-id' }
+            }));
+        Test.stopTest();
+
+        System.assertEquals(1, res.queued, 'solo la que no tiene vinculo, una vez');
+        System.assertEquals(1, res.skipped, 'la vinculada se avisa, no se reenvia');
+    }
+
+    @isTest
+    static void sendingRefusesWhenTheDirectionForbidsIt() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        Account a = new Account(Name = 'No deberia salir');
+        insert a;
+        VeleiroSyncConfig.save('veleiro_to_sf', 'veleiro', 'off', 'manual');
+
+        Boolean threw = false;
+        try {
+            VeleiroLinkController.sendToVeleiro('Account', 'client',
+                JSON.serialize(new List<Object>{ new Map<String, Object>{ 'recordId' => a.Id } }));
+        } catch (Exception e) {
+            threw = true;
+            System.assert(e.getMessage().contains('Veleiro'), 'explica por que: ' + e.getMessage());
+        }
+        System.assertEquals(true, threw, 'con direccion Veleiro -> Salesforce no se envia nada');
+        // El UI lo sabe antes de que el usuario lo intente: getSuggestions publica este mismo
+        // valor en Overview.pushEnabled (probado en el escaneo, que ahi si puede hacer callout:
+        // guardar la config es DML, y despues de un DML no se puede llamar a Veleiro).
+        System.assertEquals(false, VeleiroSyncConfig.pushEnabled());
+    }
+
+    @isTest
+    static void sendingRefusesABatchOverTheLimit() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        List<Account> many = new List<Account>();
+        for (Integer i = 0; i < 5; i++) many.add(new Account(Name = 'Cuenta ' + i));
+        insert many;
+        VeleiroLinkController.maxPerBatch = 3;
+
+        List<Object> rows = new List<Object>();
+        for (Account a : many) rows.add(new Map<String, Object>{ 'recordId' => a.Id });
+
+        Boolean threw = false;
+        try {
+            VeleiroLinkController.sendToVeleiro('Account', 'client', JSON.serialize(rows));
+        } catch (Exception e) {
+            threw = true;
+            System.assert(e.getMessage().contains('3'), 'dice el tope: ' + e.getMessage());
+        }
+        System.assertEquals(true, threw);
+    }
+
+    @isTest
+    static void sendingNeedsAMapping() {
+        Account a = new Account(Name = 'Sin mapeo');
+        insert a;
+        Boolean threw = false;
+        try {
+            VeleiroLinkController.sendToVeleiro('Account', 'client',
+                JSON.serialize(new List<Object>{ new Map<String, Object>{ 'recordId' => a.Id } }));
+        } catch (Exception e) {
+            threw = true;
+        }
+        System.assertEquals(true, threw, 'sin mapeo no hay payload que mandar');
+        System.assertEquals(0, VeleiroLinkController.sendToVeleiro(null, null, '[]').queued);
+    }
+
+    // El avance se mide por el vinculo guardado, que es la prueba de que Veleiro respondio.
+    @isTest
+    static void progressCountsTheRecordsThatAlreadyHaveTheirLink()  {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        Account done = new Account(Name = 'Llego', Veleiro_Client_Id__c = 'org_llego');
+        Account pending = new Account(Name = 'No llego');
+        insert new List<Account>{ done, pending };
+        String ids = JSON.serialize(new List<Id>{ done.Id, pending.Id });
+
+        Test.startTest();
+        VeleiroLinkController.SendProgress p = VeleiroLinkController.getSendProgress('Account', 'client', ids);
+        Test.stopTest();
+
+        System.assertEquals(2, p.total);
+        System.assertEquals(1, p.sent);
+        System.assertEquals(new List<Id>{ done.Id }, p.doneIds, 'el UI marca solo el que ya esta');
+        System.assertEquals(false, p.running, 'no hay jobs encolados en este test');
+        System.assertEquals(0, VeleiroLinkController.getSendProgress('Account', 'client', null).total);
+    }
+
+    // Sin token (o con Veleiro caido) la pantalla no truena: dice que hay que conectar.
+    @isTest
+    static void aBrokenConnectionBecomesGuidanceNotAnError() {
+        mapField('Account', 'client', 'Name', 'name', 'Standard');
+        insert new Account(Name = 'Alguien');
+        VeleiroApiMock mock = new VeleiroApiMock();
+        mock.overrideStatus = 401;
+        mock.overrideBody = '{"error":{"code":"invalid_token"}}';
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
+        Test.stopTest();
+
+        System.assert(String.isNotBlank(o.connectionError), 'el UI sabe por que no puede trabajar');
+        System.assert(o.rows.isEmpty());
+        System.assert(o.candidates.isEmpty());
+        System.assert(o.setupTab.endsWith('Veleiro_Setup'), 'y a donde mandar al usuario');
+    }
 }

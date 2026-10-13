@@ -21,6 +21,10 @@ public with sharing class VeleiroOnboardingController {
     public static final String UNKNOWN = 'unknown';   // no se pudo verificar (permisos)
 
     private static final String PERMSET = 'Veleiro_Integration_Access';
+    // Costuras para los tests: en la org de un cliente puede haber asignaciones reales, y un
+    // test que dependa de ellas falla en unas orgs y pasa en otras (y tumba su deploy).
+    @TestVisible private static Integer assignedToMe = null;
+    @TestVisible private static Integer assignedToOthers = null;
     private static final List<String> FLOWS = new List<String>{
         'Auto_Sync_Account_On_Create',
         'Auto_Sync_Opportunity_On_Create',
@@ -130,13 +134,13 @@ public with sharing class VeleiroOnboardingController {
 
         // --- vincular lo que ya existe (opcional: hay orgs sin historia) ---
         s.linkedCount = linkedCount();
-        Step linkStep = new Step('link', 'Vincula lo que ya existe',
-            'Si tus clientes ya existían en Veleiro y en Salesforce antes del kit, aquí los emparejas en vez de crearlos de nuevo. Veleiro te sugiere el registro que se le parece y tú confirmas.');
+        Step linkStep = new Step('link', 'Trae tus clientes a Veleiro',
+            'En la pestaña Veleiro Link eliges los registros de Salesforce y se crean en Veleiro, de a muchos. Y si tus clientes ya existían en los dos lados desde antes del kit, ahí mismo los emparejas en vez de duplicarlos.');
         linkStep.optional = true;
         linkStep.state = s.linkedCount > 0 ? DONE : (skips.contains('link') ? SKIPPED : TODO);
         linkStep.evidence = s.linkedCount > 0
             ? s.linkedCount + (s.linkedCount == 1 ? ' registro vinculado' : ' registros vinculados')
-            : 'Nada vinculado — sáltalo si empiezas de cero';
+            : 'Ningún registro está en Veleiro todavía';
         linkStep.actionLabel = 'Abrir Veleiro Link';
         linkStep.actionTab = tab('Veleiro_Link');
         s.steps.add(linkStep);
@@ -161,10 +165,10 @@ public with sharing class VeleiroOnboardingController {
             s.steps.add(flows);
         }
 
-        // --- equipo (opcional: una org de una sola persona es legitima) ---
+        // --- acceso: el permission set es lo UNICO que da acceso (los profiles no se empaquetan) ---
         Step team = new Step('team', 'Dale acceso a tu equipo',
-            'El permission set Veleiro Integration Access es lo único que da acceso al app, a los campos y a los paneles. Sin él, tu equipo entra y no ve nada.');
-        team.optional = true;
+            'El permission set Veleiro Integration Access es lo único que da acceso al app, a los campos y a los paneles. Sin él, un usuario entra y no ve nada — y eso incluye a quien instaló el kit.');
+        // teamState decide tambien si es opcional: si le falta a quien esta configurando, no lo es.
         team.state = teamState(team, skips);
         s.steps.add(team);
 
@@ -210,7 +214,7 @@ public with sharing class VeleiroOnboardingController {
     private static String flowState(Step st) {
         try {
             Set<String> wanted = new Set<String>();
-            for (String f : FLOWS) { wanted.add(f); wanted.add(prefix() + f); }
+            for (String f : FLOWS) { wanted.add(f); wanted.add(VeleiroSyncConfig.namespacePrefix() + f); }
             Integer active = 0;
             List<String> inactive = new List<String>();
             for (FlowDefinitionView f : [
@@ -233,20 +237,40 @@ public with sharing class VeleiroOnboardingController {
         }
     }
 
+    /**
+     * Tres situaciones distintas, no dos:
+     *  - ni quien esta mirando lo tiene -> el kit se ve roto (campos invisibles, paneles vacios).
+     *    Esto no es un consejo, es el paso que hay que hacer, y por eso deja de ser opcional.
+     *  - solo quien esta mirando lo tiene -> funciona, pero el equipo no lo ve. Se puede saltar.
+     *  - alguien mas lo tiene -> listo.
+     */
     private static String teamState(Step st, Set<String> skips) {
         try {
-            Integer others = [
+            Integer mine = (assignedToMe != null) ? assignedToMe : [
+                SELECT COUNT() FROM PermissionSetAssignment
+                WHERE PermissionSet.Name = :PERMSET AND AssigneeId = :UserInfo.getUserId()
+            ];
+            Integer others = (assignedToOthers != null) ? assignedToOthers : [
                 SELECT COUNT() FROM PermissionSetAssignment
                 WHERE PermissionSet.Name = :PERMSET AND AssigneeId != :UserInfo.getUserId()
             ];
+            st.actionLabel = 'Asignar el permission set';
+            st.optional = true;
+            if (mine == 0) {
+                // Nada del kit se ve sin esto: no es un consejo que se pueda saltar.
+                st.optional = false;
+                st.evidence = 'Ni tú lo tienes: sin él no ves los campos de Veleiro ni los paneles';
+                return TODO;
+            }
             if (others > 0) {
                 st.evidence = others + (others == 1 ? ' persona más tiene acceso' : ' personas más tienen acceso');
+                st.actionLabel = null;
                 return DONE;
             }
-            st.evidence = 'Solo tú tienes el permission set';
-            st.actionLabel = 'Asignar el permission set';
+            st.evidence = 'Solo tú lo tienes — tu equipo todavía no ve nada';
             return skips.contains('team') ? SKIPPED : TODO;
         } catch (Exception e) {
+            st.optional = true;
             st.evidence = 'No pude revisar las asignaciones del permission set';
             return UNKNOWN;
         }
@@ -271,19 +295,8 @@ public with sharing class VeleiroOnboardingController {
         return (c == null) ? null : c.Sync_Trigger__c;
     }
 
-    /**
-     * Prefijo del namespace cuando el kit corre como paquete administrado ('veleiro__'), vacio
-     * cuando se desplego del codigo fuente. Se deduce del nombre real de un objeto nuestro:
-     * sin namespace son 2 partes ('Veleiro_Field_Mapping', 'c'), con namespace son 3.
-     */
-    @TestVisible
-    private static String prefix() {
-        List<String> parts = String.valueOf(Veleiro_Field_Mapping__c.SObjectType).split('__');
-        return parts.size() >= 3 ? parts[0] + '__' : '';
-    }
-
-    // Las pestanas tambien llevan prefijo dentro del paquete administrado.
-    private static String tab(String apiName) { return prefix() + apiName; }
+    // Las pestanas llevan prefijo de namespace dentro del paquete administrado.
+    private static String tab(String apiName) { return VeleiroSyncConfig.namespacePrefix() + apiName; }
 
     private static String label(String raw) {
         if (raw == VeleiroSyncConfig.DIR_BOTH) return 'Salesforce ⇄ Veleiro';
