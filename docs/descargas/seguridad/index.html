@@ -50,6 +50,68 @@
 <main class="wrap">
 
   <section class="block">
+    <h3 data-t="mp.title">Qué significa que sea un paquete administrado</h3>
+    <p class="demo-sub" data-t="mp.sub">No es un zip de código que alguien te pasa. Es un formato de distribución de Salesforce con sus propios requisitos, y pasarlos es condición para poder publicarlo.</p>
+    <div class="sec-grid">
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2"/></svg>
+        <div>
+          <h4 data-t="mp1.t">Namespace registrado ante Salesforce</h4>
+          <p data-t="mp1.d">Todo lo que entra lleva el prefijo <code>veleiro__</code>, reservado a nuestro nombre. Por eso nada puede chocar con un campo, una clase o una pestaña que tu org ya tenga, aunque se llamen igual.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l2 2 4-4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div>
+          <h4 data-t="mp2.t">Salesforce no lo publica si no pasa sus pruebas</h4>
+          <p data-t="mp2.d">Cada versión se construye ejecutando toda la batería de pruebas, y Salesforce mide la cobertura del código. Si no alcanza su umbral, la versión no se crea. No es una promesa nuestra: es la puerta por la que hay que pasar para que exista el paquete.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>
+        <div>
+          <h4 data-t="mp3.t">Va sellado, y eso también te protege</h4>
+          <p data-t="mp3.d">Sus componentes no se pueden editar desde dentro de tu org, ni por nosotros ni por nadie. Lo que instalaste es exactamente lo que corre, y cambia solo cuando tú decides actualizar.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V10M6 20v-6M18 20V4"/></svg>
+        <div>
+          <h4 data-t="mp4.t">Versiones con línea de sucesión</h4>
+          <p data-t="mp4.d">Cada versión declara de cuál viene, y Salesforce solo permite actualizar siguiendo esa línea. Es lo que garantiza que una actualización conserve tus datos en vez de instalarse al lado.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h3 data-t="add.title">Se instala sumando, nunca cambiando</h3>
+    <p class="demo-sub" data-t="add.sub">Instalarlo no reacomoda tu Salesforce. Te deja las piezas; dónde van lo decides tú.</p>
+    <dl class="reqs">
+      <div>
+        <dt data-t="add1.t">No toca tus páginas ni tus layouts</dt>
+        <dd data-t="add1.d">Tus páginas de Account, de Opportunity y de cualquier otro objeto quedan exactamente como estaban. El paquete no mueve, oculta ni reordena nada de lo que ya tienes.</dd>
+      </div>
+      <div>
+        <dt data-t="add2.t">Los componentes visuales los colocas tú</dt>
+        <dd data-t="add2.d">El panel de Veleiro en la cuenta, el de la oportunidad y los botones de sincronizar llegan disponibles, pero apagados. Tu administrador los arrastra en Lightning App Builder a las páginas donde tengan sentido, y los quita igual de fácil.</dd>
+      </div>
+      <div>
+        <dt data-t="add3.t">La app y sus pestañas vienen armadas</dt>
+        <dd data-t="add3.d">Veleiro Setup, Home, Mappings y Link llegan listas dentro de su propia app, sin mezclarse con la navegación que tu equipo ya usa.</dd>
+      </div>
+      <div>
+        <dt data-t="add4.t">El resto se gobierna con permission sets</dt>
+        <dd data-t="add4.d">Quién ve la app, las pestañas y los campos se decide asignando un permission set. No se modifican perfiles, ni se reparten permisos a nadie por su cuenta.</dd>
+      </div>
+      <div>
+        <dt data-t="add5.t">Nada se migra ni se borra</dt>
+        <dd data-t="add5.d">No hay scripts que transformen tus datos al instalar. Tus registros siguen siendo tuyos, con los mismos valores, antes y después.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="block">
     <h3 data-t="sec.token.title">Cómo viaja tu token</h3>
     <div class="sec-grid">
       <div class="sec-item">
@@ -163,7 +225,7 @@
       </div>
       <div>
         <dt data-t="sec.t2.t">Pruebas en cada clase</dt>
-        <dd data-t="sec.t2.d">Cada clase viaja cubierta por pruebas automáticas, y el paquete cumple la cobertura que Salesforce exige para publicar una versión. Salesforce las ejecuta otra vez al instalar.</dd>
+        <dd data-t="sec.t2.d">Cada clase viaja cubierta por pruebas automáticas. Salesforce las ejecuta al construir cada versión y no deja publicarla si la cobertura no alcanza.</dd>
       </div>
       <div>
         <dt data-t="sec.t3.t">Pruébalo en un sandbox</dt>
