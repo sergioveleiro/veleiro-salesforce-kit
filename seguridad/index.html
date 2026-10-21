@@ -1,0 +1,192 @@
+<title>Seguridad · Veleiro para Salesforce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap" />
+<script>
+  /* Antes de pintar: el tema claro es el default. Si esto corriera despues del CSS, quien
+     tenga el sistema en oscuro veria un parpadeo oscuro antes de que la pagina se corrija. */
+  document.documentElement.setAttribute('data-theme', (function () {
+    try { return localStorage.getItem('veleiro-theme') === 'dark' ? 'dark' : 'light'; }
+    catch (e) { return 'light'; }
+  })());
+</script>
+<link rel="stylesheet" href="../assets/veleiro.css" />
+
+<div class="topbar">
+  <div class="wrap">
+    <img class="logo light" src="../assets/logo.svg" alt="Veleiro" />
+    <img class="logo dark" src="../assets/logo-inverted.svg" alt="Veleiro" />
+    <nav class="nav" aria-label="Secciones">
+      <a href="../" data-t="nav.packages">Paquetes</a>
+      <a href="./" data-t="nav.security" aria-current="page">Seguridad</a>
+      <a href="../versiones/" data-t="nav.versions">Versiones</a>
+    </nav>
+    <div class="right">
+      <div class="lang" role="group" aria-label="Idioma">
+        <button type="button" data-lang="es">ES</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="pt">PT</button>
+      </div>
+      <a class="site" href="https://www.veleiro.ai/es">veleiro.ai &nearr;</a>
+      <button class="theme" id="themeToggle" type="button" aria-label="Cambiar tema">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+        <span id="themeLabel">Tema claro</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<header class="hero hero-slim">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow" data-t="sec.eyebrow">Seguridad</p>
+      <h1 data-t="sec.h1">Qué hace en tu org, <em>y qué no</em></h1>
+      <p class="lede" data-t="sec.lede">Esto se instala dentro del Salesforce de un cliente. Lo que toca, lo que manda afuera y quién puede verlo está acotado a propósito, y aquí está escrito sin adornos.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="block">
+    <h3 data-t="sec.token.title">Cómo viaja tu token</h3>
+    <div class="sec-grid">
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>
+        <div>
+          <h4 data-t="sec1.t">No llega al navegador</h4>
+          <p data-t="sec1.d">Cada llamada a Veleiro sale desde Apex, de servidor a servidor. Ningún componente de la interfaz lo recibe, y el panel solo muestra puntos.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7V3M15 7V3M7 7h10v5a5 5 0 01-10 0z"/><path d="M12 17v4"/></svg>
+        <div>
+          <h4 data-t="sec2.t">Sale por una Named Credential</h4>
+          <p data-t="sec2.d">El destino está declarado en tu Salesforce, no escrito dentro del código. Tu administrador ve y controla a dónde sale el tráfico, y puede cortarlo sin tocar nada más.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.2v5.3c0 4.6-3.3 8.3-8 9.5-4.7-1.2-8-4.9-8-9.5V6.2L12 3z"/></svg>
+        <div>
+          <h4 data-t="sec3.t">Lo pones y lo quitas tú</h4>
+          <p data-t="sec3.d">El token vive como dato en tu org, no viene dentro del paquete. Lo pegas en la pestaña Veleiro Setup y lo borras cuando quieras: sin él, la integración simplemente deja de llamar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h3 data-t="sec.out.title">Qué datos salen de tu org</h3>
+    <p class="demo-sub" data-t="sec.out.sub">Nada viaja por su cuenta. Solo sale lo que tú mapeaste, más las llaves que permiten reconocer el registro de vuelta.</p>
+    <dl class="reqs">
+      <div>
+        <dt data-t="sec.out1.t">Los campos que mapeaste</dt>
+        <dd data-t="sec.out1.d">Ni uno más. Si mapeaste nombre y sitio web, eso es lo que sale. El mapeo lo defines tú en Veleiro Mappings y lo puedes cambiar cuando quieras.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.out2.t">Llaves de correlación</dt>
+        <dd data-t="sec.out2.d">El id del registro de Salesforce —<code>sf_account_id</code>, <code>sf_opportunity_id</code>, <code>sf_record_id</code>— y el nombre del objeto. Es lo que evita que se dupliquen clientes y permite reconocer qué es qué al volver.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.out3.t">Nada de usuarios ni de adjuntos</dt>
+        <dd data-t="sec.out3.d">El kit no manda usuarios, contactos, correos, archivos ni historiales. Si un objeto no está mapeado, no existe para la integración.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="block">
+    <h3 data-t="sec.in.title">Qué escribe dentro de tu org</h3>
+    <dl class="reqs">
+      <div>
+        <dt data-t="sec.in1.t">El vínculo</dt>
+        <dd data-t="sec.in1.d">Campos propios con prefijo <code>veleiro__</code> donde se guarda el id del cliente o proyecto. Son campos nuevos: no se escribe sobre ninguno de los tuyos.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.in2.t">Nunca renombra tus cuentas</dt>
+        <dd data-t="sec.in2.d">Traer datos desde Veleiro no pisa el nombre de una Account, salvo que enciendas ese interruptor a propósito. Viene apagado.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.in3.t">Respeta tus reglas</dt>
+        <dd data-t="sec.in3.d">Si una validation rule tuya rechaza un registro, la integración no la esquiva: ese registro se salta, el resto del lote continúa y el error queda visible en el panel.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="block">
+    <h3 data-t="sec.who.title">Quién puede ver y hacer qué</h3>
+    <div class="sec-grid">
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 19v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1"/><circle cx="9.5" cy="7" r="3.5"/><path d="M21 19v-1a4 4 0 00-3-3.9"/></svg>
+        <div>
+          <h4 data-t="sec4.t">Nadie, hasta que tú lo permitas</h4>
+          <p data-t="sec4.d">Instalar no deja nada visible. El acceso se da con un permission set, usuario por usuario, y se retira igual de rápido. No se tocan perfiles ni permisos existentes.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+        <div>
+          <h4 data-t="sec5.t">Sincroniza cuando tú digas</h4>
+          <p data-t="sec5.d">Viene en manual: nada se sincroniza solo hasta que lo enciendes, y puedes dejar las cuentas en automático y las oportunidades a mano, o al revés.</p>
+        </div>
+      </div>
+      <div class="sec-item">
+        <svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3.2v5.3c0 4.6-3.3 8.3-8 9.5-4.7-1.2-8-4.9-8-9.5V6.2L12 3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+        <div>
+          <h4 data-t="sec6.t">Frenos para no ahogar tu org</h4>
+          <p data-t="sec6.d">La lectura desde Veleiro está acotada por corrida, una carga masiva de datos no dispara sincronizaciones, y los errores se registran en vez de silenciarse.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h3 data-t="sec.what.title">Qué se instala, exactamente</h3>
+    <p class="demo-sub" data-t="sec.what.sub">Solo metadatos. Ningún dato tuyo se reemplaza, se borra o se migra.</p>
+    <div class="counts">
+      <div class="count"><span class="count-n">23</span><span class="count-l" data-t="cnt.apex">clases Apex</span></div>
+      <div class="count"><span class="count-n">13</span><span class="count-l" data-t="cnt.lwc">componentes de interfaz</span></div>
+      <div class="count"><span class="count-n">3</span><span class="count-l" data-t="cnt.obj">objetos propios</span></div>
+      <div class="count"><span class="count-n">6</span><span class="count-l" data-t="cnt.fld">campos en Account y Opportunity</span></div>
+      <div class="count"><span class="count-n">3</span><span class="count-l" data-t="cnt.flow">flows de sincronización</span></div>
+      <div class="count"><span class="count-n">1</span><span class="count-l" data-t="cnt.ps">permission set</span></div>
+    </div>
+    <p class="note-line" data-t="sec.what.note">Todo bajo el prefijo <code>veleiro__</code>, que es lo que garantiza que no choque con nada que ya exista en tu org.</p>
+  </section>
+
+  <section class="block">
+    <h3 data-t="sec.trust.title">Cómo puedes comprobarlo</h3>
+    <dl class="reqs">
+      <div>
+        <dt data-t="sec.t1.t">Código abierto</dt>
+        <dd data-t="sec.t1.d">El repositorio es público. Puedes leer exactamente qué hace antes de instalarlo, y revisar cada cambio entre versiones.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.t2.t">Pruebas en cada clase</dt>
+        <dd data-t="sec.t2.d">Cada clase viaja cubierta por pruebas automáticas, y el paquete cumple la cobertura que Salesforce exige para publicar una versión. Salesforce las ejecuta otra vez al instalar.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.t3.t">Pruébalo en un sandbox</dt>
+        <dd data-t="sec.t3.d">El mismo enlace instala en sandbox o en una scratch org. Nada te obliga a estrenarlo en producción.</dd>
+      </div>
+      <div>
+        <dt data-t="sec.t4.t">Se desinstala limpio</dt>
+        <dd data-t="sec.t4.d">Como paquete administrado, se quita desde Setup y se lleva sus componentes. Cada paquete se instala y se desinstala por separado.</dd>
+      </div>
+    </dl>
+    <div class="cta cta-center">
+      <a class="btn solid" href="https://github.com/sergioveleiro/veleiro-salesforce-kit" data-t="sec.cta.code">Leer el código</a>
+      <a class="btn" href="../" data-t="sec.cta.back">Volver a los paquetes</a>
+    </div>
+  </section>
+
+</main>
+<footer>
+  <div class="wrap">
+    <p data-t="footer">Veleiro AI · paquetes administrados bajo el namespace <code>veleiro</code>. Cada uno se instala, actualiza y desinstala por separado.</p>
+    <img class="partner" src="../assets/salesforce-partner.png" alt="Salesforce Partner" />
+  </div>
+</footer>
+
+
+<script src="../assets/veleiro.js" defer></script>
