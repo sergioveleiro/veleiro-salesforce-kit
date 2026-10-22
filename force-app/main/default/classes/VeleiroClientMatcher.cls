@@ -133,6 +133,10 @@ public with sharing class VeleiroClientMatcher {
             'sa de cv', 's a de c v', 'sas', 's a s', 'sa', 's a', 'ltda', 'limitada',
             'inc', 'llc', 'ltd', 'corp', 'corporation', 'company', 'co', 'gmbh', 'bv', 'srl', 'spa'
         }) {
+            // El replaceAll es caro y casi nunca aplica: 19 regex por nombre, por cada nombre.
+            // Si el sufijo ni siquiera aparece como texto, no hay nada que quitar. El resultado
+            // es identico; lo que cambia es que un nombre normal cuesta 2 regex en vez de 21.
+            if (!s.contains(suffix)) continue;
             s = s.replaceAll('(^| )' + suffix + '( |$)', ' ');
         }
         s = s.replaceAll(' +', ' ').trim();

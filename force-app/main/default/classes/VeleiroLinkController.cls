@@ -99,6 +99,11 @@ public with sharing class VeleiroLinkController {
 
     @TestVisible private static Integer maxRecords = 20000;
     private static final Integer MAX_OPTIONS = 5;
+    // Palabras indexadas por registro, y tamano a partir del cual una palabra deja de distinguir.
+    private static final Integer MAX_TOKENS = 8;
+    @TestVisible private static Integer MAX_BUCKET = 200;
+    // Cuanto CPU puede gastar el emparejado antes de rendirse (el limite sincrono son 10.000 ms).
+    @TestVisible private static Integer CPU_BUDGET_MS = 7000;
     // Cuantos candidatos viajan al UI de un jalon (el buscador alcanza al resto).
     @TestVisible private static Integer maxCandidates = 200;
     // Tope por tanda de envio: protege los limites async del org del cliente.
@@ -182,18 +187,35 @@ public with sharing class VeleiroLinkController {
             unlinked = new List<SObject>();
         }
 
-        // Indices para no recorrer todos los registros por cada recurso de Veleiro.
+        // Indices para no recorrer todos los registros por cada recurso de Veleiro. Se arman en
+        // UNA pasada: lo que cuesta caro (normalizar el nombre) se hace una vez por registro y
+        // se guarda, en vez de repetirse por cada recurso de Veleiro.
+        Map<String, SObject> byId15 = new Map<String, SObject>();
         Map<String, List<SObject>> byDomain = new Map<String, List<SObject>>();
         Map<String, List<SObject>> byName = new Map<String, List<SObject>>();
         Map<String, List<SObject>> byFirstWord = new Map<String, List<SObject>>();
+        Map<String, List<SObject>> byToken = new Map<String, List<SObject>>();
+        Map<Id, String> normByRecord = new Map<Id, String>();
         for (SObject r : unlinked) {
+            byId15.put(String.valueOf(r.Id).left(15), r);
             if (String.isNotBlank(siteField)) addTo(byDomain, VeleiroClientMatcher.domainOf(str(r.get(siteField))), r);
             String n = VeleiroClientMatcher.normalizeName(str(r.get(nameField)));
+            normByRecord.put(r.Id, n);
             addTo(byName, n, r);
-            if (String.isNotBlank(n)) addTo(byFirstWord, n.split(' ')[0], r);
+            if (String.isNotBlank(n)) {
+                List<String> words = n.split(' ');
+                addTo(byFirstWord, words[0], r);
+                // Indice por palabra: es el unico conjunto donde un nombre puede contener al
+                // otro. Se topan las palabras por registro para no inflar el indice.
+                for (Integer i = 0; i < words.size() && i < MAX_TOKENS; i++) addTo(byToken, words[i], r);
+            }
         }
 
         Map<Id, SendCandidate> matchByRecord = new Map<Id, SendCandidate>();
+        // Red de seguridad. El emparejado ya no deberia acercarse al limite, pero el tamano de la
+        // org del cliente no lo decidimos nosotros: si el presupuesto se acaba, se dejan de buscar
+        // parecidos y la pantalla SIGUE listando todo. Antes la alternativa era un error rojo.
+        Boolean budgetSpent = false;
 
         for (Object obj : resources) {
             Map<String, Object> c = (Map<String, Object>) obj;
@@ -214,14 +236,18 @@ public with sharing class VeleiroLinkController {
                 + veleiroId;
 
             Map<Id, RecordOption> found = new Map<Id, RecordOption>();
+            if (!budgetSpent && Limits.getCpuTime() > CPU_BUDGET_MS) {
+                budgetSpent = true;
+                o.truncated = true;
+            }
+            if (budgetSpent) { o.rows.add(row); continue; }
             // 1. El recurso ya trae el id del registro de Salesforce.
             String sfId = str(af.get('sf_record_id'));
             if (String.isBlank(sfId)) sfId = str(af.get(ent == 'client' ? 'sf_account_id' : 'sf_opportunity_id'));
             if (String.isNotBlank(sfId) && sfId.length() >= 15) {
-                for (SObject r : unlinked) {
-                    if (String.valueOf(r.Id).left(15) == sfId.left(15)) {
-                        put(found, r, nameField, siteField, 'Carries this Salesforce record id', VeleiroClientMatcher.HIGH);
-                    }
+                SObject byId = byId15.get(sfId.left(15));
+                if (byId != null) {
+                    put(found, byId, nameField, siteField, 'Carries this Salesforce record id', VeleiroClientMatcher.HIGH);
                 }
             }
             // 2. Mismo dominio del sitio web.
@@ -238,13 +264,29 @@ public with sharing class VeleiroLinkController {
             }
             if (String.isNotBlank(vName)) {
                 for (SObject r : get(byFirstWord, vName.split(' ')[0])) {
+                    if (found.size() >= MAX_OPTIONS * 3) break;
                     put(found, r, nameField, siteField, 'Similar name', VeleiroClientMatcher.WEAK);
                 }
-                for (SObject r : unlinked) {
+                // Aqui estaba el costo real: se recorrian TODOS los registros por cada recurso de
+                // Veleiro, normalizando cada nombre otra vez. Con unos miles de cuentas y unas
+                // decenas de clientes eso son millones de operaciones de texto, y la pantalla
+                // moria con "Apex CPU time limit exceeded". Ahora solo se miran los registros que
+                // comparten alguna palabra, que son los unicos donde un nombre puede contener al
+                // otro, y el nombre normalizado ya viene calculado.
+                Set<Id> seen = new Set<Id>();
+                for (String token : vName.split(' ')) {
                     if (found.size() >= MAX_OPTIONS * 3) break;
-                    String rn = VeleiroClientMatcher.normalizeName(str(r.get(nameField)));
-                    if (String.isNotBlank(rn) && rn != vName && (rn.contains(vName) || vName.contains(rn))) {
-                        put(found, r, nameField, siteField, 'Similar name', VeleiroClientMatcher.WEAK);
+                    List<SObject> bucket = get(byToken, token);
+                    // Una palabra que comparten cientos de registros no distingue nada: mirarla
+                    // entera devuelve el problema que acabamos de quitar.
+                    if (bucket.size() > MAX_BUCKET) continue;
+                    for (SObject r : bucket) {
+                        if (found.size() >= MAX_OPTIONS * 3) break;
+                        if (!seen.add(r.Id)) continue;
+                        String rn = normByRecord.get(r.Id);
+                        if (String.isNotBlank(rn) && rn != vName && (rn.contains(vName) || vName.contains(rn))) {
+                            put(found, r, nameField, siteField, 'Similar name', VeleiroClientMatcher.WEAK);
+                        }
                     }
                 }
             }
