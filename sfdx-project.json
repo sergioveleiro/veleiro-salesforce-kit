@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Cuando nace el project: al crear, al ganar o manual",
-      "versionNumber": "1.6.0.NEXT",
+      "versionName": "La entrega se ve en el registro: reuniones, transcripciones y tiempo",
+      "versionNumber": "1.7.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Account y Opportunity se configuran por separado, y la Opportunity gana un tercer momento: el project puede nacer al crear la oportunidad, solo cuando se gana, o nunca sola.",
+      "versionDescription": "Los paneles de Account y Opportunity muestran el pulso de la entrega (tiempo invertido, trabajo abierto y trabado) y la linea de tiempo de reuniones, cada una con enlace a Veleiro y un asomo de su transcripcion. Requiere agregarle los scopes meeting y task a la API key en Veleiro.",
       "ancestorVersion": "HIGHEST"
     }
   ],
