@@ -78,7 +78,7 @@ Dos condiciones para que eso ocurra:
 | 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | Released · arregla los mapeos en blanco y el theme. Superada por la 1.5.0.1. |
 | 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | Released · pantallas a todo lo ancho y controles redondos. Superada por la 1.6.0.1. |
 | 1.6.0.1 | `04tPe0000010yrdIAA` | 94% | Released · el project puede nacer al crear la oportunidad, solo al ganarla, o nunca sola |
-| 1.7.0.1 | `04tPe0000011T93IAE` | 94% | **Beta · sin promover** · pulso de entrega (tiempo invertido, trabajo abierto y trabado) y linea de tiempo de reuniones con transcripcion. **Pide scopes nuevos en la API key: `meeting` y `task`** |
+| 1.7.0.1 | `04tPe0000011T93IAE` | 94% | **Released · la que se entrega hoy** · pulso de entrega (tiempo invertido, trabajo abierto y trabado) y linea de tiempo de reuniones con transcripcion. **Pide scopes nuevos en la API key: `meeting` y `task`** |
 
 **Verificado el 22/10/2026 (1.6.0.1 → 1.7.0.1):** la org `Pkg_Manual`, que corria la 1.6.0.1, se actualizo por el mismo camino que usaria un cliente. Conservo su identidad de instalacion y las cuatro clases nuevas llegaron con el prefijo `veleiro`. Cobertura 94%, ancestro 1.6.0.1, o sea que Salesforce ofrece *Upgrade* y no *Install*.
 
