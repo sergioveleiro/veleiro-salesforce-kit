@@ -1,0 +1,64 @@
+/* Pinta su propio lienzo: la org puede traer un theme oscuro y heredar el fondo lo vuelve ilegible. */
+:host {
+    --veleiro-ink: #040b25;
+    --veleiro-muted: #5a6b82;
+    --veleiro-hairline: #eef3f8;
+    --veleiro-accent: #0084fb;
+    --veleiro-warn: #b4551d;
+    --veleiro-warn-soft: #fdf3ec;
+}
+
+.veleiro-pulse {
+    margin-bottom: 12px;
+}
+
+.veleiro-tiles {
+    display: flex;
+    gap: 8px;
+}
+
+.veleiro-tile {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #f7fafd;
+    border: 1px solid var(--veleiro-hairline);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.veleiro-tile_warn {
+    background: var(--veleiro-warn-soft);
+    border-color: #f0d8c6;
+}
+.veleiro-tile_warn .veleiro-tile-value {
+    color: var(--veleiro-warn);
+}
+
+.veleiro-tile-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--veleiro-ink);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.veleiro-tile-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--veleiro-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.veleiro-pulse-note {
+    color: var(--veleiro-muted);
+    font-size: 0.74rem;
+    padding-top: 6px;
+}

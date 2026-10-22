@@ -1,0 +1,121 @@
+<template>
+    <template if:true={showSection}>
+        <div class="veleiro-meetings">
+            <div class="veleiro-meetings-bar">
+                <p class="veleiro-meetings-head">{labels.meetingsTitle}</p>
+                <template if:true={hasControls}>
+                    <div class="veleiro-meetings-controls">
+                        <template if:true={hasProjectFilter}>
+                            <select class="veleiro-select" onchange={handleProject}>
+                                <template for:each={projectOptions} for:item="o">
+                                    <option key={o.value} value={o.value} selected={o.selected}>{o.label}</option>
+                                </template>
+                            </select>
+                        </template>
+                        <button type="button" class={orderClass} onclick={handleOrder}>{orderLabel}</button>
+                        <button
+                            type="button"
+                            class={filterClass}
+                            onclick={handleFilter}
+                            aria-pressed={onlyWithTranscript}
+                        >
+                            {labels.meetingsOnlyTranscript}
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <template if:true={scopeMissing}>
+                <p class="veleiro-meetings-note">{labels.meetingsScopeOff}</p>
+            </template>
+
+            <template if:true={emptyAfterFilter}>
+                <p class="veleiro-meetings-note">{labels.meetingsNoneWithTranscript}</p>
+            </template>
+
+            <ul class="veleiro-timeline">
+                <template for:each={rows} for:item="m">
+                    <li key={m.id} class="veleiro-tl-item">
+                        <span class={m.dotClass}></span>
+
+                        <div class="veleiro-tl-body">
+                            <div class="veleiro-tl-head">
+                                <a href={m.url} target="_blank" rel="noopener" class="veleiro-tl-title">
+                                    {m.displayTitle}
+                                </a>
+                                <template if:true={m.startTime}>
+                                    <span class="veleiro-tl-date">
+                                        <lightning-formatted-date-time
+                                            value={m.startTime}
+                                            year="numeric"
+                                            month="short"
+                                            day="2-digit"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                        ></lightning-formatted-date-time>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <template if:true={m.projectName}>
+                                <p class="veleiro-tl-project">{m.projectName}</p>
+                            </template>
+
+                            <template if:true={m.hasTranscript}>
+                                <button
+                                    type="button"
+                                    class="veleiro-tl-toggle"
+                                    data-id={m.id}
+                                    onclick={handleToggle}
+                                    aria-expanded={m.ariaExpanded}
+                                >
+                                    {m.toggleLabel}
+                                </button>
+                            </template>
+
+                            <template if:true={m.isOpen}>
+                                <div class="veleiro-tl-panel">
+                                    <template if:true={m.loadingTranscript}>
+                                        <p class="veleiro-meetings-note">{labels.meetingsTranscriptLoading}</p>
+                                    </template>
+
+                                    <template if:true={m.transcript}>
+                                        <template if:true={m.transcript.hasParticipants}>
+                                            <p class="veleiro-tl-people">
+                                                {labels.meetingsParticipants}:
+                                                <template for:each={m.transcript.participants} for:item="p">
+                                                    <span key={p.key} class="veleiro-tl-person">{p.name}</span>
+                                                </template>
+                                            </p>
+                                        </template>
+
+                                        <template if:true={m.transcript.hasText}>
+                                            <pre class="veleiro-tl-text">{m.transcript.text}</pre>
+                                            <template if:true={m.transcript.truncated}>
+                                                <a
+                                                    href={m.url}
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="veleiro-tl-readmore"
+                                                >
+                                                    {labels.meetingsTranscriptCut} &#8599;
+                                                </a>
+                                            </template>
+                                        </template>
+                                        <template if:false={m.transcript.hasText}>
+                                            <p class="veleiro-meetings-note">{labels.meetingsTranscriptEmpty}</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+
+            <template if:true={moreLabel}>
+                <button type="button" class="veleiro-tl-more" onclick={handleMore}>{moreLabel}</button>
+            </template>
+        </div>
+    </template>
+</template>

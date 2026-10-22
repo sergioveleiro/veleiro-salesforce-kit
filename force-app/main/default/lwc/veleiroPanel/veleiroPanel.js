@@ -27,6 +27,14 @@ export default class VeleiroPanel extends LightningElement {
         }
     }
 
+    // Recien vinculado: el client puede tener reuniones que antes no se podian pedir.
+    refreshMeetings() {
+        const meetings = this.template.querySelector('c-veleiro-meetings');
+        if (meetings) meetings.refresh();
+        const pulse = this.template.querySelector('c-veleiro-pulse');
+        if (pulse) pulse.refresh();
+    }
+
     get synced() {
         return this.summary && this.summary.synced;
     }
@@ -67,6 +75,7 @@ export default class VeleiroPanel extends LightningElement {
                 'success'
             );
             await refreshApex(this._wired);
+            this.refreshMeetings();
         } catch (e) {
             this.toastError(e);
         } finally {
@@ -82,6 +91,7 @@ export default class VeleiroPanel extends LightningElement {
             const res = await linkAccountToClient({ accountId: this.recordId, clientId });
             this.toast('Linked to the existing Veleiro client', `${res.name} (v${res.version})`, 'success');
             await refreshApex(this._wired);
+            this.refreshMeetings();
         } catch (e) {
             this.toastError(e);
         } finally {
@@ -96,6 +106,7 @@ export default class VeleiroPanel extends LightningElement {
             const res = await createClientForAccount({ accountId: this.recordId });
             this.toast('Client created in Veleiro', `${res.name} (v${res.version})`, 'success');
             await refreshApex(this._wired);
+            this.refreshMeetings();
         } catch (e) {
             this.toastError(e);
         } finally {

@@ -1,6 +1,6 @@
 /**
  * Mock reutilizable de la API de Veleiro para los tests (HttpCalloutMock).
- * Enruta por recurso (/clients, /projects, /tasks, /tasks/states) y metodo,
+ * Enruta por recurso (/clients, /projects, /tasks, /tasks/states, /meetings) y metodo,
  * devolviendo cuerpos canned que cada test puede sobreescribir.
  *
  * Uso:
@@ -15,6 +15,10 @@ public class VeleiroApiMock implements HttpCalloutMock {
     public String clientsBody  = '{"data":[],"has_more":false}';
     public String projectsBody = '{"data":[],"has_more":false}';
     public String tasksBody    = '{"data":[],"has_more":false}';
+    public String meetingsBody = '{"data":[],"has_more":false}';
+    public String transcriptBody = '{"data":{"id":"trn_1","meeting_id":"bot_new","source":"meeting_bot",'
+        + '"text":"[00:00:01] Ana: Hola\\n[00:00:04] Luis: Arrancamos","participants":[{"name":"Ana","email":"ana@acme.com"},'
+        + '{"name":"Luis","email":null}]}}';
     public String statesBody   = '{"data":[]}';
 
     // Cuerpos para escritura / single GET.
@@ -68,6 +72,10 @@ public class VeleiroApiMock implements HttpCalloutMock {
             res.setBody(singleClientBody);
         } else if (url.contains('/projects/prjct')) {       // GET/PATCH single project
             res.setBody(singleProjectBody);
+        } else if (url.contains('/transcript')) {
+            res.setBody(transcriptBody);
+        } else if (url.contains('/meetings')) {
+            res.setBody(meetingsBody);
         } else if (url.contains('/clients')) {
             res.setBody(clientsBody);
         } else if (url.contains('/projects')) {

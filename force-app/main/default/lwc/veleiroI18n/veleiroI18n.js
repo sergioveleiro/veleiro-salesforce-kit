@@ -182,7 +182,35 @@ const EN = {
     nothingForPair: 'Nothing to show for this pair.',
     salesforceRecord: 'Salesforce record',
     veleiroClient: 'Veleiro client',
-    veleiroProject: 'Veleiro project'
+    veleiroProject: 'Veleiro project',
+    // --- reuniones (panel de Account / Opportunity) ---
+    meetingsTitle: 'Meetings',
+    meetingUntitled: 'Untitled meeting',
+    meetingTranscript: 'Transcript',
+    meetingsMore: 'and {0} more in Veleiro',
+    meetingsScopeOff: 'Your Veleiro API key cannot read meetings yet — add the meeting scope to it in Veleiro.',
+    meetingsNewestFirst: 'Newest first',
+    meetingsOldestFirst: 'Oldest first',
+    meetingsOnlyTranscript: 'With transcript',
+    meetingsShowAll: 'Show all ({0})',
+    meetingsShowLess: 'Show less',
+    meetingsHide: 'Hide',
+    meetingsTranscriptLoading: 'Loading transcript…',
+    meetingsTranscriptCut: 'Read the full transcript in Veleiro',
+    meetingsTranscriptEmpty: 'No transcript text.',
+    meetingsParticipants: 'Participants',
+    meetingsNoneWithTranscript: 'None with a transcript.',
+    // --- pulso de entrega (arriba de los paneles) ---
+    pulseTime: 'Time invested',
+    pulseOpen: 'Open work',
+    pulseBlocked: 'Blocked',
+    pulseHours: '{0} h',
+    pulseMinutes: '{0} min',
+    pulseTasks: '{0} tasks',
+    pulseOneTask: '1 task',
+    pulsePartial: 'Across the {0} most recent projects.',
+    pulseScopeOff: 'Your Veleiro API key cannot read tasks yet — add the task scope to it in Veleiro.',
+    meetingsAllProjects: 'All projects'
 };
 
 const ES = {
@@ -350,7 +378,35 @@ const ES = {
     nothingForPair: 'Nada que mostrar para este par.',
     salesforceRecord: 'registro',
     veleiroClient: 'Veleiro client',
-    veleiroProject: 'Veleiro project'
+    veleiroProject: 'Veleiro project',
+    // --- reuniones (panel de Account / Opportunity) ---
+    meetingsTitle: 'Reuniones',
+    meetingUntitled: 'Reunión sin título',
+    meetingTranscript: 'Transcripción',
+    meetingsMore: 'y {0} más en Veleiro',
+    meetingsScopeOff: 'Tu API key de Veleiro todavía no puede leer reuniones: agrégale el scope meeting en Veleiro.',
+    meetingsNewestFirst: 'Más recientes primero',
+    meetingsOldestFirst: 'Más antiguas primero',
+    meetingsOnlyTranscript: 'Con transcripción',
+    meetingsShowAll: 'Ver todas ({0})',
+    meetingsShowLess: 'Ver menos',
+    meetingsHide: 'Ocultar',
+    meetingsTranscriptLoading: 'Cargando la transcripción…',
+    meetingsTranscriptCut: 'Leer la transcripción completa en Veleiro',
+    meetingsTranscriptEmpty: 'Sin texto de transcripción.',
+    meetingsParticipants: 'Participantes',
+    meetingsNoneWithTranscript: 'Ninguna con transcripción.',
+    // --- pulso de entrega (arriba de los paneles) ---
+    pulseTime: 'Tiempo invertido',
+    pulseOpen: 'Trabajo abierto',
+    pulseBlocked: 'Trabado',
+    pulseHours: '{0} h',
+    pulseMinutes: '{0} min',
+    pulseTasks: '{0} tareas',
+    pulseOneTask: '1 tarea',
+    pulsePartial: 'Suma los {0} proyectos más recientes.',
+    pulseScopeOff: 'Tu API key de Veleiro todavía no puede leer tareas: agrégale el scope task en Veleiro.',
+    meetingsAllProjects: 'Todos los proyectos'
 };
 
 const PT = {
@@ -518,7 +574,35 @@ const PT = {
     nothingForPair: 'Nada para mostrar neste par.',
     salesforceRecord: 'registro',
     veleiroClient: 'Veleiro client',
-    veleiroProject: 'Veleiro project'
+    veleiroProject: 'Veleiro project',
+    // --- reuniões (painel de Account / Opportunity) ---
+    meetingsTitle: 'Reuniões',
+    meetingUntitled: 'Reunião sem título',
+    meetingTranscript: 'Transcrição',
+    meetingsMore: 'e mais {0} no Veleiro',
+    meetingsScopeOff: 'Sua API key do Veleiro ainda não pode ler reuniões: adicione o scope meeting a ela no Veleiro.',
+    meetingsNewestFirst: 'Mais recentes primeiro',
+    meetingsOldestFirst: 'Mais antigas primeiro',
+    meetingsOnlyTranscript: 'Com transcrição',
+    meetingsShowAll: 'Ver todas ({0})',
+    meetingsShowLess: 'Ver menos',
+    meetingsHide: 'Ocultar',
+    meetingsTranscriptLoading: 'Carregando a transcrição…',
+    meetingsTranscriptCut: 'Ler a transcrição completa no Veleiro',
+    meetingsTranscriptEmpty: 'Sem texto de transcrição.',
+    meetingsParticipants: 'Participantes',
+    meetingsNoneWithTranscript: 'Nenhuma com transcrição.',
+    // --- pulso de entrega (acima dos painéis) ---
+    pulseTime: 'Tempo investido',
+    pulseOpen: 'Trabalho aberto',
+    pulseBlocked: 'Travado',
+    pulseHours: '{0} h',
+    pulseMinutes: '{0} min',
+    pulseTasks: '{0} tarefas',
+    pulseOneTask: '1 tarefa',
+    pulsePartial: 'Soma os {0} projetos mais recentes.',
+    pulseScopeOff: 'Sua API key do Veleiro ainda não pode ler tarefas: adicione o scope task a ela no Veleiro.',
+    meetingsAllProjects: 'Todos os projetos'
 };
 
 function pick(code) {

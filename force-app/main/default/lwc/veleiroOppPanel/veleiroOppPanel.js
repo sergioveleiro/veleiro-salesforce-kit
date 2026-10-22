@@ -16,12 +16,24 @@ export default class VeleiroOppPanel extends LightningElement {
     loading = false;
     _wired;
 
+    _connected = false;
+
+    connectedCallback() {
+        this._connected = true;
+        // El wire puede haber resuelto antes de que el componente estuviera montado.
+        if (this.synced && !this.live) this.loadLive();
+    }
+
+    disconnectedCallback() {
+        this._connected = false;
+    }
+
     @wire(getProjectSummary, { opportunityId: '$recordId' })
     wired(result) {
         this._wired = result;
         if (result.data) {
             this.summary = result.data;
-            if (result.data.synced) {
+            if (result.data.synced && this._connected) {
                 this.loadLive();
             }
         }
@@ -38,6 +50,14 @@ export default class VeleiroOppPanel extends LightningElement {
 
     get synced() {
         return this.summary && this.summary.synced;
+    }
+
+    // Recien sincronizado: el project puede tener reuniones que antes no se podian pedir.
+    refreshMeetings() {
+        const meetings = this.template.querySelector('c-veleiro-meetings');
+        if (meetings) meetings.refresh();
+        const pulse = this.template.querySelector('c-veleiro-pulse');
+        if (pulse) pulse.refresh();
     }
 
     get hasProgress() {
@@ -65,6 +85,7 @@ export default class VeleiroOppPanel extends LightningElement {
             );
             await refreshApex(this._wired);
             await this.loadLive();
+            this.refreshMeetings();
         } catch (e) {
             const msg = e && e.body && e.body.message ? e.body.message : 'Sync failed';
             this.dispatchEvent(
