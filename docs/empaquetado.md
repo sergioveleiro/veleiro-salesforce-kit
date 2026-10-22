@@ -78,7 +78,8 @@ Dos condiciones para que eso ocurra:
 | 1.4.0.1 | `04tPe0000010w9tIAA` | 94% | Released · arregla los mapeos en blanco y el theme. Superada por la 1.5.0.1. |
 | 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | Released · pantallas a todo lo ancho y controles redondos. Superada por la 1.6.0.1. |
 | 1.6.0.1 | `04tPe0000010yrdIAA` | 94% | Released · el project puede nacer al crear la oportunidad, solo al ganarla, o nunca sola |
-| 1.7.0.1 | `04tPe0000011T93IAE` | 94% | **Released · la que se entrega hoy** · pulso de entrega (tiempo invertido, trabajo abierto y trabado) y linea de tiempo de reuniones con transcripcion. **Pide scopes nuevos en la API key: `meeting` y `task`** |
+| 1.7.0.1 | `04tPe0000011T93IAE` | 94% | Released · **nunca llego a la pagina publica** · pulso de entrega (tiempo invertido, trabajo abierto y trabado) y linea de tiempo de reuniones con transcripcion. **Pide scopes nuevos en la API key: `meeting` y `task`** |
+| 1.8.0.1 | `04tPe0000011UTJIA2` | 94% | **Released · la que se entrega hoy** · arregla el "Apex CPU time limit exceeded" al abrir Veleiro Link en orgs con muchos registros |
 
 **Verificado el 22/10/2026 (1.6.0.1 → 1.7.0.1):** la org `Pkg_Manual`, que corria la 1.6.0.1, se actualizo por el mismo camino que usaria un cliente. Conservo su identidad de instalacion y las cuatro clases nuevas llegaron con el prefijo `veleiro`. Cobertura 94%, ancestro 1.6.0.1, o sea que Salesforce ofrece *Upgrade* y no *Install*.
 
@@ -134,3 +135,37 @@ El `04t` del enlace **es** la versión: cada release tiene su propio link y no e
 2. **Push upgrades.** Confirmar si requieren partnership o revisión de seguridad. Era la razón principal para hacer el paquete administrado.
 3. **Token en custom setting.** Ya empaquetado, `Veleiro_Config__c` puede pasar a `Protected`, que en un managed package **sí está permitido**. Eso cierra el hueco de que cualquier usuario con API pueda leer el token.
 4. **Clientes actuales.** Codeart, FastCloud y Veleiro Main usan la versión sin namespace y **no se actualizan solas**: migrarlas implica instalar el paquete, trasladar vínculos y configuración, y luego quitar lo viejo.
+
+## La pagina publica se publica desde `gh-pages`, no desde `docs/descargas`
+
+`docs/descargas/` (rama `packaging`) es la **fuente**. El sitio que ve el cliente sale de la rama
+huerfana **`gh-pages`**, donde esos mismos archivos viven en la RAIZ. Editar la fuente no publica
+nada.
+
+Esto ya mordio: la 1.7.0.1 se promovio y se actualizo la fuente, pero nadie copio a `gh-pages`, asi
+que durante dias la pagina siguio ofreciendo la **1.6.0.1** a cualquiera que entrara a instalar.
+
+Publicar una version es, entonces, **tres** cosas y no dos:
+
+```bash
+# 1. promover (irreversible)
+sf package version promote --package <04t...> -v veleiro-ro
+
+# 2. actualizar la fuente en packaging: el 04t en docs/descargas/index.html (produccion Y sandbox),
+#    la nota de version en docs/descargas/versiones/index.html + assets/veleiro.js (en y pt),
+#    y la tabla de aqui abajo
+
+# 3. PUBLICAR a gh-pages (el paso que se olvida)
+git worktree add /tmp/ghp gh-pages
+rsync -a --delete --exclude '.git' docs/descargas/ /tmp/ghp/
+cd /tmp/ghp && git add -A && git commit -m "Publicar <version>" && git push origin gh-pages
+cd - && git worktree remove /tmp/ghp
+```
+
+**Y comprobarlo de verdad**, que es lo unico que cierra el ciclo:
+
+```bash
+curl -s https://sergioveleiro.github.io/veleiro-salesforce-kit/ | grep -o '04t[A-Za-z0-9]*' | sort -u
+```
+
+Si ese `04t` no es el que acabas de promover, el cliente sigue bajando lo viejo.
