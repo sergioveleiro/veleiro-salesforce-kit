@@ -16,9 +16,13 @@
                 <p class="slds-text-body_small slds-m-bottom_small veleiro-ok">
                     &#9679;&nbsp;Synced with Veleiro
                 </p>
+
+                <c-veleiro-pulse record-id={recordId} scope="account"></c-veleiro-pulse>
                 <div class="veleiro-row"><span class="veleiro-label">Client</span><span class="veleiro-value">{summary.name}</span></div>
                 <div class="veleiro-row"><span class="veleiro-label">Client ID</span><span class="veleiro-value">{summary.clientId}</span></div>
                 <div class="veleiro-row"><span class="veleiro-label">Version</span><span class="veleiro-value">{summary.version}</span></div>
+
+                <c-veleiro-meetings record-id={recordId} scope="account"></c-veleiro-meetings>
 
                 <div class="slds-m-top_medium">
                     <a href={summary.veleiroUrl} target="_blank" rel="noopener" class="veleiro-link">

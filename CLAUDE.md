@@ -5,7 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Read [`AGENTS.md`](AGENTS.md) first.** It is the full guide: the component map, the Veleiro API contract, the linkage model, the Velly insight rules, install steps and the safety rails. This file covers the essentials plus the things AGENTS.md doesn't mention yet.
 
 ## What this is
-A public Salesforce (SFDX) package that you can deploy as-is. It links a partner's **Salesforce** (sales) to **Veleiro** (delivery): Account ⇄ client (`org_…`), Opportunity ⇄ project (`prjct_…`). It also adds a delivery dashboard and "Velly" insights (rule-based, in `VeleiroInsightService.score()`). The package is metadata only and lives in `force-app/` (API 62.0, no namespace). There is no build step, no npm/Jest setup and no linter. The only toolchain is the `sf` CLI.
+A public Salesforce (SFDX) package that you can deploy as-is. It links a partner's **Salesforce** (sales) to **Veleiro** (delivery): Account ⇄ client (`org_…`), Opportunity ⇄ project (`prjct_…`). It also adds a delivery dashboard and "Velly" insights (rule-based, in `VeleiroInsightService.score()`). The package is metadata only and lives in `force-app/` (API 62.0; no namespace on `main`, namespace `veleiro` on `packaging` — see below). There is no build step, no npm/Jest setup and no linter. The only toolchain is the `sf` CLI.
+
+## Two branches, one codebase
+- **`main`** is the no-namespace build partners deploy from source (`scripts/deploy.sh`, Download ZIP). **`packaging`** is the same code plus what 2GP managed packaging needs: `"namespace": "veleiro"` and the package definition in `sfdx-project.json`, flexipages referencing `veleiro:veleiroDashboard` instead of `c:veleiroDashboard`, and tests that resolve our own object names at runtime (`String.valueOf(Veleiro_Field_Mapping__c.SObjectType)`) instead of hardcoding `'Veleiro_Field_Mapping__c'`.
+- **Functional changes land in `main`, then `git checkout packaging && git merge main`** — never the other way. Which branch you are on decides whether the namespace bugs (Named Credential, object names in data, sObjects crossing to the UI) are even reachable, which is why they shipped twice before being caught.
+- **Never switch branches while `sf package version create` is running.** It writes the new `packageAliases` entry into whatever `sfdx-project.json` is in the working tree *when it finishes*, so the alias can land on the wrong branch. Check `git status` before committing after a build.
+- **Promoting a version is irreversible** and is what allows production installs; `"ancestorVersion": "HIGHEST"` is what makes a customer's install an *Upgrade* instead of a second, unrelated package. An upgrade replaces metadata and never touches subscriber data — except flows, which keep the pinned `activeVersionNumber`. Process, risks, verified upgrade tests and the version history: [`docs/empaquetado.md`](docs/empaquetado.md).
+- **One customer-facing URL.** Each release has its own `04t` id and there is no "latest" link, so the install link lives behind [`docs/descargas/`](docs/descargas/) (static site; strings are `data-t` keys in `assets/veleiro.js`). Publishing a version means updating the `04t` in `docs/descargas/index.html` (production *and* sandbox links) and the table in `docs/empaquetado.md`.
 
 ## Non-negotiables
 - **PUBLIC repo: never commit secrets.** The Veleiro token is *data* in `Veleiro_Config__c.Api_Token__c`. Keep it out of source, tests (use `VeleiroApiMock.seedConfig()`), logs and the committed `scripts/apex/configure.apex`.
@@ -13,7 +20,7 @@ A public Salesforce (SFDX) package that you can deploy as-is. It links a partner
 - **`additional_fields` is replaced whole on write**, so always read-modify-write (`VeleiroSyncService.patchClientWithMerge` / `patchProjectWithMerge`).
 - **Branch on the error `code`, never on `message`.** No trailing slash on API paths (it causes a 301 and the body is dropped).
 - **Tests must not create records on the customer's standard objects beyond Account and Opportunity.** A partner org rejected `Contact` inserts with its own validation rule and the whole deploy rolled back — Apex tests cannot bypass validation rules, required fields or record types. Exercise the "any mapped object" paths with `Veleiro_Field_Mapping__c` (ours) and the Account hierarchy (`ParentId`), which the integration already requires.
-- **Every source class needs ≥75% coverage on its own** (we deploy with `RunSpecifiedTests`). Every source class has a `*Test` that uses `VeleiroApiMock`. Add tests when you add Apex.
+- **Every source class needs ≥75% coverage on its own** (we deploy with `RunSpecifiedTests`). Every source class is covered by a `*Test` that uses `VeleiroApiMock` — directly, or through a caller for the thin ones (`VeleiroPullQueueable` via `VeleiroSyncConfigTest`, `VeleiroSyncRecordAction` via `VeleiroRecordSyncTest`). 23 source classes, 18 test classes. Add tests when you add Apex.
 - **Confirm before outward-facing actions**, such as a deploy to a partner's production org or creating/pushing public repos.
 
 ## Commands
@@ -31,6 +38,13 @@ sf apex run test -o <org> -t VeleiroSyncServiceTest.<methodName> -w 10 -r human
 sf apex run -o <org> -f scripts/apex/configure.apex
 sf apex run -o <org> -f scripts/apex/seedMappings.apex
 sf org assign permset -o <org> -n Veleiro_Integration_Access
+
+# Managed package — only on the `packaging` branch (Dev Hub alias veleiro-ro). See docs/empaquetado.md.
+sf package version create --package "Veleiro Salesforce Kit" --installation-key-bypass --code-coverage --target-dev-hub veleiro-ro --wait 45
+sf package version report --package <04t...> -v veleiro-ro   # must say Code Coverage Met: true
+sf org create scratch -f config/project-scratch-def.json --alias Pkg_Install_Test --duration-days 3 --target-dev-hub veleiro-ro --no-namespace --wait 20
+sf package install --package <04t...> -o Pkg_Install_Test --wait 20 --publish-wait 20 --no-prompt
+sf package version promote --package <04t...> -v veleiro-ro  # IRREVERSIBLE, enables production installs
 ```
 Org aliases live in the untracked `.sf/`.
 
@@ -63,10 +77,11 @@ Org aliases live in the untracked `.sf/`.
 - **Environment switch:** production (`Veleiro_API` Named Credential, `https://app.veleiro.ai`) is the default. `VeleiroMappingController` switches to beta by writing `Base_Url__c = callout:Veleiro_API_Beta/api/v1` plus `App_Base_Url__c`. There are two Named Credentials, so README's "edit the Named Credential endpoint" instructions are out of date.
 - **Mapping saves replace the full set for an object→entity pair** (`VeleiroMappingController.saveMappings`). Don't append, or you get duplicates. Data sent from the LWC to Apex arrives as loosely typed maps, so marshal it explicitly.
 - `@AuraEnabled(cacheable=true)` methods can't make callouts. Anything that calls Veleiro is non-cacheable and is called imperatively from the LWC.
-- Branding (logo and mascot) is base64 in the `c/veleiroBrand` LWC module. The repo has **no static resources or binaries**, so keep it that way.
+- Branding (logo and mascot) is base64 in the `c/veleiroBrand` LWC module. `force-app/` has **no static resources or binaries**, so keep it that way (the images under `docs/descargas/assets/` belong to the public download page, not the package).
 - `Veleiro_Config__c` must stay `<visibility>Public</visibility>`. `Protected` deploys to sandboxes but fails in production ("You can't set the visibility for a Custom Setting to Protected…"), and every class that uses the setting then fails with it. Always validate against production with `sf project deploy validate`.
 - Access is granted only through the `Veleiro_Integration_Access` permission set (profiles are in `.forceignore`). Add new fields, classes and tabs to that permission set.
 
 ## Conventions
 - Code comments and user-facing labels/messages are often in **Spanish**. API names and identifiers are English. Follow the file you're editing.
-- When you change behavior, update `AGENTS.md` / `docs/` (`setup.md`, `field-mapping.md`, `veleiro-api.md`, `velly-insights.md`) too. Partners' coding agents rely on them.
+- When you change behavior, update `AGENTS.md` / `docs/` (`setup.md`, `field-mapping.md`, `veleiro-api.md`, `velly-insights.md`, `instalacion-prd.md`, `empaquetado.md`) too. Partners' coding agents rely on them.
+- **A new `*Test` class has to be copied into `docs/instalacion-prd.md` by hand.** `scripts/deploy.sh` discovers the list from `force-app/`, but a production install done through the Veleiro deploy modal pastes a literal list, and under `RunSpecifiedTests` a class whose test is missing from it fails the 75% check. That list is stale today — it is missing `VeleiroAutoSyncGuardTest`, `VeleiroBulkSendQueueableTest`, `VeleiroI18nTest`, `VeleiroOnboardingControllerTest` and `VeleiroRecordSyncTest`.

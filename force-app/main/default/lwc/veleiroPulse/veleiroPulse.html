@@ -1,0 +1,22 @@
+<template>
+    <template if:true={showSection}>
+        <div class="veleiro-pulse">
+            <template if:true={scopeMissing}>
+                <p class="veleiro-pulse-note">{labels.pulseScopeOff}</p>
+            </template>
+
+            <div class="veleiro-tiles">
+                <template for:each={tiles} for:item="t">
+                    <div key={t.key} class={t.cls}>
+                        <span class="veleiro-tile-value">{t.value}</span>
+                        <span class="veleiro-tile-label">{t.label}</span>
+                    </div>
+                </template>
+            </div>
+
+            <template if:true={partialLabel}>
+                <p class="veleiro-pulse-note">{partialLabel}</p>
+            </template>
+        </div>
+    </template>
+</template>

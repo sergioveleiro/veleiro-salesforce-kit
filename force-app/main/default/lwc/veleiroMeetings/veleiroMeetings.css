@@ -1,0 +1,221 @@
+/* Pinta su propio lienzo: la org puede traer un theme oscuro y heredar el fondo lo vuelve ilegible. */
+:host {
+    --veleiro-ink: #040b25;
+    --veleiro-muted: #5a6b82;
+    --veleiro-hairline: #eef3f8;
+    --veleiro-accent: #0084fb;
+    --veleiro-soft: #e8f3ff;
+}
+
+.veleiro-meetings {
+    margin-top: 16px;
+    border-top: 1px solid var(--veleiro-hairline);
+    padding-top: 10px;
+    color: var(--veleiro-ink);
+}
+
+.veleiro-meetings-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.veleiro-meetings-head {
+    color: var(--veleiro-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.veleiro-meetings-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.veleiro-chip {
+    border: 1px solid #d8e3f0;
+    background: transparent;
+    color: var(--veleiro-muted);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.veleiro-chip:hover {
+    border-color: var(--veleiro-accent);
+    color: var(--veleiro-ink);
+}
+.veleiro-chip_on {
+    background: var(--veleiro-soft);
+    border-color: var(--veleiro-accent);
+    color: var(--veleiro-ink);
+    font-weight: 600;
+}
+
+/* La línea de tiempo: un riel vertical y un punto por reunión. */
+.veleiro-timeline {
+    position: relative;
+    margin: 0;
+    padding: 0 0 0 16px;
+    list-style: none;
+}
+.veleiro-timeline::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--veleiro-hairline);
+}
+
+.veleiro-tl-item {
+    position: relative;
+    padding: 0 0 14px 0;
+}
+.veleiro-tl-item:last-child {
+    padding-bottom: 2px;
+}
+
+.veleiro-tl-dot {
+    position: absolute;
+    left: -16px;
+    top: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--veleiro-accent);
+    background: #fff;
+    box-sizing: border-box;
+}
+/* Relleno = tiene transcripción, o sea hay algo que leer. */
+.veleiro-tl-dot_full {
+    background: var(--veleiro-accent);
+}
+
+.veleiro-tl-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.veleiro-tl-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--veleiro-ink);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.veleiro-tl-title:hover {
+    text-decoration: underline;
+    color: var(--veleiro-accent);
+}
+
+.veleiro-tl-date {
+    flex-shrink: 0;
+    color: var(--veleiro-muted);
+    font-size: 0.75rem;
+}
+
+.veleiro-tl-toggle {
+    margin-top: 2px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--veleiro-accent);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.veleiro-tl-toggle:hover {
+    text-decoration: underline;
+}
+
+.veleiro-tl-panel {
+    margin-top: 6px;
+    border-left: 2px solid var(--veleiro-soft);
+    padding-left: 10px;
+}
+
+.veleiro-tl-people {
+    color: var(--veleiro-muted);
+    font-size: 0.74rem;
+    margin-bottom: 4px;
+}
+.veleiro-tl-person:not(:last-child)::after {
+    content: ', ';
+}
+
+.veleiro-tl-text {
+    max-height: 220px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--veleiro-ink);
+    background: #fbfdff;
+    border: 1px solid var(--veleiro-hairline);
+    border-radius: 6px;
+    padding: 8px;
+    margin: 0;
+}
+
+.veleiro-tl-more {
+    margin-top: 8px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--veleiro-accent);
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.veleiro-tl-more:hover {
+    text-decoration: underline;
+}
+
+.veleiro-meetings-note {
+    color: var(--veleiro-muted);
+    font-size: 0.76rem;
+    padding-top: 4px;
+}
+
+/* El asomo termina aquí: el resto se lee en Veleiro. */
+.veleiro-tl-readmore {
+    display: inline-block;
+    margin-top: 6px;
+    color: var(--veleiro-accent);
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.veleiro-tl-readmore:hover {
+    text-decoration: underline;
+}
+
+/* Acotar por project: una Account puede tener varios en marcha. */
+.veleiro-select {
+    border: 1px solid #d8e3f0;
+    background: transparent;
+    color: var(--veleiro-muted);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    max-width: 140px;
+    cursor: pointer;
+}
+
+.veleiro-tl-project {
+    color: var(--veleiro-muted);
+    font-size: 0.72rem;
+    margin-top: 1px;
+}
