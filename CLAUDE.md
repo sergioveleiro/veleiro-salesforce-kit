@@ -66,7 +66,8 @@ Org aliases live in the untracked `.sf/`.
   recibio *"Apex CPU time limit exceeded"*: el escaneo recorria **todos** los registros de
   Salesforce por **cada** recurso de Veleiro (dos veces: una por `sf_record_id` y otra buscando
   nombres parecidos) y en ese recorrido volvia a normalizar cada nombre. Medido en `VeleiroLinkScaleTest`:
-  1.500 cuentas x 150 clientes = **5.647 ms**; con los indices, **278 ms**. `getSuggestions` arma
+  1.200 registros x 150 clientes = **4.367 ms** antes, **218 ms** despues (medido con el codigo
+  viejo restaurado, no estimado). `getSuggestions` arma
   en UNA pasada `byId15`, `byDomain`, `byName`, `byFirstWord`, `byToken` y `normByRecord`, y el
   bucle por recurso solo consulta indices. Una palabra compartida por mas de `MAX_BUCKET`
   registros se ignora (no distingue nada y reintroduce el recorrido). Si aun asi el CPU pasa de

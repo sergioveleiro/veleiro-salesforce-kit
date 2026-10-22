@@ -13,21 +13,20 @@
 @isTest
 private class VeleiroLinkScaleTest {
 
-    private static final Integer ACCOUNTS = 1500;
+    // Se usa un objeto del PROPIO kit, no Account: este test corre dentro del deploy a la org de
+    // produccion del cliente, y una validation rule suya sobre Account tumbaria el deploy entero.
+    private static final String KIT_OBJECT = String.valueOf(Veleiro_Field_Mapping__c.SObjectType);
+    private static final Integer RECORDS = 1200;
     private static final Integer CLIENTS = 150;
     // Presupuesto: si el escaneo pasa de aqui, en una org mas grande truena.
-    private static final Integer CPU_BUDGET_MS = 5000;
+    private static final Integer CPU_BUDGET_MS = 2500;
 
     @testSetup
     static void setup() {
         VeleiroApiMock.seedConfig();
         insert new Veleiro_Field_Mapping__c(
-            Name = 'Account Name', SObject__c = 'Account', Veleiro_Entity__c = 'client',
+            Name = 'Scale mapping', SObject__c = KIT_OBJECT, Veleiro_Entity__c = 'client',
             SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard', Active__c = true
-        );
-        insert new Veleiro_Field_Mapping__c(
-            Name = 'Account Website', SObject__c = 'Account', Veleiro_Entity__c = 'client',
-            SF_Field__c = 'Website', Veleiro_Target__c = 'sf_website', Target_Type__c = 'Additional', Active__c = true
         );
 
         // Nombres como los de una org real: repetidos, con sufijos societarios y palabras comunes.
@@ -37,12 +36,16 @@ private class VeleiroLinkScaleTest {
             'Inmobiliaria'
         };
         List<String> suffixes = new List<String>{ 'SA de CV', 'S.A.S.', 'Ltda', 'Inc', '' };
-        List<Account> accs = new List<Account>();
-        for (Integer i = 0; i < ACCOUNTS; i++) {
+        List<Veleiro_Field_Mapping__c> rows = new List<Veleiro_Field_Mapping__c>();
+        for (Integer i = 0; i < RECORDS; i++) {
             String name = stems[Math.mod(i, stems.size())] + ' ' + i + ' ' + suffixes[Math.mod(i, suffixes.size())];
-            accs.add(new Account(Name = name.trim(), Website = 'https://www.empresa' + i + '.com'));
+            // Inactivos y sobre un objeto que no existe: son registros PARA emparejar, no mapeos.
+            rows.add(new Veleiro_Field_Mapping__c(
+                Name = name.trim(), SObject__c = 'ZZ_SCALE', Veleiro_Entity__c = 'client',
+                SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard', Active__c = false
+            ));
         }
-        insert accs;
+        insert rows;
     }
 
     private static void mockClients() {
@@ -66,12 +69,12 @@ private class VeleiroLinkScaleTest {
 
         Test.startTest();
         Integer before = Limits.getCpuTime();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions('Account', 'client');
+        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions(KIT_OBJECT, 'client');
         Integer spent = Limits.getCpuTime() - before;
         Test.stopTest();
 
         System.debug(LoggingLevel.ERROR, 'CPU del escaneo: ' + spent + ' ms con ' +
-                     ACCOUNTS + ' cuentas x ' + CLIENTS + ' clientes');
+                     RECORDS + ' registros x ' + CLIENTS + ' clientes');
         System.assertEquals(CLIENTS, o.rows.size(), 'se listan todos los clientes sin vincular');
         System.assert(spent < CPU_BUDGET_MS,
             'el escaneo gasto ' + spent + ' ms de CPU (presupuesto ' + CPU_BUDGET_MS +
