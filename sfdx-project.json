@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "La entrega se ve en el registro: reuniones, transcripciones y tiempo",
-      "versionNumber": "1.7.0.NEXT",
+      "versionName": "Veleiro Link ya no se ahoga en orgs grandes",
+      "versionNumber": "1.8.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Los paneles de Account y Opportunity muestran el pulso de la entrega (tiempo invertido, trabajo abierto y trabado) y la linea de tiempo de reuniones, cada una con enlace a Veleiro y un asomo de su transcripcion. Requiere agregarle los scopes meeting y task a la API key en Veleiro.",
+      "versionDescription": "Arregla el \"Apex CPU time limit exceeded\" al abrir Veleiro Link en orgs con muchos registros. El emparejado recorria todos los registros por cada recurso de Veleiro; ahora usa indices. Medido con 1.200 registros x 150 clientes: 4.367 ms antes, 218 ms despues. Si aun asi el CPU se agota, se dejan de sugerir parecidos pero la pantalla sigue listando todo.",
       "ancestorVersion": "HIGHEST"
     }
   ],
