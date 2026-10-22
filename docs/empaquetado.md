@@ -165,7 +165,12 @@ cd - && git worktree remove /tmp/ghp
 **Y comprobarlo de verdad**, que es lo unico que cierra el ciclo:
 
 ```bash
-curl -s https://sergioveleiro.github.io/veleiro-salesforce-kit/ | grep -o '04t[A-Za-z0-9]*' | sort -u
+curl -s https://sergioveleiro.github.io/veleiro-salesforce-kit/ \
+  | grep -oE '04t[A-Za-z0-9]*|<b>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+</b>' | sort -u
 ```
 
-Si ese `04t` no es el que acabas de promover, el cliente sigue bajando lo viejo.
+Tienen que salir **las dos cosas** y coincidir: el `04t` que acabas de promover y el numero de
+version. Son dos sitios distintos del HTML (`index.html` linea del boton y la etiqueta
+`spec.version`), y ya paso una vez que se cambio el link y se olvido la etiqueta: el boton
+instalaba la 1.8.0.1 mientras el texto de abajo decia "Versión más reciente 1.7.0.1". Si no
+coinciden, el cliente no sabe que esta bajando.
