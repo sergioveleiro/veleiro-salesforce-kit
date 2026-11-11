@@ -25,7 +25,7 @@ public with sharing class VeleiroSync {
         }
 
         if (!toUpsert.isEmpty()) {
-            upsert toUpsert Veleiro_Client_Id__c; // upsert por external id
+            VeleiroSecurity.upsertAccounts(toUpsert);
         }
         System.debug('VeleiroSync.syncClients -> ' + toUpsert.size() + ' clients');
         return toUpsert.size();
@@ -56,6 +56,7 @@ public with sharing class VeleiroSync {
         for (Account a : [
             SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c, Veleiro_Additional_Fields__c
             FROM Account WHERE Veleiro_Client_Id__c != null
+            WITH USER_MODE
             ORDER BY LastModifiedDate ASC
             LIMIT 5000
         ]) {
@@ -80,13 +81,15 @@ public with sharing class VeleiroSync {
         if (!toUpdate.isEmpty()) {
             // Parcial a proposito: una regla de validacion del cliente sobre UNA cuenta no
             // debe tumbar el lote completo.
-            List<Database.SaveResult> results = Database.update(toUpdate, false);
+            List<Database.SaveResult> results = VeleiroSecurity.updatePartial(toUpdate);
             String firstError;
             Integer failed = 0;
             for (Database.SaveResult sr : results) {
                 if (sr.isSuccess()) { updated++; continue; }
                 failed++;
-                if (firstError == null && !sr.getErrors().isEmpty()) firstError = sr.getErrors()[0].getMessage();
+                if (firstError == null && !sr.getErrors().isEmpty()) {
+                    firstError = VeleiroSecurity.sanitize(sr.getErrors()[0].getMessage());
+                }
             }
             if (failed > 0) {
                 VeleiroSyncConfig.recordError('Pull: ' + failed + ' account(s) rejected by Salesforce. First: ' + firstError);

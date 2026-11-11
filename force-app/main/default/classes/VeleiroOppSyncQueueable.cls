@@ -36,6 +36,7 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
               AND AccountId != null
               AND Account.Veleiro_Client_Id__c = null
               AND Account.CreatedDate >= :freshSince
+            WITH USER_MODE
         ]) {
             waiting.add(o.Id);
         }
@@ -53,6 +54,7 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
         Set<Id> stillWaiting = new Set<Id>();
         for (Opportunity o : [
             SELECT Id, Account.Veleiro_Client_Id__c FROM Opportunity WHERE Id IN :opportunityIds
+            WITH USER_MODE
         ]) {
             if (String.isBlank(o.Account.Veleiro_Client_Id__c) && !lastAttempt) {
                 stillWaiting.add(o.Id);

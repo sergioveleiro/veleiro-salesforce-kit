@@ -88,7 +88,7 @@ public with sharing class VeleiroOnboardingController {
                 s.connected = true;
                 s.connectionMessage = VeleiroI18n.t('ev.connected');
             } catch (Exception e) {
-                s.connectionMessage = e.getMessage();
+                s.connectionMessage = VeleiroSecurity.forUi(e);
             }
         } else if (tokenSet) {
             s.connected = true;   // sin ping: el token existe, es lo mas que sabemos sin callout
@@ -121,7 +121,7 @@ public with sharing class VeleiroOnboardingController {
         s.steps.add(cfg);
 
         // --- mapeo ---
-        s.mappingCount = [SELECT COUNT() FROM Veleiro_Field_Mapping__c WHERE Active__c = true];
+        s.mappingCount = [SELECT COUNT() FROM Veleiro_Field_Mapping__c WHERE Active__c = true WITH USER_MODE];
         Step mapStep = new Step('mapping', VeleiroI18n.t('step.mapping.title'),
             VeleiroI18n.t('step.mapping.summary'));
         mapStep.state = s.mappingCount > 0 ? DONE : TODO;
@@ -178,6 +178,12 @@ public with sharing class VeleiroOnboardingController {
             if (st.state == DONE) s.done++;
         }
         s.complete = s.done == s.total;
+        // No callout on this path when verifyConnection is false. When it is true, the callout already ran.
+        try {
+            VeleiroCredentialStore.migrateLegacyToken();
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Token migration skipped: ' + e.getTypeName());
+        }
         return s;
     }
 
@@ -197,16 +203,16 @@ public with sharing class VeleiroOnboardingController {
 
     // Vinculado = tiene id de Veleiro. El filtro arranca por el external id, que esta indexado.
     private static Integer linkedCount() {
-        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null]
-             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null]
-             + [SELECT COUNT() FROM Veleiro_Link__c];
+        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null WITH USER_MODE]
+             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null WITH USER_MODE]
+             + [SELECT COUNT() FROM Veleiro_Link__c WITH USER_MODE];
     }
 
     // Sincronizado = ademas trae version, y la version solo la devuelve la API de Veleiro.
     private static Integer syncedCount() {
-        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null AND Veleiro_Version__c != null]
-             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null AND Veleiro_Project_Version__c != null]
-             + [SELECT COUNT() FROM Veleiro_Link__c WHERE Veleiro_Version__c != null];
+        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null AND Veleiro_Version__c != null WITH USER_MODE]
+             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null AND Veleiro_Project_Version__c != null WITH USER_MODE]
+             + [SELECT COUNT() FROM Veleiro_Link__c WHERE Veleiro_Version__c != null WITH USER_MODE];
     }
 
     // FlowDefinitionView necesita permisos de Setup: si no se puede leer, el paso queda en

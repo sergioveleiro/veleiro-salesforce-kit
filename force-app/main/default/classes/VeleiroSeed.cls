@@ -1,7 +1,7 @@
 public with sharing class VeleiroSeed {
     public static Integer seed() {
-        delete [SELECT Id FROM Veleiro_Field_Mapping__c];
-        insert defaults();
+        VeleiroSecurity.deleteRecords([SELECT Id FROM Veleiro_Field_Mapping__c WITH USER_MODE]);
+        VeleiroSecurity.insertRecords(defaults());
         return 6;
     }
 

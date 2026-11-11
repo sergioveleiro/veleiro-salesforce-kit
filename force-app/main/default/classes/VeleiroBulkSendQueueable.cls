@@ -73,11 +73,13 @@ public with sharing class VeleiroBulkSendQueueable implements Queueable, Databas
 
         // Un solo DML, ya sin callouts pendientes, y parcial para no perder el lote por uno.
         if (!toSave.isEmpty()) {
-            List<Database.SaveResult> results = Database.update(toSave, false);
+            List<Database.SaveResult> results = VeleiroSecurity.updatePartial(toSave);
             for (Integer i = 0; i < results.size(); i++) {
                 if (results[i].isSuccess()) continue;
                 Id failedId = toSave[i].Id;
-                String why = results[i].getErrors().isEmpty() ? 'unknown' : results[i].getErrors()[0].getMessage();
+                String why = results[i].getErrors().isEmpty()
+                    ? 'unknown'
+                    : VeleiroSecurity.sanitize(results[i].getErrors()[0].getMessage());
                 // El client SI existe en Veleiro: lo decimos con su id para poder rescatarlo.
                 VeleiroAutoSyncGuard.recordFailure(failedId, new VeleiroApiClient.VeleiroApiException(
                     'Veleiro client ' + createdFor.get(failedId) + ' was created but Salesforce could not'

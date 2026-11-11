@@ -16,7 +16,7 @@ The script deploys `force-app/` with `RunSpecifiedTests`, running **only the kit
 ## 2. Paste your Veleiro API token (the ONLY thing you configure — it's a secret)
 The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code to **production** (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.veleiro.ai`), so you don't have to set them.
 
-**Recommended (UI, most secure):** Setup → **Custom Settings** → **Veleiro Config** → **Manage** → **New** (org default) → paste your token into **Api_Token__c** → Save.
+**Recommended:** open the **Veleiro Setup** tab as an administrator and paste the token there. That writes the protected setting and clears the old public `Api_Token__c` field. Do not leave the token in the public custom setting.
 
 > The token is **per-partner** and **never** ships in the repo or gets set by anyone but you. Do not commit it, and don't let anyone hand it to you in a script.
 

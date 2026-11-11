@@ -81,7 +81,7 @@ private class VeleiroApiClientTest {
 
     @isTest
     static void appBaseFallsBackToDefault() {
-        // Sin App_Base_Url__c configurada -> default beta.
+        // No App_Base_Url__c -> production portal.
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         c.App_Base_Url__c = null;
         update c;

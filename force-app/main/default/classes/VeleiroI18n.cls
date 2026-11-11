@@ -49,7 +49,7 @@ public with sharing class VeleiroI18n {
     private static final Map<String, String> EN = new Map<String, String>{
         // --- pasos del setup ---
         'step.connection.title' => 'Connect your Veleiro account',
-        'step.connection.summary' => 'Paste your Veleiro API token. Salesforce talks to Veleiro server to server: the token stays in your org and never reaches the browser.',
+        'step.connection.summary' => 'An administrator pastes the Veleiro API token. Salesforce talks to Veleiro server to server: the token stays inside the package and never reaches the browser.',
         'step.config.title' => 'Choose how it syncs',
         'step.config.summary' => 'Decide whether Salesforce pushes, pulls or both, and whether it happens when the record is created or only when you click Sync. Until you save this, the kit stays manual and touches nothing on its own.',
         'step.mapping.title' => 'Map your fields',
@@ -100,12 +100,30 @@ public with sharing class VeleiroI18n {
         // --- errores que el usuario lee tal cual ---
         'err.pushDisabled' => 'The configured direction is "Veleiro → Salesforce", so Salesforce cannot create anything in Veleiro. Change it in Veleiro Mappings to be able to send.',
         'err.noMapping' => 'There is no mapping for {0} → {1}. Set it up in Veleiro Mappings.',
-        'err.batchTooBig' => 'That is {0} records and the limit per batch is {1}. Send one batch, wait for it to finish and continue with the next one.'
+        'err.batchTooBig' => 'That is {0} records and the limit per batch is {1}. Send one batch, wait for it to finish and continue with the next one.',
+        'err.adminOnly' => 'Only an administrator can change the Veleiro token, environment, sync settings, or field mappings.',
+        'err.generic' => 'The request could not be completed. Check the Veleiro connection and try again.',
+        'err.tokenMissing' => 'The Veleiro API token is missing. An administrator can paste it in Veleiro Setup.',
+        'err.objectUnavailable' => 'That Salesforce object is not available.',
+        'err.fieldsUnavailable' => 'You do not have access to the mapped fields on this record.',
+        'err.notDeletable' => 'You do not have permission to delete these records.',
+        'err.mappingRows' => 'Nothing was saved. Each row needs a Salesforce field you can read and a valid Veleiro target.',
+        'err.requestRejected' => 'The Veleiro request was rejected.',
+        'api.invalid_token' => 'The Veleiro API token was rejected.',
+        'api.insufficient_scope' => 'The Veleiro API token is missing a required scope.',
+        'api.not_found' => 'The Veleiro record was not found.',
+        'api.validation_failed' => 'Veleiro rejected the data it received.',
+        'api.version_conflict' => 'The Veleiro record changed. Retry the sync.',
+        'api.invalid_cursor' => 'The Veleiro list could not be continued.',
+        'api.rate_limited' => 'Veleiro rate limit reached. Try again shortly.',
+        'api.method_not_allowed' => 'Veleiro refused that request.',
+        'api.internal_error' => 'Veleiro returned an error.',
+        'api.nonJson' => 'Veleiro returned a non-JSON response (HTTP {0}).'
     };
 
     private static final Map<String, String> ES = new Map<String, String>{
         'step.connection.title' => 'Conecta tu cuenta de Veleiro',
-        'step.connection.summary' => 'Pega el API token de Veleiro. Salesforce habla con Veleiro de servidor a servidor: el token se queda en tu org y nunca llega al navegador.',
+        'step.connection.summary' => 'Un administrador pega el API token de Veleiro. Salesforce habla con Veleiro de servidor a servidor: el token se queda dentro del paquete y nunca llega al navegador.',
         'step.config.title' => 'Elige cómo sincroniza',
         'step.config.summary' => 'Define si Salesforce empuja, jala o las dos, y si lo hace al crear el registro o solo cuando das clic. Mientras no lo guardes, el kit se queda en manual y no toca nada por su cuenta.',
         'step.mapping.title' => 'Mapea tus campos',
@@ -152,12 +170,30 @@ public with sharing class VeleiroI18n {
         'cfg.manual' => 'manual',
         'err.pushDisabled' => 'La dirección configurada es "Veleiro → Salesforce", así que Salesforce no puede crear nada en Veleiro. Cámbiala en Veleiro Mappings para poder enviar.',
         'err.noMapping' => 'No hay mapeo de {0} → {1}. Configúralo en Veleiro Mappings.',
-        'err.batchTooBig' => 'Son {0} registros y el máximo por tanda es {1}. Manda una tanda, espera a que termine y sigue con la siguiente.'
+        'err.batchTooBig' => 'Son {0} registros y el máximo por tanda es {1}. Manda una tanda, espera a que termine y sigue con la siguiente.',
+        'err.adminOnly' => 'Solo un administrador puede cambiar el token de Veleiro, el entorno, la sincronización o los mapeos.',
+        'err.generic' => 'No se pudo completar la solicitud. Revisa la conexión con Veleiro e inténtalo de nuevo.',
+        'err.tokenMissing' => 'Falta el API token de Veleiro. Un administrador puede pegarlo en Veleiro Setup.',
+        'err.objectUnavailable' => 'Ese objeto de Salesforce no está disponible.',
+        'err.fieldsUnavailable' => 'No tienes acceso a los campos mapeados de este registro.',
+        'err.notDeletable' => 'No tienes permiso para borrar estos registros.',
+        'err.mappingRows' => 'No se guardó nada. Cada fila necesita un campo de Salesforce que puedas leer y un target de Veleiro válido.',
+        'err.requestRejected' => 'La solicitud a Veleiro fue rechazada.',
+        'api.invalid_token' => 'Veleiro rechazó el API token.',
+        'api.insufficient_scope' => 'Al API token de Veleiro le falta un permiso.',
+        'api.not_found' => 'Veleiro no encontró el registro.',
+        'api.validation_failed' => 'Veleiro rechazó los datos enviados.',
+        'api.version_conflict' => 'El registro de Veleiro cambió. Vuelve a sincronizar.',
+        'api.invalid_cursor' => 'No se pudo continuar la lista de Veleiro.',
+        'api.rate_limited' => 'Veleiro limitó las solicitudes. Inténtalo en un momento.',
+        'api.method_not_allowed' => 'Veleiro rechazó esa solicitud.',
+        'api.internal_error' => 'Veleiro devolvió un error.',
+        'api.nonJson' => 'Veleiro devolvió una respuesta que no es JSON (HTTP {0}).'
     };
 
     private static final Map<String, String> PT = new Map<String, String>{
         'step.connection.title' => 'Conecte sua conta Veleiro',
-        'step.connection.summary' => 'Cole o token de API do Veleiro. O Salesforce fala com o Veleiro de servidor para servidor: o token fica na sua org e nunca chega ao navegador.',
+        'step.connection.summary' => 'Um administrador cola o token de API do Veleiro. O Salesforce fala com o Veleiro de servidor para servidor: o token fica dentro do pacote e nunca chega ao navegador.',
         'step.config.title' => 'Escolha como sincroniza',
         'step.config.summary' => 'Defina se o Salesforce envia, recebe ou os dois, e se isso acontece ao criar o registro ou só quando você clica em Sync. Enquanto não salvar, o kit fica no manual e não mexe em nada sozinho.',
         'step.mapping.title' => 'Mapeie seus campos',
@@ -204,6 +240,24 @@ public with sharing class VeleiroI18n {
         'cfg.manual' => 'manual',
         'err.pushDisabled' => 'A direção configurada é "Veleiro → Salesforce", então o Salesforce não pode criar nada no Veleiro. Mude isso em Veleiro Mappings para poder enviar.',
         'err.noMapping' => 'Não há mapeamento de {0} → {1}. Configure em Veleiro Mappings.',
-        'err.batchTooBig' => 'São {0} registros e o máximo por lote é {1}. Mande um lote, espere terminar e siga com o próximo.'
+        'err.batchTooBig' => 'São {0} registros e o máximo por lote é {1}. Mande um lote, espere terminar e siga com o próximo.',
+        'err.adminOnly' => 'Só um administrador pode mudar o token do Veleiro, o ambiente, a sincronização ou os mapeamentos.',
+        'err.generic' => 'Não foi possível concluir a solicitação. Verifique a conexão com o Veleiro e tente de novo.',
+        'err.tokenMissing' => 'Falta o token de API do Veleiro. Um administrador pode colá-lo em Veleiro Setup.',
+        'err.objectUnavailable' => 'Esse objeto do Salesforce não está disponível.',
+        'err.fieldsUnavailable' => 'Você não tem acesso aos campos mapeados deste registro.',
+        'err.notDeletable' => 'Você não tem permissão para excluir estes registros.',
+        'err.mappingRows' => 'Nada foi salvo. Cada linha precisa de um campo do Salesforce que você possa ler e de um target válido do Veleiro.',
+        'err.requestRejected' => 'A solicitação ao Veleiro foi recusada.',
+        'api.invalid_token' => 'O Veleiro recusou o token de API.',
+        'api.insufficient_scope' => 'Falta uma permissão no token de API do Veleiro.',
+        'api.not_found' => 'O Veleiro não encontrou o registro.',
+        'api.validation_failed' => 'O Veleiro recusou os dados enviados.',
+        'api.version_conflict' => 'O registro do Veleiro mudou. Sincronize de novo.',
+        'api.invalid_cursor' => 'Não foi possível continuar a lista do Veleiro.',
+        'api.rate_limited' => 'O Veleiro limitou as solicitações. Tente de novo em instantes.',
+        'api.method_not_allowed' => 'O Veleiro recusou essa solicitação.',
+        'api.internal_error' => 'O Veleiro devolveu um erro.',
+        'api.nonJson' => 'O Veleiro devolveu uma resposta que não é JSON (HTTP {0}).'
     };
 }

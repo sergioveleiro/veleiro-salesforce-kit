@@ -6,7 +6,7 @@ This file is written for an AI coding agent (Claude Code or similar) that a **Ve
 
 This repo ships with **no token** (it's public). You cannot connect to Veleiro without one, and you must never invent or hardcode it. Before installing, ask the human for:
 
-1. **Their Veleiro API token** — scopes: **read + write** on clients and projects. If they don't have one, tell them to generate it in the Veleiro app (API / developer settings) or request API access from Veleiro. It's the only secret; it goes **only** into `Veleiro_Config__c.Api_Token__c` as data (install Step 2), never into a file you commit, a test, or a log.
+1. **Their Veleiro API token** — scopes: **read + write** on clients and projects (and `task` / `meeting` when those panels are used). If they don't have one, tell them to generate it in the Veleiro app (API / developer settings) or request API access from Veleiro. It's the only secret. An administrator pastes it in **Veleiro Setup**, which stores it in the protected setting `Veleiro_Secret__c` and, when the platform accepts it, in the `Veleiro_External` credential. The legacy public field `Veleiro_Config__c.Api_Token__c` is only a fallback and is cleared after a successful copy. Never put the token in a file you commit, a test, or a log.
 2. **The target Salesforce org** — a `sf` CLI alias (or have them authenticate one). Confirm whether it's production (deploy runs tests) or a sandbox/scratch.
 
 With just those two, you can do the entire install below. If either is missing, stop and ask — do not guess.
@@ -21,7 +21,7 @@ Two businesses, one link:
 
 ## Golden rules (safety rails)
 
-1. **This repo is PUBLIC. Never commit secrets.** The Veleiro API token is stored as **data** in `Veleiro_Config__c.Api_Token__c`, never in source. Do not write tokens into `.apex` scripts that get committed, into tests, or into logs.
+1. **This repo is PUBLIC. Never commit secrets.** The Veleiro API token is stored as **data** (protected custom setting, or the External Credential when that write succeeds), never in source. Do not write tokens into `.apex` scripts that get committed, into tests, or into logs.
 2. **All Veleiro calls are server-to-server from Apex.** Never expose the token to a browser/LWC. LWCs call Apex `@AuraEnabled` methods; only Apex holds the token.
 3. **`additional_fields` is replace-on-write.** A PATCH replaces the whole `additional_fields` object. Always **read-modify-write**: GET current, merge your keys, PATCH. See `VeleiroSyncService.patchClientWithMerge`.
 4. **Branch on error `code`, never on `message`.** Messages change; codes are an enum (below).
@@ -59,12 +59,12 @@ Two businesses, one link:
 | `classes/VeleiroMeetingService.cls` / `lwc/veleiroMeetings` | Reuniones de Veleiro como enlaces, dentro de los paneles de Account (`getForAccount`) y Opportunity (`getForOpportunity`). Solo lectura. Sin vínculo no gasta callout; sin el scope `meeting` devuelve `scopeMissing` y el componente lo explica en una línea en vez de romperse. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
 | `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
-| `objects/Veleiro_Config__c` | Hierarchy custom setting: `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. |
+| `objects/Veleiro_Config__c` | Public hierarchy custom setting for non-secret sync settings. `Api_Token__c` is deprecated and cleared after migration. `Base_Url__c` only selects the packaged production or beta Named Credential. |
 | `objects/Veleiro_Field_Mapping__c` | The mapping model (see `docs/field-mapping.md`). |
 
 ## The Veleiro API contract (authoritative)
 
-Base: `Base_Url__c` = `callout:Veleiro_API/api/v1`, routed through the `Veleiro_API` Named Credential (host `https://app.veleiro.ai` by default; `https://app.beta.veleiro.dev` for beta). Auth: `Authorization: Bearer <token>`.
+Base: packaged Named Credential only. Production is `callout:Veleiro_API/api/v1` (`https://app.veleiro.ai`). Beta is `callout:Veleiro_API_Beta/api/v1` (`https://app.beta.veleiro.dev`). A raw URL in `Base_Url__c` is ignored. When the External Credential principal is ready, callouts use `Veleiro_API_Secure` / `Veleiro_API_Beta_Secure` and the platform sends `Authorization`. Until then, Apex sends `Authorization: Bearer` from the protected setting (or the legacy public field if that copy failed), still only to the packaged Named Credentials.
 
 - **Envelope.** Responses wrap payload in `{"data": …}`. Lists add `has_more` and `next_cursor`.
 - **Pagination is cursor-based** (no offset). Follow `next_cursor` while `has_more` is true. Cursors expire (~24h). `VeleiroApiClient.listAll` does this.
@@ -108,7 +108,7 @@ Queues: `expand`+`reference` → Expand; `protect`+`unblock` → At-risk; `onboa
 ## How to install in a partner org
 
 1. `scripts/deploy.sh <org>` (use `--validate` first for production). It deploys with `RunSpecifiedTests` and runs only the kit's `*Test` classes. **Don't use `RunLocalTests`**: it runs every test in the partner's org, and unrelated failing tests there would block the install.
-2. Configure `Veleiro_Config__c` **as data** (never in git): set `Api_Token__c`, `Base_Url__c`, `App_Base_Url__c`. Use `scripts/apex/configure.apex` (edit in a local copy, don't commit the token) or the Setup UI.
+2. An administrator pastes the token in the **Veleiro Setup** tab (preferred). `scripts/apex/configure.apex` still writes the legacy public field; the post-install script and the Setup tab copy it into the protected setting and clear the public field. Never commit the token.
 3. `sf apex run -o <org> -f scripts/apex/seedMappings.apex` to seed default mappings.
 4. `sf org assign permset -o <org> -n Veleiro_Integration_Access`.
 5. If the org already had accounts in Salesforce and clients in Veleiro, open the **Veleiro Link** tab and link them before syncing, so nothing is duplicated.

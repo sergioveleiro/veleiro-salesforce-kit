@@ -42,7 +42,9 @@ public with sharing class VeleiroLinkStore {
         } else {
             for (Veleiro_Link__c row : [
                 SELECT Veleiro_Id__c, Veleiro_Version__c FROM Veleiro_Link__c
-                WHERE Link_Key__c = :linkKey(record.Id, entity) LIMIT 1
+                WHERE Link_Key__c = :linkKey(record.Id, entity)
+                WITH USER_MODE
+                LIMIT 1
             ]) {
                 l.veleiroId = row.Veleiro_Id__c;
                 l.version = (row.Veleiro_Version__c == null) ? null : Integer.valueOf(row.Veleiro_Version__c);
@@ -75,14 +77,17 @@ public with sharing class VeleiroLinkStore {
     public static Set<String> linkedIds(String sobjectName, String entity) {
         Set<String> ids = new Set<String>();
         if (isNative(sobjectName, entity)) {
-            String field = nativeFields(sobjectName, entity)[0];
-            String soql = 'SELECT ' + field + ' FROM ' + String.escapeSingleQuotes(sobjectName) +
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+            String field = VeleiroSecurity.safeField(described, nativeFields(sobjectName, entity)[0]);
+            if (described == null || field == null) return ids;
+            String soql = 'SELECT ' + field + ' FROM ' + described.getName() +
                           ' WHERE ' + field + ' != null';
-            for (SObject r : Database.query(soql)) ids.add((String) r.get(field));
+            for (SObject r : VeleiroSecurity.query(soql)) ids.add((String) r.get(field));
         } else {
             for (Veleiro_Link__c row : [
                 SELECT Veleiro_Id__c FROM Veleiro_Link__c
                 WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
+                WITH USER_MODE
             ]) {
                 ids.add(row.Veleiro_Id__c);
             }
@@ -94,14 +99,17 @@ public with sharing class VeleiroLinkStore {
     public static Set<Id> linkedRecords(String sobjectName, String entity) {
         Set<Id> ids = new Set<Id>();
         if (isNative(sobjectName, entity)) {
-            String field = nativeFields(sobjectName, entity)[0];
-            String soql = 'SELECT Id FROM ' + String.escapeSingleQuotes(sobjectName) +
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+            String field = VeleiroSecurity.safeField(described, nativeFields(sobjectName, entity)[0]);
+            if (described == null || field == null) return ids;
+            String soql = 'SELECT Id FROM ' + described.getName() +
                           ' WHERE ' + field + ' != null';
-            for (SObject r : Database.query(soql)) ids.add(r.Id);
+            for (SObject r : VeleiroSecurity.query(soql)) ids.add(r.Id);
         } else {
             for (Veleiro_Link__c row : [
                 SELECT Record_Id__c FROM Veleiro_Link__c
                 WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
+                WITH USER_MODE
             ]) {
                 ids.add((Id) row.Record_Id__c);
             }

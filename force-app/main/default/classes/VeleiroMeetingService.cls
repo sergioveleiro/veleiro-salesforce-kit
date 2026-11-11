@@ -85,7 +85,7 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForOpportunity(Id opportunityId) {
         if (opportunityId == null) return new MeetingList();
         String projectId = null;
-        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1]) {
+        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId WITH USER_MODE LIMIT 1]) {
             projectId = o.Veleiro_Project_Id__c;
         }
         return fetch('project_id', projectId);
@@ -96,7 +96,7 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForAccount(Id accountId) {
         if (accountId == null) return new MeetingList();
         String clientId = null;
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId LIMIT 1]) {
+        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1]) {
             clientId = a.Veleiro_Client_Id__c;
         }
         MeetingList out = fetch('client_id', clientId);
@@ -187,7 +187,7 @@ public with sharing class VeleiroMeetingService {
     public static Transcript getTranscript(String meetingId) {
         Transcript t = new Transcript();
         t.meetingId = meetingId;
-        if (String.isBlank(meetingId)) return t;
+        if (String.isBlank(meetingId) || !Pattern.matches('[A-Za-z0-9_]+', meetingId.trim())) return t;
         try {
             Map<String, Object> body = VeleiroApiClient.doGet('/meetings/' + meetingId.trim() + '/transcript', null);
             Map<String, Object> data = (Map<String, Object>) body.get('data');

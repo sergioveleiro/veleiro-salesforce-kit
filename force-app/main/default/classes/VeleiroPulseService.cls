@@ -46,7 +46,7 @@ public with sharing class VeleiroPulseService {
         Pulse p = new Pulse();
         if (opportunityId == null) return p;
         String projectId = null;
-        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1]) {
+        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId WITH USER_MODE LIMIT 1]) {
             projectId = o.Veleiro_Project_Id__c;
         }
         if (String.isBlank(projectId)) return p;
@@ -73,7 +73,7 @@ public with sharing class VeleiroPulseService {
         Pulse p = new Pulse();
         if (accountId == null) return p;
         String clientId = null;
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId LIMIT 1]) {
+        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1]) {
             clientId = a.Veleiro_Client_Id__c;
         }
         if (String.isBlank(clientId)) return p;
