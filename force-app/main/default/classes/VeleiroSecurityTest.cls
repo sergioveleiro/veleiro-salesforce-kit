@@ -1,6 +1,11 @@
 @isTest
 private class VeleiroSecurityTest {
 
+    @testSetup
+    static void setup() {
+        VeleiroTestAccess.grant();
+    }
+
     private class CaptureMock implements HttpCalloutMock {
         public String endpoint;
         public String authorization;
@@ -211,6 +216,10 @@ private class VeleiroSecurityTest {
     static void fieldAndObjectNamesAreDescribeChecked() {
         Schema.DescribeSObjectResult account = VeleiroSecurity.describeObject('Account');
         System.assertEquals('Name', VeleiroSecurity.safeField(account, 'Name'));
+        System.assertEquals(
+            Account.Veleiro_Client_Id__c.getDescribe().getName(),
+            VeleiroSecurity.safeField(account, 'Veleiro_Client_Id__c')
+        );
         System.assertEquals(null, VeleiroSecurity.safeField(account, 'Name, (SELECT Id FROM Contacts)'));
         System.assertEquals(null, VeleiroSecurity.describeObject('Not_A_Real_Object__c'));
         System.assertEquals(0, VeleiroLinkController.searchRecords('User', 'client', 'admin').size());

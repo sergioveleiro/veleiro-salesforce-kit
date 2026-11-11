@@ -113,21 +113,24 @@ public with sharing class VeleiroLinkController {
     @AuraEnabled(cacheable=true)
     public static List<Pair> getPairs() {
         Map<String, Pair> pairs = new Map<String, Pair>();
-        for (AggregateResult ar : [
-            SELECT SObject__c so, Veleiro_Entity__c ent
-            FROM Veleiro_Field_Mapping__c
-            WHERE Active__c = true AND SObject__c != null AND Veleiro_Entity__c != null
-            WITH USER_MODE
-            GROUP BY SObject__c, Veleiro_Entity__c
-        ]) {
+        String pairSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' so, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' ent'
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' != null'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' != null'
+            + ' GROUP BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c);
+        for (SObject raw : VeleiroSecurity.query(pairSoql, new Map<String, Object>())) {
+            AggregateResult ar = (AggregateResult) raw;
             String so = (String) ar.get('so');
             String ent = (String) ar.get('ent');
-            Schema.SObjectType type = Schema.getGlobalDescribe().get(so);
-            if (type == null) continue; // el objeto ya no existe en la org
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
+            if (described == null) continue; // el objeto ya no existe en la org
 
             Pair p = new Pair();
             p.sobjectName = so;
-            p.sobjectLabel = type.getDescribe().getLabel();
+            p.sobjectLabel = described.getLabel();
             p.entity = ent;
             p.label = p.sobjectLabel + ' -> ' + ent;
             p.value = so + '|' + ent;
@@ -182,7 +185,7 @@ public with sharing class VeleiroLinkController {
                           ' FROM ' + described.getName() +
                           ' WHERE Id NOT IN :linkedRecordIds' +
                           ' ORDER BY ' + nameField + ' LIMIT 20001';
-            unlinked = VeleiroSecurity.query(soql);
+            unlinked = VeleiroSecurity.query(soql, new Map<String, Object>{ 'linkedRecordIds' => linkedRecordIds });
         }
         o.recordsUnlinked = unlinked.size();
         if (unlinked.size() > maxRecords) {
@@ -366,7 +369,9 @@ public with sharing class VeleiroLinkController {
                       ' FROM ' + described.getName() +
                       ' WHERE ' + nameField + ' LIKE :pattern AND Id NOT IN :linked' +
                       ' ORDER BY ' + nameField + ' LIMIT 20';
-        for (SObject r : VeleiroSecurity.query(soql)) {
+        for (SObject r : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'pattern' => pattern, 'linked' => linked
+        })) {
             RecordOption op = new RecordOption();
             op.recordId = r.Id;
             op.name = str(r.get(nameField));
@@ -539,11 +544,16 @@ public with sharing class VeleiroLinkController {
     // Campo de Salesforce mapeado a alguno de esos targets de Veleiro.
     private static String mappedField(String so, String ent, Set<String> targets) {
         Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
-        for (Veleiro_Field_Mapping__c m : [
-            SELECT SF_Field__c, Veleiro_Target__c FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :so AND Veleiro_Entity__c = :ent AND Active__c = true
-            WITH USER_MODE
-        ]) {
+        String mapSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :so'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :ent'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true';
+        for (SObject raw : VeleiroSecurity.query(mapSoql, new Map<String, Object>{
+            'so' => so, 'ent' => ent
+        })) {
+            Veleiro_Field_Mapping__c m = (Veleiro_Field_Mapping__c) raw;
             if (!targets.contains(m.Veleiro_Target__c)) continue;
             String safe = VeleiroSecurity.safeField(described, m.SF_Field__c);
             if (safe != null) return safe;

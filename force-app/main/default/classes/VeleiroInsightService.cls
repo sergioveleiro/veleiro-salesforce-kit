@@ -75,7 +75,14 @@ public with sharing class VeleiroInsightService {
     // ---------- API para la Account record page ----------
     @AuraEnabled
     public static ClientInsight getInsightForAccount(Id accountId) {
-        Account a = [SELECT Id, Name, Veleiro_Client_Id__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+        Account a = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Veleiro_Client_Id__c
+        });
+        if (a == null) {
+            ClientInsight none = new ClientInsight();
+            none.synced = false;
+            return none;
+        }
         if (String.isBlank(a.Veleiro_Client_Id__c)) {
             ClientInsight none = new ClientInsight();
             none.synced = false;

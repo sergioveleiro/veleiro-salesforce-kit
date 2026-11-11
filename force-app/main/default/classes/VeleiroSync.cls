@@ -53,13 +53,14 @@ public with sharing class VeleiroSync {
 
         Boolean writesName = VeleiroSyncConfig.pullWritesName();
         List<Account> toUpdate = new List<Account>();
-        for (Account a : [
-            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c, Veleiro_Additional_Fields__c
-            FROM Account WHERE Veleiro_Client_Id__c != null
-            WITH USER_MODE
-            ORDER BY LastModifiedDate ASC
-            LIMIT 5000
-        ]) {
+        String clientId = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        String soql = 'SELECT Id, Name, ' + clientId + ', '
+            + VeleiroSecurity.api(Account.Veleiro_Version__c) + ', '
+            + VeleiroSecurity.api(Account.Veleiro_Additional_Fields__c)
+            + ' FROM Account WHERE ' + clientId + ' != null'
+            + ' ORDER BY LastModifiedDate ASC LIMIT 5000';
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>())) {
+            Account a = (Account) row;
             Map<String, Object> c = byId.get(a.Veleiro_Client_Id__c);
             if (c == null) continue;
             Integer vVer = (c.get('version') != null) ? Integer.valueOf(String.valueOf(c.get('version'))) : null;

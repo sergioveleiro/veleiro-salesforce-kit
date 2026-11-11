@@ -36,8 +36,11 @@ public with sharing class VeleiroClientMatcher {
 
     // Candidatos para un Account que todavia no esta vinculado (callout).
     public static MatchResult forAccount(Id accountId) {
-        Account a = [SELECT Id, Name, Website, Veleiro_Client_Id__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
         MatchResult r = new MatchResult();
+        Account a = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Website, Account.Veleiro_Client_Id__c
+        });
+        if (a == null) return r;
 
         List<Object> clients = VeleiroApiClient.listAll('/clients', null);
         if (clients.size() > maxClients) {
@@ -47,11 +50,12 @@ public with sharing class VeleiroClientMatcher {
 
         // Ids de clients ya usados por otras cuentas: se muestran, pero avisando.
         Set<String> takenElsewhere = new Set<String>();
-        for (Account other : [
-            SELECT Veleiro_Client_Id__c FROM Account
-            WHERE Veleiro_Client_Id__c != null AND Id != :a.Id
-            WITH USER_MODE
-        ]) {
+        String clientId = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        for (SObject otherRow : VeleiroSecurity.query(
+            'SELECT ' + clientId + ' FROM Account WHERE ' + clientId + ' != null AND Id != :accountId',
+            new Map<String, Object>{ 'accountId' => a.Id }
+        )) {
+            Account other = (Account) otherRow;
             takenElsewhere.add(other.Veleiro_Client_Id__c);
         }
 

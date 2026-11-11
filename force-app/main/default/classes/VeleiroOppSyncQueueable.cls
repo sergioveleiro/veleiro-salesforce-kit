@@ -29,15 +29,17 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
             return waiting;
         }
         Datetime freshSince = Datetime.now().addMinutes(-FRESH_ACCOUNT_MINUTES);
-        for (Opportunity o : [
-            SELECT Id FROM Opportunity
-            WHERE Id IN :opportunityIds
-              AND Veleiro_Project_Id__c = null
-              AND AccountId != null
-              AND Account.Veleiro_Client_Id__c = null
-              AND Account.CreatedDate >= :freshSince
-            WITH USER_MODE
-        ]) {
+        String projectField = VeleiroSecurity.api(Opportunity.Veleiro_Project_Id__c);
+        String clientField = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        String soql = 'SELECT Id FROM Opportunity WHERE Id IN :opportunityIds'
+            + ' AND ' + projectField + ' = null'
+            + ' AND AccountId != null'
+            + ' AND Account.' + clientField + ' = null'
+            + ' AND Account.CreatedDate >= :freshSince';
+        for (SObject raw : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'opportunityIds' => opportunityIds, 'freshSince' => freshSince
+        })) {
+            Opportunity o = (Opportunity) raw;
             waiting.add(o.Id);
         }
         return waiting;
@@ -52,10 +54,12 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
         Boolean lastAttempt = attempt >= MAX_ATTEMPTS || Test.isRunningTest();
 
         Set<Id> stillWaiting = new Set<Id>();
-        for (Opportunity o : [
-            SELECT Id, Account.Veleiro_Client_Id__c FROM Opportunity WHERE Id IN :opportunityIds
-            WITH USER_MODE
-        ]) {
+        String clientField = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        for (SObject raw : VeleiroSecurity.query(
+            'SELECT Id, Account.' + clientField + ' FROM Opportunity WHERE Id IN :opportunityIds',
+            new Map<String, Object>{ 'opportunityIds' => opportunityIds }
+        )) {
+            Opportunity o = (Opportunity) raw;
             if (String.isBlank(o.Account.Veleiro_Client_Id__c) && !lastAttempt) {
                 stillWaiting.add(o.Id);
             } else {

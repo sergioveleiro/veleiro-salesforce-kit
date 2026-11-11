@@ -58,26 +58,48 @@ public with sharing class VeleiroMappingController {
     // NO cacheable: debe leer fresco tras cada Save (si no, la UI muestra data vieja).
     @AuraEnabled
     public static List<SavedMapping> getMappings() {
-        return asRows([
-            SELECT Name, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c,
-                   Target_Type__c, Is_Standard__c, Active__c
-            FROM Veleiro_Field_Mapping__c
-            WHERE Active__c = true
-            WITH USER_MODE
-            ORDER BY SObject__c, Veleiro_Entity__c, Is_Standard__c DESC, SF_Field__c
-        ]);
+        String soql = 'SELECT Name, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Target_Type__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Is_Standard__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' ORDER BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Is_Standard__c) + ' DESC, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c);
+        List<Veleiro_Field_Mapping__c> rows = new List<Veleiro_Field_Mapping__c>();
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>())) {
+            rows.add((Veleiro_Field_Mapping__c) row);
+        }
+        return asRows(rows);
     }
 
     // Mapeos guardados para un par (objeto, entidad). NO cacheable (lectura fresca tras Save).
     @AuraEnabled
     public static List<SavedMapping> getMappingsFor(String sobjectName, String entity) {
-        return asRows([
-            SELECT Id, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c, Target_Type__c
-            FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
-            WITH USER_MODE
-            ORDER BY SF_Field__c
-        ]);
+        String soql = 'SELECT Id, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Target_Type__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' ORDER BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c);
+        List<Veleiro_Field_Mapping__c> rows = new List<Veleiro_Field_Mapping__c>();
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'sobjectName' => sobjectName, 'entity' => entity
+        })) {
+            rows.add((Veleiro_Field_Mapping__c) row);
+        }
+        return asRows(rows);
     }
 
     // Template default (sin guardar) para un par conocido; vacio si no aplica.
@@ -211,11 +233,12 @@ public with sharing class VeleiroMappingController {
         }
         // 3) Reemplazo del par: borrar + insertar juntos (atomico en la misma transaccion).
         //    submitted == 0 (sin filas) => vaciar el par a proposito. Con filas validas => reemplazar.
-        VeleiroSecurity.deleteRecords([
-            SELECT Id FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :described.getName() AND Veleiro_Entity__c = :entity
-            WITH USER_MODE
-        ]);
+        String deleteSoql = 'SELECT Id FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity';
+        VeleiroSecurity.deleteRecords(VeleiroSecurity.query(deleteSoql, new Map<String, Object>{
+            'sobjectName' => described.getName(), 'entity' => entity
+        }));
         VeleiroSecurity.insertRecords(toInsert);
     }
 

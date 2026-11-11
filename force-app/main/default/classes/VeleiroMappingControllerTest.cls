@@ -1,6 +1,11 @@
 @isTest
 private class VeleiroMappingControllerTest {
 
+    @testSetup
+    static void setup() {
+        VeleiroTestAccess.grant();
+    }
+
     @isTest
     static void seedAndGetMappings() {
         Integer seeded = VeleiroSeed.seed();

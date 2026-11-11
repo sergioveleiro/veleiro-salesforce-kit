@@ -85,7 +85,11 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForOpportunity(Id opportunityId) {
         if (opportunityId == null) return new MeetingList();
         String projectId = null;
-        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId WITH USER_MODE LIMIT 1]) {
+        Opportunity loaded = VeleiroSecurity.loadOpportunity(opportunityId, new List<Schema.SObjectField>{
+            Opportunity.Veleiro_Project_Id__c
+        });
+        if (loaded != null) {
+            Opportunity o = loaded;
             projectId = o.Veleiro_Project_Id__c;
         }
         return fetch('project_id', projectId);
@@ -96,7 +100,11 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForAccount(Id accountId) {
         if (accountId == null) return new MeetingList();
         String clientId = null;
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1]) {
+        Account loadedAccount = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Veleiro_Client_Id__c
+        });
+        if (loadedAccount != null) {
+            Account a = loadedAccount;
             clientId = a.Veleiro_Client_Id__c;
         }
         MeetingList out = fetch('client_id', clientId);

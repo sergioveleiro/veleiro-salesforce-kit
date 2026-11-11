@@ -62,35 +62,94 @@ public with sharing class VeleiroSecurity {
         return trimmed.abbreviate(255);
     }
 
+    /** API name of an object, including the package namespace when one is in effect. */
+    public static String api(Schema.SObjectType type) {
+        return type.getDescribe().getName();
+    }
+
+    /** API name of a field, including the package namespace when one is in effect. */
+    public static String api(Schema.SObjectField field) {
+        return field.getDescribe().getName();
+    }
+
     public static Schema.DescribeSObjectResult describeObject(String apiName) {
-        if (String.isBlank(apiName)) return null;
-        if (apiName.contains(' ') || apiName.contains(',') || apiName.contains(':') || apiName.contains('\'')) {
-            return null;
-        }
-        Schema.SObjectType type = Schema.getGlobalDescribe().get(apiName);
+        Schema.SObjectType type = resolveType(apiName);
         if (type == null) return null;
         Schema.DescribeSObjectResult d = type.getDescribe();
         if (!d.isAccessible() || !d.isQueryable() || d.isDeprecatedAndHidden()) return null;
         return d;
     }
 
-    /** Canonical field API name, or null when the value is not a real readable field. */
+    /**
+     * Canonical field API name for dynamic SOQL and SObject.get/put.
+     * Inside the managed package that name carries the veleiro__ prefix.
+     * Returns null when the value is not a real field the user can read.
+     */
     public static String safeField(Schema.DescribeSObjectResult d, String fieldName) {
-        if (d == null || String.isBlank(fieldName)) return null;
-        if (fieldName.contains('.') || fieldName.contains(' ') || fieldName.contains(',')
-            || fieldName.contains('(') || fieldName.contains(')') || fieldName.contains('\'')
-            || fieldName.contains(';')) {
-            return null;
-        }
-        Schema.SObjectField field = d.fields.getMap().get(fieldName);
+        Schema.SObjectField field = resolveField(d, fieldName);
         if (field == null) return null;
         Schema.DescribeFieldResult fd = field.getDescribe();
         if (!fd.isAccessible()) return null;
         return fd.getName();
     }
 
-    public static List<SObject> query(String soql) {
-        return Database.query(soql, AccessLevel.USER_MODE);
+    public static List<SObject> query(String soql, Map<String, Object> binds) {
+        if (binds == null) binds = new Map<String, Object>();
+        return Database.queryWithBinds(soql, binds, AccessLevel.USER_MODE);
+    }
+
+    public static Integer countQuery(String soql, Map<String, Object> binds) {
+        if (binds == null) binds = new Map<String, Object>();
+        return Database.countQueryWithBinds(soql, binds, AccessLevel.USER_MODE);
+    }
+
+    public static Account loadAccount(Id accountId, List<Schema.SObjectField> fields) {
+        return (Account) loadOne(Account.SObjectType, accountId, fields);
+    }
+
+    public static Opportunity loadOpportunity(Id opportunityId, List<Schema.SObjectField> fields) {
+        return (Opportunity) loadOne(Opportunity.SObjectType, opportunityId, fields);
+    }
+
+    private static SObject loadOne(Schema.SObjectType type, Id recordId, List<Schema.SObjectField> fields) {
+        Set<String> cols = new Set<String>{ 'Id' };
+        for (Schema.SObjectField field : fields) cols.add(api(field));
+        String soql = 'SELECT ' + String.join(new List<String>(cols), ', ') + ' FROM ' + api(type)
+            + ' WHERE Id = :recordId LIMIT 1';
+        List<SObject> rows = query(soql, new Map<String, Object>{ 'recordId' => recordId });
+        return rows.isEmpty() ? null : rows[0];
+    }
+
+    private static Schema.SObjectType resolveType(String apiName) {
+        if (String.isBlank(apiName)) return null;
+        if (apiName.contains(' ') || apiName.contains(',') || apiName.contains(':') || apiName.contains('\'')) {
+            return null;
+        }
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        Schema.SObjectType type = gd.get(apiName);
+        if (type != null) return type;
+        String prefix = VeleiroSyncConfig.namespacePrefix();
+        if (String.isNotBlank(prefix) && !apiName.toLowerCase().startsWith(prefix)) {
+            type = gd.get(prefix + apiName);
+        }
+        return type;
+    }
+
+    private static Schema.SObjectField resolveField(Schema.DescribeSObjectResult d, String fieldName) {
+        if (d == null || String.isBlank(fieldName)) return null;
+        if (fieldName.contains('.') || fieldName.contains(' ') || fieldName.contains(',')
+            || fieldName.contains('(') || fieldName.contains(')') || fieldName.contains('\'')
+            || fieldName.contains(';')) {
+            return null;
+        }
+        Map<String, Schema.SObjectField> fields = d.fields.getMap();
+        Schema.SObjectField field = fields.get(fieldName);
+        if (field != null) return field;
+        String prefix = VeleiroSyncConfig.namespacePrefix();
+        if (String.isNotBlank(prefix) && !fieldName.toLowerCase().startsWith(prefix)) {
+            field = fields.get(prefix + fieldName);
+        }
+        return field;
     }
 
     public static void updateRecords(List<SObject> rows) {

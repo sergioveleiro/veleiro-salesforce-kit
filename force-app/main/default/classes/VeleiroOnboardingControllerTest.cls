@@ -1,6 +1,11 @@
 @isTest
 private class VeleiroOnboardingControllerTest {
 
+    @testSetup
+    static void setup() {
+        VeleiroTestAccess.grant();
+    }
+
     private static VeleiroOnboardingController.Step step(VeleiroOnboardingController.State s, String key) {
         for (VeleiroOnboardingController.Step st : s.steps) {
             if (st.key == key) return st;

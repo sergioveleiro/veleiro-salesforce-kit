@@ -24,14 +24,33 @@ public with sharing class VeleiroSyncService {
         SObject record;
     }
 
+    private static Account loadAccount(Id accountId, List<Schema.SObjectField> fields) {
+        Account row = VeleiroSecurity.loadAccount(accountId, fields);
+        if (row == null) throw new QueryException('List has no rows for assignment to SObject');
+        return row;
+    }
+
+    private static Opportunity loadOpportunity(Id opportunityId, List<Schema.SObjectField> fields) {
+        Opportunity row = VeleiroSecurity.loadOpportunity(opportunityId, fields);
+        if (row == null) throw new QueryException('List has no rows for assignment to SObject');
+        return row;
+    }
+
     // Mapeos activos del par; si el partner no configuro ninguno, cae al template default.
     private static List<Veleiro_Field_Mapping__c> mappingsFor(String sobjectName, String entity) {
-        List<Veleiro_Field_Mapping__c> maps = [
-            SELECT SF_Field__c, Veleiro_Target__c, Target_Type__c
-            FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
-            WITH USER_MODE
-        ];
+        String soql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Target_Type__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true';
+        List<Veleiro_Field_Mapping__c> maps = new List<Veleiro_Field_Mapping__c>();
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'sobjectName' => sobjectName, 'entity' => entity
+        })) {
+            maps.add((Veleiro_Field_Mapping__c) row);
+        }
         if (maps.isEmpty()) maps = VeleiroSeed.defaultsFor(sobjectName, entity);
         return maps;
     }
@@ -66,7 +85,7 @@ public with sharing class VeleiroSyncService {
 
         String soql = 'SELECT ' + String.join(new List<String>(fields), ', ') +
                       ' FROM ' + described.getName() + ' WHERE Id = :recordId LIMIT 1';
-        List<SObject> rows = VeleiroSecurity.query(soql);
+        List<SObject> rows = VeleiroSecurity.query(soql, new Map<String, Object>{ 'recordId' => recordId });
         if (rows.isEmpty()) {
             throw new VeleiroApiClient.VeleiroApiException(VeleiroI18n.t('err.objectUnavailable'));
         }
@@ -130,12 +149,9 @@ public with sharing class VeleiroSyncService {
     // Lectura para el LWC (sin callout): estado de sync del Account.
     @AuraEnabled(cacheable=true)
     public static ClientResult getClientSummary(Id accountId) {
-        Account a = [
-            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Slug__c, Veleiro_Version__c
-            FROM Account WHERE Id = :accountId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Account a = loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Veleiro_Client_Id__c, Account.Veleiro_Slug__c, Account.Veleiro_Version__c
+        });
         ClientResult r = new ClientResult();
         r.clientId = a.Veleiro_Client_Id__c;
         r.name = a.Name;
@@ -310,12 +326,9 @@ public with sharing class VeleiroSyncService {
     // La usa el panel de Opportunity para pintar la barra de avance real.
     @AuraEnabled
     public static ProjectResult getProjectLive(Id opportunityId) {
-        Opportunity o = [
-            SELECT Id, Name, Veleiro_Project_Id__c, Veleiro_Project_Version__c
-            FROM Opportunity WHERE Id = :opportunityId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Opportunity o = loadOpportunity(opportunityId, new List<Schema.SObjectField>{
+            Opportunity.Name, Opportunity.Veleiro_Project_Id__c, Opportunity.Veleiro_Project_Version__c
+        });
         ProjectResult r = new ProjectResult();
         r.projectId = o.Veleiro_Project_Id__c;
         r.name = o.Name;
@@ -352,12 +365,9 @@ public with sharing class VeleiroSyncService {
         if (!mp.topLevel.containsKey('name')) mp.topLevel.put('name', o.Name);
 
         // Asegurar el client (crearlo si el Account aun no esta sincronizado) - callout
-        Account a = [
-            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c
-            FROM Account WHERE Id = :o.AccountId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Account a = loadAccount(o.AccountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Veleiro_Client_Id__c, Account.Veleiro_Version__c
+        });
         String clientId = a.Veleiro_Client_Id__c;
         Boolean accountNeedsUpdate = false;
         if (String.isBlank(clientId)) {
@@ -420,12 +430,9 @@ public with sharing class VeleiroSyncService {
 
     @AuraEnabled(cacheable=true)
     public static ProjectResult getProjectSummary(Id opportunityId) {
-        Opportunity o = [
-            SELECT Id, Name, Veleiro_Project_Id__c, Veleiro_Project_Version__c
-            FROM Opportunity WHERE Id = :opportunityId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Opportunity o = loadOpportunity(opportunityId, new List<Schema.SObjectField>{
+            Opportunity.Name, Opportunity.Veleiro_Project_Id__c, Opportunity.Veleiro_Project_Version__c
+        });
         ProjectResult r = new ProjectResult();
         r.projectId = o.Veleiro_Project_Id__c;
         r.name = o.Name;
@@ -555,11 +562,13 @@ public with sharing class VeleiroSyncService {
     }
 
     public static Boolean hasMappings(String sobjectName, String entity) {
-        return [
-            SELECT COUNT() FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
-            WITH USER_MODE
-        ] > 0;
+        String soql = 'SELECT COUNT() FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true';
+        return VeleiroSecurity.countQuery(soql, new Map<String, Object>{
+            'sobjectName' => sobjectName, 'entity' => entity
+        }) > 0;
     }
 
     private class ClientForRecord {
@@ -579,7 +588,9 @@ public with sharing class VeleiroSyncService {
             throw new VeleiroApiClient.VeleiroApiException(
                 'A Veleiro project needs a client: map a field of ' + obj + ' to "client_id", or give the record an Account lookup.');
         }
-        Account a = [SELECT Id, Name, Website, Veleiro_Client_Id__c, Veleiro_Version__c FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+        Account a = loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Website, Account.Veleiro_Client_Id__c, Account.Veleiro_Version__c
+        });
         if (String.isNotBlank(a.Veleiro_Client_Id__c)) {
             out.clientId = a.Veleiro_Client_Id__c;
             return out;
@@ -616,7 +627,7 @@ public with sharing class VeleiroSyncService {
         Id recId = rec.Id;
         String soql = 'SELECT ' + String.join(lookups, ', ') +
                       ' FROM ' + described.getName() + ' WHERE Id = :recId LIMIT 1';
-        for (SObject row : VeleiroSecurity.query(soql)) {
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>{ 'recId' => recId })) {
             for (String f : lookups) {
                 Id value = (Id) row.get(f);
                 if (value != null) return value;
@@ -631,7 +642,8 @@ public with sharing class VeleiroSyncService {
         if (name == null) return null;
         Id recId = rec.Id;
         for (SObject row : VeleiroSecurity.query(
-            'SELECT ' + name + ' FROM ' + described.getName() + ' WHERE Id = :recId LIMIT 1'
+            'SELECT ' + name + ' FROM ' + described.getName() + ' WHERE Id = :recId LIMIT 1',
+            new Map<String, Object>{ 'recId' => recId }
         )) {
             return (String) row.get(name);
         }
@@ -669,7 +681,11 @@ public with sharing class VeleiroSyncService {
          */
         if (VeleiroSyncConfig.opportunitySyncMode() == VeleiroSyncConfig.OPP_WON) {
             Set<Id> won = new Set<Id>();
-            for (Opportunity o : [SELECT Id FROM Opportunity WHERE Id IN :opportunityIds AND IsWon = true WITH USER_MODE]) {
+            for (SObject row : VeleiroSecurity.query(
+                'SELECT Id FROM Opportunity WHERE Id IN :opportunityIds AND IsWon = true',
+                new Map<String, Object>{ 'opportunityIds' => opportunityIds }
+            )) {
+                Opportunity o = (Opportunity) row;
                 won.add(o.Id);
             }
             if (won.isEmpty()) return;

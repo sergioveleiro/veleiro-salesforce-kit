@@ -121,7 +121,11 @@ public with sharing class VeleiroOnboardingController {
         s.steps.add(cfg);
 
         // --- mapeo ---
-        s.mappingCount = [SELECT COUNT() FROM Veleiro_Field_Mapping__c WHERE Active__c = true WITH USER_MODE];
+        s.mappingCount = VeleiroSecurity.countQuery(
+            'SELECT COUNT() FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true',
+            new Map<String, Object>()
+        );
         Step mapStep = new Step('mapping', VeleiroI18n.t('step.mapping.title'),
             VeleiroI18n.t('step.mapping.summary'));
         mapStep.state = s.mappingCount > 0 ? DONE : TODO;
@@ -203,16 +207,33 @@ public with sharing class VeleiroOnboardingController {
 
     // Vinculado = tiene id de Veleiro. El filtro arranca por el external id, que esta indexado.
     private static Integer linkedCount() {
-        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null WITH USER_MODE]
-             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null WITH USER_MODE]
-             + [SELECT COUNT() FROM Veleiro_Link__c WITH USER_MODE];
+        String accountClient = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        String oppProject = VeleiroSecurity.api(Opportunity.Veleiro_Project_Id__c);
+        return VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM Account WHERE ' + accountClient + ' != null', new Map<String, Object>())
+             + VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM Opportunity WHERE ' + oppProject + ' != null', new Map<String, Object>())
+             + VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM ' + VeleiroSecurity.api(Veleiro_Link__c.SObjectType), new Map<String, Object>());
     }
 
     // Sincronizado = ademas trae version, y la version solo la devuelve la API de Veleiro.
     private static Integer syncedCount() {
-        return [SELECT COUNT() FROM Account WHERE Veleiro_Client_Id__c != null AND Veleiro_Version__c != null WITH USER_MODE]
-             + [SELECT COUNT() FROM Opportunity WHERE Veleiro_Project_Id__c != null AND Veleiro_Project_Version__c != null WITH USER_MODE]
-             + [SELECT COUNT() FROM Veleiro_Link__c WHERE Veleiro_Version__c != null WITH USER_MODE];
+        String accountClient = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        String accountVersion = VeleiroSecurity.api(Account.Veleiro_Version__c);
+        String oppProject = VeleiroSecurity.api(Opportunity.Veleiro_Project_Id__c);
+        String oppVersion = VeleiroSecurity.api(Opportunity.Veleiro_Project_Version__c);
+        String linkVersion = VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Version__c);
+        return VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM Account WHERE ' + accountClient + ' != null AND ' + accountVersion + ' != null',
+                new Map<String, Object>())
+             + VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM Opportunity WHERE ' + oppProject + ' != null AND ' + oppVersion + ' != null',
+                new Map<String, Object>())
+             + VeleiroSecurity.countQuery(
+                'SELECT COUNT() FROM ' + VeleiroSecurity.api(Veleiro_Link__c.SObjectType)
+                + ' WHERE ' + linkVersion + ' != null',
+                new Map<String, Object>());
     }
 
     // FlowDefinitionView necesita permisos de Setup: si no se puede leer, el paso queda en

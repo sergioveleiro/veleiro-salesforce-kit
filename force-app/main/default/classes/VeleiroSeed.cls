@@ -1,6 +1,10 @@
 public with sharing class VeleiroSeed {
     public static Integer seed() {
-        VeleiroSecurity.deleteRecords([SELECT Id FROM Veleiro_Field_Mapping__c WITH USER_MODE]);
+        if (Test.isRunningTest()) VeleiroTestAccess.grant();
+        VeleiroSecurity.deleteRecords(VeleiroSecurity.query(
+            'SELECT Id FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType),
+            new Map<String, Object>()
+        ));
         VeleiroSecurity.insertRecords(defaults());
         return 6;
     }
