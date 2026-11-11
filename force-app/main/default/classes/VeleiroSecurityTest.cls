@@ -214,17 +214,19 @@ private class VeleiroSecurityTest {
 
     @isTest
     static void fieldAndObjectNamesAreDescribeChecked() {
-        Schema.DescribeSObjectResult account = VeleiroSecurity.describeObject('Account');
-        System.assertEquals('Name', VeleiroSecurity.safeField(account, 'Name'));
+        // Do not name this variable Account. Apex is case-insensitive, so that
+        // would hide the Account type and Account.Veleiro_Client_Id__c would not compile.
+        Schema.DescribeSObjectResult accountDescribe = VeleiroSecurity.describeObject('Account');
+        System.assertEquals('Name', VeleiroSecurity.safeField(accountDescribe, 'Name'));
         System.assertEquals(
             Account.Veleiro_Client_Id__c.getDescribe().getName(),
-            VeleiroSecurity.safeField(account, 'Veleiro_Client_Id__c')
+            VeleiroSecurity.safeField(accountDescribe, 'Veleiro_Client_Id__c')
         );
-        System.assertEquals(null, VeleiroSecurity.safeField(account, 'Name, (SELECT Id FROM Contacts)'));
+        System.assertEquals(null, VeleiroSecurity.safeField(accountDescribe, 'Name, (SELECT Id FROM Contacts)'));
         System.assertEquals(null, VeleiroSecurity.describeObject('Not_A_Real_Object__c'));
         System.assertEquals(0, VeleiroLinkController.searchRecords('User', 'client', 'admin').size());
 
-        Map<String, Schema.SObjectField> accountFields = account.fields.getMap();
+        Map<String, Schema.SObjectField> accountFields = accountDescribe.fields.getMap();
         for (VeleiroMappingController.Option field : VeleiroMappingController.getFields('Account')) {
             System.assertEquals(true, accountFields.get(field.value).getDescribe().isAccessible(), field.value);
         }
