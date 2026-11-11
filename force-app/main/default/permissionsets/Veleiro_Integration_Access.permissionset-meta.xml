@@ -36,7 +36,7 @@
     </fieldPermissions>
     <externalCredentialPrincipalAccesses>
         <enabled>true</enabled>
-        <externalCredentialPrincipal>Veleiro_External-VeleiroPrincipal</externalCredentialPrincipal>
+        <externalCredentialPrincipal>veleiro__Veleiro_External-VeleiroPrincipal</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
     <objectPermissions>
         <allowCreate>true</allowCreate>

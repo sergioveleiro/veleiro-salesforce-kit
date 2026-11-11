@@ -56,7 +56,7 @@ All Veleiro traffic is server-to-server from Apex. The browser never receives th
 
 ## Authentication
 
-1. **Preferred.** `Veleiro_API_Secure` and `Veleiro_API_Beta_Secure` are Named Credentials bound to the External Credential `Veleiro_External`. The credential's custom header is `Authorization: Bearer {!$Credential.Veleiro_External.ApiToken}`. Apex does not set that header on this path. The principal is per subscriber org; the secret is not in the package.
+1. **Preferred.** `Veleiro_API_Secure` and `Veleiro_API_Beta_Secure` are Named Credentials bound to the External Credential `Veleiro_External`. The credential's custom header is `Authorization: Bearer {!$Credential.Veleiro_External.ApiToken}`. The permission sets grant that principal as `veleiro__Veleiro_External-VeleiroPrincipal` (namespace, two underscores, credential name, dash, NamedPrincipal `parameterName`). Apex does not set that header on this path. The principal is per subscriber org; the secret is not in the package.
 2. **Upgrade path.** A post-install script cannot make callouts, so it cannot call `ConnectApi.NamedCredentials`. It copies `Api_Token__c` into the protected setting and clears the public field only after that copy succeeds. A queueable then tries the External Credential. The secure Named Credential is used only after a real `GET /clients` through it succeeds.
 3. **Fallback.** Until that probe succeeds, Apex sends `Authorization: Bearer` from the protected setting (or from the public field if the copy failed). The endpoint is still only `callout:veleiro__Veleiro_API` or `callout:veleiro__Veleiro_API_Beta`. Those legacy Named Credentials stay `NoAuthentication` because a managed package cannot delete them or change their type. They are not an open URL.
 

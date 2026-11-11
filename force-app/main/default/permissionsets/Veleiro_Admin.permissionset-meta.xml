@@ -9,6 +9,6 @@
     </customPermissions>
     <externalCredentialPrincipalAccesses>
         <enabled>true</enabled>
-        <externalCredentialPrincipal>Veleiro_External-VeleiroPrincipal</externalCredentialPrincipal>
+        <externalCredentialPrincipal>veleiro__Veleiro_External-VeleiroPrincipal</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
 </PermissionSet>
