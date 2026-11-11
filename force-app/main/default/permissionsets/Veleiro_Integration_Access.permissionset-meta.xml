@@ -20,48 +20,13 @@
     <fieldPermissions><field>Opportunity.Veleiro_Project_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Opportunity.Veleiro_Project_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
-        <field>Account.Name</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>Account.Website</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
-        <field>Opportunity.Name</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>Opportunity.AccountId</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Veleiro_Link__c.Link_Key__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Veleiro_Link__c.Record_Id__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Veleiro_Link__c.SObject__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Veleiro_Link__c.Veleiro_Entity__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Veleiro_Link__c.Veleiro_Id__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

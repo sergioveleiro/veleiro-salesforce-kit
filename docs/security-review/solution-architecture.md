@@ -68,7 +68,7 @@ Browser links ("Open in Veleiro") allow only `https://app.veleiro.ai` and `https
 
 `saveToken`, `saveEnvironment`, `saveSyncConfig`, and `saveMappings` require Customize Application (so the installing system administrator still can) or the custom permission `Veleiro_Manage_Setup` from the packaged permission set `Veleiro Admin`.
 
-Sync, link, dashboards, meetings, and the pulse stay available to `Veleiro Integration Access`. Queries and DML enforce field access (`WITH USER_MODE` and `Security.stripInaccessible`). The permission set grants the packaged fields and the standard fields the kit reads (`Account.Name`, `Account.Website`, `Opportunity.Name`, `Opportunity.AccountId`) plus the `Veleiro_Link__c` fields. Mapped fields that belong to the subscriber are included only when the running user can read them.
+Sync, link, dashboards, meetings, and the pulse stay available to `Veleiro Integration Access`. Queries and DML enforce field access (`WITH USER_MODE` and `Security.stripInaccessible`). The permission set grants the packaged fields that are not required, plus `Account.Website` and `Opportunity.AccountId`. Required fields (`Account.Name`, `Opportunity.Name`, and the required `Veleiro_Link__c` fields) cannot have permission-set entries; anyone who can use the object can use them. Mapped fields that belong to the subscriber are included only when the running user can read them.
 
 ## Admin steps after upgrade
 

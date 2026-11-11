@@ -77,10 +77,10 @@ public with sharing class VeleiroApiClient {
     }
 
     private static Boolean isBeta(Veleiro_Config__c c) {
-        String blob = '';
-        if (c != null && c.Base_Url__c != null) blob += ' ' + c.Base_Url__c.toLowerCase();
-        if (c != null && c.App_Base_Url__c != null) blob += ' ' + c.App_Base_Url__c.toLowerCase();
-        return blob.contains('veleiro_api_beta') || blob.contains('app.beta.veleiro.dev');
+        String stored = '';
+        if (c != null && c.Base_Url__c != null) stored += ' ' + c.Base_Url__c.toLowerCase();
+        if (c != null && c.App_Base_Url__c != null) stored += ' ' + c.App_Base_Url__c.toLowerCase();
+        return stored.contains('veleiro_api_beta') || stored.contains('app.beta.veleiro.dev');
     }
 
     /** Heals a stored callout:Veleiro_API that predates the namespace prefix. */
