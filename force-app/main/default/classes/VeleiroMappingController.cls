@@ -58,24 +58,48 @@ public with sharing class VeleiroMappingController {
     // NO cacheable: debe leer fresco tras cada Save (si no, la UI muestra data vieja).
     @AuraEnabled
     public static List<SavedMapping> getMappings() {
-        return asRows([
-            SELECT Name, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c,
-                   Target_Type__c, Is_Standard__c, Active__c
-            FROM Veleiro_Field_Mapping__c
-            WHERE Active__c = true
-            ORDER BY SObject__c, Veleiro_Entity__c, Is_Standard__c DESC, SF_Field__c
-        ]);
+        String soql = 'SELECT Name, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Target_Type__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Is_Standard__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' ORDER BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Is_Standard__c) + ' DESC, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c);
+        List<Veleiro_Field_Mapping__c> rows = new List<Veleiro_Field_Mapping__c>();
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>())) {
+            rows.add((Veleiro_Field_Mapping__c) row);
+        }
+        return asRows(rows);
     }
 
     // Mapeos guardados para un par (objeto, entidad). NO cacheable (lectura fresca tras Save).
     @AuraEnabled
     public static List<SavedMapping> getMappingsFor(String sobjectName, String entity) {
-        return asRows([
-            SELECT Id, SObject__c, Veleiro_Entity__c, SF_Field__c, Veleiro_Target__c, Target_Type__c
-            FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity AND Active__c = true
-            ORDER BY SF_Field__c
-        ]);
+        String soql = 'SELECT Id, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Target_Type__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' ORDER BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c);
+        List<Veleiro_Field_Mapping__c> rows = new List<Veleiro_Field_Mapping__c>();
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'sobjectName' => sobjectName, 'entity' => entity
+        })) {
+            rows.add((Veleiro_Field_Mapping__c) row);
+        }
+        return asRows(rows);
     }
 
     // Template default (sin guardar) para un par conocido; vacio si no aplica.
@@ -91,7 +115,7 @@ public with sharing class VeleiroMappingController {
         for (Schema.SObjectType t : Schema.getGlobalDescribe().values()) {
             Schema.DescribeSObjectResult d = t.getDescribe();
             String n = d.getName();
-            if (!d.isCreateable() || !d.isQueryable() || d.isCustomSetting() || d.isDeprecatedAndHidden()) continue;
+            if (!d.isAccessible() || !d.isCreateable() || !d.isQueryable() || d.isCustomSetting() || d.isDeprecatedAndHidden()) continue;
             if (n.endsWithIgnoreCase('Share') || n.endsWithIgnoreCase('History') ||
                 n.endsWithIgnoreCase('Feed') || n.endsWithIgnoreCase('ChangeEvent') ||
                 n.endsWithIgnoreCase('__Tag')) continue;
@@ -119,7 +143,7 @@ public with sharing class VeleiroMappingController {
                 if (seen.add(k)) out.add(new Option(k, k + '  ·  in use'));
             }
         } catch (Exception e) {
-            /* si el callout falla, el catalogo canonico sigue siendo util */
+            System.debug(LoggingLevel.FINE, 'Target discovery skipped: ' + e.getTypeName());
         }
         out.add(new Option('__custom__', 'Custom…'));
         return out;
@@ -148,10 +172,11 @@ public with sharing class VeleiroMappingController {
     public static List<Option> getFields(String sobjectName) {
         List<Option> out = new List<Option>();
         if (String.isBlank(sobjectName)) return out;
-        Schema.SObjectType t = Schema.getGlobalDescribe().get(sobjectName);
-        if (t == null) return out;
-        for (Schema.SObjectField f : t.getDescribe().fields.getMap().values()) {
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+        if (described == null) return out;
+        for (Schema.SObjectField f : described.fields.getMap().values()) {
             Schema.DescribeFieldResult fd = f.getDescribe();
+            if (!fd.isAccessible()) continue;
             out.add(new Option(fd.getName(), fd.getLabel() + ' (' + fd.getName() + ')'));
         }
         out.sort(new OptionComparator());
@@ -166,6 +191,11 @@ public with sharing class VeleiroMappingController {
     // (El `deletedIds` se mantiene por compatibilidad de firma; ya no se usa.)
     @AuraEnabled
     public static void saveMappings(String sobjectName, String entity, List<MappingRow> rows, List<Id> deletedIds, String rowsJson) {
+        VeleiroSecurity.assertCanManageSetup();
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+        if (described == null) {
+            throw VeleiroSecurity.handled(VeleiroI18n.t('err.objectUnavailable'));
+        }
         // La UI manda las filas como JSON string (rowsJson). Motivo: el marshaling de un array de
         // objetos LWC hacia un parametro Apex tipado List<MappingRow> llega con TODOS los campos en
         // null (gotcha conocido de Aura/LWC con listas de clases Apex), mientras que el String
@@ -179,15 +209,16 @@ public with sharing class VeleiroMappingController {
         Set<String> seenFields = new Set<String>();
         if (rows != null) {
             for (MappingRow r : rows) {
-                if (String.isBlank(r.sfField) || String.isBlank(r.target)) continue;
+                String sfField = VeleiroSecurity.safeField(described, r.sfField);
+                if (sfField == null || String.isBlank(r.target)) continue;
                 String target = VeleiroTargets.normalize(r.target);
                 if (String.isBlank(target)) continue; // ej. un target de puro simbolo/espacio -> se descarta
-                if (!seenFields.add(r.sfField)) continue; // un mismo campo SF, una sola vez por par
+                if (!seenFields.add(sfField)) continue; // un mismo campo SF, una sola vez por par
                 Veleiro_Field_Mapping__c m = new Veleiro_Field_Mapping__c();
-                m.Name = (sobjectName + ' ' + r.sfField).left(80);
-                m.SObject__c = sobjectName;
+                m.Name = (described.getName() + ' ' + sfField).left(80);
+                m.SObject__c = described.getName();
                 m.Veleiro_Entity__c = entity;
-                m.SF_Field__c = r.sfField;
+                m.SF_Field__c = sfField;
                 m.Veleiro_Target__c = target;
                 m.Target_Type__c = VeleiroTargets.typeFor(entity, target);
                 m.Is_Standard__c = false;
@@ -198,15 +229,17 @@ public with sharing class VeleiroMappingController {
         // 2) Si mandaste filas pero TODAS se descartaron (targets invalidos), NO borres nada:
         //    aborta con error para no destruir el mapeo existente ni reportar falso exito.
         if (submitted > 0 && toInsert.isEmpty()) {
-            throw new AuraHandledException('No se guardo: cada fila necesita un campo de Salesforce y un target de Veleiro valido.');
+            throw VeleiroSecurity.handled(VeleiroI18n.t('err.mappingRows'));
         }
         // 3) Reemplazo del par: borrar + insertar juntos (atomico en la misma transaccion).
         //    submitted == 0 (sin filas) => vaciar el par a proposito. Con filas validas => reemplazar.
-        delete [
-            SELECT Id FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
-        ];
-        if (!toInsert.isEmpty()) insert toInsert;
+        String deleteSoql = 'SELECT Id FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :sobjectName'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :entity';
+        VeleiroSecurity.deleteRecords(VeleiroSecurity.query(deleteSoql, new Map<String, Object>{
+            'sobjectName' => described.getName(), 'entity' => entity
+        }));
+        VeleiroSecurity.insertRecords(toInsert);
     }
 
     // ---- configuracion global de la integracion (direccion / quien manda / frecuencia) ----
@@ -231,8 +264,10 @@ public with sharing class VeleiroMappingController {
     public static void saveSyncConfig(String direction, String winner, String frequency, String triggerMode,
                                       Boolean autoAccount, Boolean autoOpportunity, Boolean pullWritesName,
                                       String opportunityMode) {
+        VeleiroSecurity.assertCanManageSetup();
         VeleiroSyncConfig.save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity,
                                pullWritesName, opportunityMode);
+        migrateOnSave();
     }
 
     // ---- conexion: guardar token + verificar estado (para el panel) ----
@@ -240,19 +275,16 @@ public with sharing class VeleiroMappingController {
     // Guarda el token del cliente (a nivel Org Default). Lo pega el propio cliente en el panel.
     @AuraEnabled
     public static void saveToken(String token) {
+        VeleiroSecurity.assertCanManageSetup();
         if (String.isBlank(token)) return;
-        Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
-        if (c == null || c.Id == null) {
-            c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
-        }
-        c.Api_Token__c = token.trim();
-        upsert c;
+        VeleiroCredentialStore.saveNewToken(token);
     }
 
     // Cambia el entorno (Production / Beta) escribiendo Base_Url + App_Base_Url. NO toca el token.
     // El host real lo enruta el Named Credential correspondiente (Veleiro_API / Veleiro_API_Beta).
     @AuraEnabled
     public static void saveEnvironment(String environment) {
+        VeleiroSecurity.assertCanManageSetup();
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) {
             c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
@@ -266,6 +298,7 @@ public with sharing class VeleiroMappingController {
             c.App_Base_Url__c = 'https://app.veleiro.ai';
         }
         upsert c;
+        migrateOnSave();
     }
 
     // Estado en vivo: token puesto? conectado (callout real)? frecuencia + proximo run.
@@ -282,7 +315,7 @@ public with sharing class VeleiroMappingController {
                 s.put('message', 'Connected to Veleiro');
             } catch (Exception e) {
                 s.put('connected', 'false');
-                s.put('message', e.getMessage());
+                s.put('message', VeleiroSecurity.forUi(e));
             }
         } else {
             s.put('connected', 'false');
@@ -307,7 +340,42 @@ public with sharing class VeleiroMappingController {
             if (ct.NextFireTime != null) nextRun = ct.NextFireTime.format();
         }
         s.put('nextRun', nextRun);
+        // Read only: this method runs when the page loads, so it never writes. A token still
+        // sitting in the public field, or a protected token that is not yet in the External
+        // Credential, is only reported. An admin finishes that with secureLegacyToken().
+        s.put('legacyToken', String.valueOf(VeleiroCredentialStore.hasLegacyToken()));
+        s.put('platformAuthReady', String.valueOf(VeleiroCredentialStore.platformAuthReady()));
+        s.put('needsPlatformSetup', String.valueOf(
+            VeleiroCredentialStore.hasToken() && !VeleiroCredentialStore.platformAuthReady()
+        ));
+        s.put('canManage', String.valueOf(VeleiroSecurity.canManageSetup()));
         return s;
+    }
+
+    /**
+     * Moves a token left in the public Veleiro_Config__c field (1.5.0 - 1.8.0) into the
+     * protected setting, then retries the External Credential write and probe when
+     * platform auth is not ready yet. The post-install script does the protected copy
+     * on upgrade, but the install user usually cannot write the External Credential.
+     * This is the explicit admin button for that remaining step. Never called on page load.
+     * Returns true when a token is stored in the protected setting (or was already there).
+     * A failed platform probe does not undo that copy.
+     */
+    @AuraEnabled
+    public static Boolean secureLegacyToken() {
+        VeleiroSecurity.assertCanManageSetup();
+        Boolean migrated = VeleiroCredentialStore.migrateLegacyToken();
+        VeleiroCredentialStore.finishPlatformAuth();
+        return migrated && VeleiroCredentialStore.hasToken();
+    }
+
+    // An admin pressed Save: a good moment to finish a pending migration. Never blocks the save.
+    private static void migrateOnSave() {
+        try {
+            VeleiroCredentialStore.migrateLegacyToken();
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Token migration skipped: ' + e.getTypeName());
+        }
     }
 
     public class OptionComparator implements Comparator<Option> {

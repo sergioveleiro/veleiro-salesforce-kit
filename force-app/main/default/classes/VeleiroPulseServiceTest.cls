@@ -54,144 +54,160 @@ private class VeleiroPulseServiceTest {
 
     @isTest
     static void anOpportunityAddsUpTheTimeAndTheOpenWork() {
-        Account a = newAccount('org_test');
-        Opportunity o = newOpp(a.Id, 'prjct_test');
-        mockWith(null);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            Opportunity o = newOpp(a.Id, 'prjct_test');
+            mockWith(null);
 
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
+            Test.stopTest();
 
-        System.assertEquals(180, p.loggedMinutes, 'la archivada no suma');
-        System.assertEquals(3, p.totalTasks);
-        System.assertEquals(2, p.openTasks, 'todo lo que no esta en done sigue vivo');
-        System.assertEquals(1, p.blockedTasks);
-        System.assertEquals(true, p.hasData);
-        System.assertEquals(true, p.reachable);
+            System.assertEquals(180, p.loggedMinutes, 'la archivada no suma');
+            System.assertEquals(3, p.totalTasks);
+            System.assertEquals(2, p.openTasks, 'todo lo que no esta en done sigue vivo');
+            System.assertEquals(1, p.blockedTasks);
+            System.assertEquals(true, p.hasData);
+            System.assertEquals(true, p.reachable);
+        }
     }
 
     @isTest
     static void anAccountAddsUpEveryProjectAndNamesThem() {
-        Account a = newAccount('org_test');
-        mockWith('{"data":[{"id":"prjct_a","name":"Alpha","is_archived":false},' +
-                 '{"id":"prjct_b","name":"Beta","is_archived":false},' +
-                 '{"id":"prjct_old","name":"Archivado","is_archived":true}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            mockWith('{"data":[{"id":"prjct_a","name":"Alpha","is_archived":false},' +
+                     '{"id":"prjct_b","name":"Beta","is_archived":false},' +
+                     '{"id":"prjct_old","name":"Archivado","is_archived":true}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(2, p.projects.size(), 'el project archivado queda fuera');
-        System.assertEquals('Alpha', p.projects[0].name);
-        System.assertEquals(360, p.loggedMinutes, 'dos projects, 180 cada uno');
-        System.assertEquals(4, p.openTasks);
-        System.assertEquals(2, p.blockedTasks);
-        System.assertEquals(false, p.partial);
+            System.assertEquals(2, p.projects.size(), 'el project archivado queda fuera');
+            System.assertEquals('Alpha', p.projects[0].name);
+            System.assertEquals(360, p.loggedMinutes, 'dos projects, 180 cada uno');
+            System.assertEquals(4, p.openTasks);
+            System.assertEquals(2, p.blockedTasks);
+            System.assertEquals(false, p.partial);
+        }
     }
 
     @isTest
     static void aClientWithTooManyProjectsSaysItOnlyAddedSome() {
-        VeleiroPulseService.maxProjectsPerClient = 2;
-        Account a = newAccount('org_test');
-        List<String> rows = new List<String>();
-        for (Integer i = 0; i < 5; i++) {
-            rows.add('{"id":"prjct_' + i + '","name":"P' + i + '","is_archived":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroPulseService.maxProjectsPerClient = 2;
+            Account a = newAccount('org_test');
+            List<String> rows = new List<String>();
+            for (Integer i = 0; i < 5; i++) {
+                rows.add('{"id":"prjct_' + i + '","name":"P' + i + '","is_archived":false}');
+            }
+            mockWith('{"data":[' + String.join(rows, ',') + '],"has_more":false}');
+
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
+            Test.stopTest();
+
+            System.assertEquals(2, p.projects.size());
+            System.assertEquals(true, p.partial, 'el panel debe poder avisar que el numero va corto');
         }
-        mockWith('{"data":[' + String.join(rows, ',') + '],"has_more":false}');
-
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
-        Test.stopTest();
-
-        System.assertEquals(2, p.projects.size());
-        System.assertEquals(true, p.partial, 'el panel debe poder avisar que el numero va corto');
     }
 
     @isTest
     static void aProjectWithNoTasksStillShowsItsPulse() {
-        Account a = newAccount('org_test');
-        Opportunity o = newOpp(a.Id, 'prjct_test');
-        VeleiroApiMock m = new VeleiroApiMock();
-        m.statesBody = states();
-        m.tasksBody = '{"data":[],"has_more":false}';
-        Test.setMock(HttpCalloutMock.class, m);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            Opportunity o = newOpp(a.Id, 'prjct_test');
+            VeleiroApiMock m = new VeleiroApiMock();
+            m.statesBody = states();
+            m.tasksBody = '{"data":[],"has_more":false}';
+            Test.setMock(HttpCalloutMock.class, m);
 
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
+            Test.stopTest();
 
-        System.assertEquals(true, p.hasData, 'un project recien arrancado tambien cuenta algo');
-        System.assertEquals(0, p.loggedMinutes);
-        System.assertEquals(0, p.openTasks);
+            System.assertEquals(true, p.hasData, 'un project recien arrancado tambien cuenta algo');
+            System.assertEquals(0, p.loggedMinutes);
+            System.assertEquals(0, p.openTasks);
+        }
     }
 
     @isTest
     static void withoutTheTaskScopeItSaysSoInsteadOfFailing() {
-        Account a = newAccount('org_test');
-        VeleiroApiMock m = new VeleiroApiMock();
-        m.overrideStatus = 403;
-        m.overrideBody = '{"error":{"code":"insufficient_scope","message":"nope"}}';
-        Test.setMock(HttpCalloutMock.class, m);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            VeleiroApiMock m = new VeleiroApiMock();
+            m.overrideStatus = 403;
+            m.overrideBody = '{"error":{"code":"insufficient_scope","message":"nope"}}';
+            Test.setMock(HttpCalloutMock.class, m);
 
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(true, p.scopeMissing);
-        System.assertEquals(false, p.hasData);
+            System.assertEquals(true, p.scopeMissing);
+            System.assertEquals(false, p.hasData);
+        }
     }
 
     @isTest
     static void anyOtherErrorJustHidesThePulse() {
-        Account a = newAccount('org_test');
-        Opportunity o = newOpp(a.Id, 'prjct_test');
-        VeleiroApiMock m = new VeleiroApiMock();
-        m.overrideStatus = 500;
-        m.overrideBody = '{"error":{"code":"internal_error"}}';
-        Test.setMock(HttpCalloutMock.class, m);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            Opportunity o = newOpp(a.Id, 'prjct_test');
+            VeleiroApiMock m = new VeleiroApiMock();
+            m.overrideStatus = 500;
+            m.overrideBody = '{"error":{"code":"internal_error"}}';
+            Test.setMock(HttpCalloutMock.class, m);
 
-        Test.startTest();
-        VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse p = VeleiroPulseService.getForOpportunity(o.Id);
+            Test.stopTest();
 
-        System.assertEquals(false, p.reachable);
-        System.assertEquals(false, p.hasData);
+            System.assertEquals(false, p.reachable);
+            System.assertEquals(false, p.hasData);
+        }
     }
 
     @isTest
     static void anUnlinkedRecordNeverSpendsACallout() {
-        Account a = newAccount(null);
-        Opportunity o = newOpp(a.Id, null);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount(null);
+            Opportunity o = newOpp(a.Id, null);
 
-        Test.startTest();
-        VeleiroPulseService.Pulse fromAccount = VeleiroPulseService.getForAccount(a.Id);
-        VeleiroPulseService.Pulse fromOpp = VeleiroPulseService.getForOpportunity(o.Id);
-        VeleiroPulseService.Pulse none = VeleiroPulseService.getForAccount(null);
-        Integer calls = Limits.getCallouts();
-        Test.stopTest();
+            Test.startTest();
+            VeleiroPulseService.Pulse fromAccount = VeleiroPulseService.getForAccount(a.Id);
+            VeleiroPulseService.Pulse fromOpp = VeleiroPulseService.getForOpportunity(o.Id);
+            VeleiroPulseService.Pulse none = VeleiroPulseService.getForAccount(null);
+            Integer calls = Limits.getCallouts();
+            Test.stopTest();
 
-        System.assertEquals(0, calls);
-        System.assertEquals(false, fromAccount.hasData);
-        System.assertEquals(false, fromOpp.hasData);
-        System.assertEquals(true, none.projects.isEmpty());
+            System.assertEquals(0, calls);
+            System.assertEquals(false, fromAccount.hasData);
+            System.assertEquals(false, fromOpp.hasData);
+            System.assertEquals(true, none.projects.isEmpty());
+        }
     }
 
     @isTest
     static void theMeetingsOfAnAccountCarryTheirProjectName() {
-        Account a = newAccount('org_test');
-        VeleiroApiMock m = new VeleiroApiMock();
-        m.projectsBody = '{"data":[{"id":"prjct_a","name":"Alpha","is_archived":false}],"has_more":false}';
-        m.meetingsBody = '{"data":[{"id":"bot_1","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_1/",' +
-            '"title":"Kickoff","status":"done","client_id":"org_test","project_id":"prjct_a",' +
-            '"start_time":"2026-03-02T15:00:00+00:00","transcript_status":"none"}],"has_more":false}';
-        Test.setMock(HttpCalloutMock.class, m);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('org_test');
+            VeleiroApiMock m = new VeleiroApiMock();
+            m.projectsBody = '{"data":[{"id":"prjct_a","name":"Alpha","is_archived":false}],"has_more":false}';
+            m.meetingsBody = '{"data":[{"id":"bot_1","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_1/",' +
+                '"title":"Kickoff","status":"done","client_id":"org_test","project_id":"prjct_a",' +
+                '"start_time":"2026-03-02T15:00:00+00:00","transcript_status":"none"}],"has_more":false}';
+            Test.setMock(HttpCalloutMock.class, m);
 
-        Test.startTest();
-        VeleiroMeetingService.MeetingList r = VeleiroMeetingService.getForAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroMeetingService.MeetingList r = VeleiroMeetingService.getForAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals('Alpha', r.meetings[0].projectName, 'el id no le dice nada a nadie');
-        System.assertEquals(1, r.projects.size(), 'alimenta el filtro por project del timeline');
-        System.assertEquals('Alpha', r.projects[0].name);
+            System.assertEquals('Alpha', r.meetings[0].projectName, 'el id no le dice nada a nadie');
+            System.assertEquals(1, r.projects.size(), 'alimenta el filtro por project del timeline');
+            System.assertEquals('Alpha', r.projects[0].name);
+        }
     }
 }

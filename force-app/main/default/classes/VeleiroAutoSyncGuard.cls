@@ -24,7 +24,6 @@ public with sharing class VeleiroAutoSyncGuard {
 
     // Corre el sync de un registro sin dejar que un fallo tumbe el resto del lote.
     public static void recordFailure(Id recordId, Exception e) {
-        VeleiroSyncConfig.recordError(String.valueOf(recordId) + ': ' + e.getMessage());
-        System.debug(LoggingLevel.ERROR, 'Veleiro auto-sync ' + recordId + ' -> ' + e.getMessage());
+        VeleiroSyncConfig.recordError(String.valueOf(recordId) + ': ' + VeleiroSecurity.forUi(e));
     }
 }

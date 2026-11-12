@@ -1,33 +1,34 @@
 /**
- * Cliente HTTP para la API de Veleiro (https://app.veleiro.ai/api/v1 por defecto).
- * Server-to-server (Apex). Respeta el contrato:
- *  - rutas SIN slash final (trampa 1),
- *  - envelope {"data": ...} con has_more / next_cursor,
- *  - paginacion por cursor firmado (sin offset),
- *  - errores {"error":{code,...}} -> se ramifica por CODE, nunca por message,
- *  - 429 con Retry-After,
- *  - concurrencia con version / If-Match; 409 version_conflict trae detail.current_version.
+ * HTTP client for the Veleiro API (https://app.veleiro.ai/api/v1 by default).
+ * Server-to-server from Apex only. Contract:
+ *  - paths have NO trailing slash (a 301 drops the body),
+ *  - envelope {"data": ...} with has_more / next_cursor,
+ *  - cursor pagination (no offset),
+ *  - errors branch on error.code, never on message,
+ *  - 429 honors Retry-After,
+ *  - writes send If-Match; a 409 version_conflict carries detail.current_version.
+ *
+ * The bearer token is sent only to a packaged Named Credential. A Base_Url__c value
+ * that is not one of those credentials is ignored, so it cannot receive the token.
  */
 public with sharing class VeleiroApiClient {
 
     public class VeleiroApiException extends Exception {
         public String code;
-        public Integer currentVersion; // presente en 409 version_conflict
+        public Integer currentVersion; // set on 409 version_conflict
     }
 
-    // Defaults NO-secretos: el partner solo tiene que pegar su token; base URLs caen a estos.
     public static final String CRED_PROD = 'Veleiro_API';
     public static final String CRED_BETA = 'Veleiro_API_Beta';
-    private static final String DEFAULT_APP_BASE = 'https://app.veleiro.ai'; // produccion por defecto (beta: app.beta.veleiro.dev)
+    public static final String CRED_PROD_SECURE = 'Veleiro_API_Secure';
+    public static final String CRED_BETA_SECURE = 'Veleiro_API_Beta_Secure';
+    private static final String DEFAULT_APP_BASE = 'https://app.veleiro.ai';
 
     /**
-     * Ruta de callout a una Named Credential NUESTRA.
-     *
-     * Dentro del paquete administrado la credencial se llama veleiro__Veleiro_API, y un
-     * 'callout:Veleiro_API' pelado truena con "the named credential might not exist" — que es
-     * exactamente el error que veia un cliente con el paquete instalado. El prefijo se arma en
-     * runtime y queda vacio cuando el kit se desplego del codigo fuente, asi que el mismo
-     * codigo sirve en las dos ramas.
+     * Callout path for one of our Named Credentials.
+     * Inside the managed package the credential is veleiro__Veleiro_API. A bare
+     * callout:Veleiro_API fails with "the named credential might not exist".
+     * The prefix is empty on a source deploy, so the same code serves both branches.
      */
     public static String calloutTo(String credential) {
         return 'callout:' + VeleiroSyncConfig.namespacePrefix() + credential;
@@ -35,114 +36,187 @@ public with sharing class VeleiroApiClient {
 
     public static String defaultBase() { return calloutTo(CRED_PROD) + '/api/v1'; }
 
-    // Lo UNICO obligatorio que el partner configura es el token (un secreto). Base_Url es opcional.
     private static Veleiro_Config__c cfg() {
-        Veleiro_Config__c c = resolveConfig();
-        if (c == null || String.isBlank(c.Api_Token__c)) {
-            throw new VeleiroApiException('Falta el token de Veleiro. Pega tu Api_Token__c en Setup > Custom Settings > Veleiro Config.');
+        if (!VeleiroCredentialStore.hasToken()) {
+            throw new VeleiroApiException(VeleiroI18n.t('err.tokenMissing'));
         }
-        return c;
+        return resolveConfig();
     }
 
-    // Resuelve la config SIN importar el nivel/"Location" (Org Default, Perfil o Usuario):
-    // 1) getInstance() (jerarquia del usuario actual), 2) getOrgDefaults(), 3) cualquier registro con token.
+    // Org, profile, or user level. The token itself is not selected here.
     private static Veleiro_Config__c resolveConfig() {
         Veleiro_Config__c c = Veleiro_Config__c.getInstance();
-        if (c != null && String.isNotBlank(c.Api_Token__c)) return c;
-        c = Veleiro_Config__c.getOrgDefaults();
-        if (c != null && String.isNotBlank(c.Api_Token__c)) return c;
-        List<Veleiro_Config__c> found = [
-            SELECT Api_Token__c, Base_Url__c, App_Base_Url__c
-            FROM Veleiro_Config__c WHERE Api_Token__c != null LIMIT 1
-        ];
-        return found.isEmpty() ? c : found[0];
-    }
-
-    // TRUE si hay un token configurado (en cualquier nivel). No expone el token.
-    public static Boolean hasToken() {
-        Veleiro_Config__c c = resolveConfig();
-        return c != null && String.isNotBlank(c.Api_Token__c);
-    }
-
-    // Base de la API: usa la configurada si es valida; si viene vacia o malformada, cae al default.
-    private static String baseUrl(Veleiro_Config__c c) {
-        String u = (c != null) ? c.Base_Url__c : null;
-        if (String.isNotBlank(u) && (u.startsWith('callout:') || u.startsWithIgnoreCase('http'))) {
-            return withNamespace(u);
+        if (c != null && (String.isNotBlank(c.Base_Url__c) || String.isNotBlank(c.App_Base_Url__c))) return c;
+        Veleiro_Config__c org = Veleiro_Config__c.getOrgDefaults();
+        if (org != null && (String.isNotBlank(org.Base_Url__c) || String.isNotBlank(org.App_Base_Url__c))) return org;
+        for (Veleiro_Config__c row : [
+            SELECT Base_Url__c, App_Base_Url__c
+            FROM Veleiro_Config__c
+            WHERE Base_Url__c != null OR App_Base_Url__c != null
+            LIMIT 1
+        ]) {
+            return row;
         }
-        return defaultBase(); // vacio o malformado (ej. sin el prefijo callout:) -> default correcto
+        return org != null ? org : c;
+    }
+
+    public static Boolean hasToken() {
+        return VeleiroCredentialStore.hasToken();
     }
 
     /**
-     * Repara en el aire una base guardada sin el namespace. Hay orgs con el paquete instalado
-     * que ya tienen 'callout:Veleiro_API/api/v1' escrito en su custom setting; en vez de pedirles
-     * que lo editen a mano, se le pone el prefijo al vuelo. No reescribe el dato del cliente.
+     * Production vs beta, read from the saved setting, then mapped onto a packaged
+     * Named Credential. Raw https URLs and unknown callout targets are not used.
      */
+    @TestVisible
+    private static String calloutBase(Veleiro_Config__c c, Boolean platform) {
+        String cred = isBeta(c)
+            ? (platform == true ? CRED_BETA_SECURE : CRED_BETA)
+            : (platform == true ? CRED_PROD_SECURE : CRED_PROD);
+        return calloutTo(cred) + '/api/v1';
+    }
+
+    private static Boolean isBeta(Veleiro_Config__c c) {
+        String stored = '';
+        if (c != null && c.Base_Url__c != null) stored += ' ' + c.Base_Url__c.toLowerCase();
+        if (c != null && c.App_Base_Url__c != null) stored += ' ' + c.App_Base_Url__c.toLowerCase();
+        return stored.contains('veleiro_api_beta') || stored.contains('app.beta.veleiro.dev');
+    }
+
+    /** Heals a stored callout:Veleiro_API that predates the namespace prefix. */
     @TestVisible
     private static String withNamespace(String url) {
         String prefix = VeleiroSyncConfig.namespacePrefix();
-        if (String.isBlank(prefix) || !url.startsWith('callout:')) return url;
+        if (String.isBlank(prefix) || String.isBlank(url) || !url.startsWith('callout:')) return url;
         String credential = url.substring('callout:'.length());
-        if (credential.startsWithIgnoreCase(prefix)) return url;   // ya lo trae
+        if (credential.startsWithIgnoreCase(prefix)) return url;
         return 'callout:' + prefix + credential;
     }
 
-    // URL base humana del portal de Veleiro para los links "Open in Veleiro" (cualquier nivel de config).
     public static String appBaseUrl() {
         Veleiro_Config__c c = resolveConfig();
-        String u = (c != null) ? c.App_Base_Url__c : null;
-        return String.isNotBlank(u) ? u.removeEnd('/') : DEFAULT_APP_BASE;
+        String allowed = allowedAppBase(c == null ? null : c.App_Base_Url__c);
+        if (allowed != null) return allowed;
+        return isBeta(c) ? 'https://app.beta.veleiro.dev' : DEFAULT_APP_BASE;
     }
 
-    // Base de API configurada (el string callout:..., NO secreto). Para mostrar el entorno en el panel.
+    private static String allowedAppBase(String url) {
+        if (String.isBlank(url)) return null;
+        String u = url.trim().toLowerCase();
+        if (matchesHost(u, 'https://app.beta.veleiro.dev')) return 'https://app.beta.veleiro.dev';
+        if (matchesHost(u, 'https://app.veleiro.ai')) return 'https://app.veleiro.ai';
+        return null;
+    }
+
+    /**
+     * A link received from the API, safe to use as an href: https only, on one of the two
+     * Veleiro hosts, with no whitespace, control characters or backslashes. Anything else
+     * (javascript:, data:, http://, another host, user@host tricks) returns null.
+     */
+    public static String safeAppUrl(String url) {
+        if (String.isBlank(url)) return null;
+        String u = url.trim();
+        if (u.length() > 2000 || !Pattern.matches('[\\x21-\\x7E]+', u) || u.contains('\\')) return null;
+        return allowedAppBase(u) == null ? null : u;
+    }
+
+    private static Boolean matchesHost(String url, String host) {
+        if (!url.startsWith(host)) return false;
+        String rest = url.substring(host.length());
+        return rest == '' || rest.startsWith('/');
+    }
+
+    /** The callout base actually used (a callout: string, not a secret). */
     public static String apiBaseConfigured() {
-        return baseUrl(resolveConfig());
+        return calloutBase(resolveConfig(), VeleiroCredentialStore.platformAuthReady());
+    }
+
+    /** Confirms the secure Named Credential can read /clients before we depend on it. */
+    public static void probeSecureCredential() {
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(calloutBase(resolveConfig(), true) + '/clients?limit=1');
+        req.setMethod('GET');
+        req.setHeader('Accept', 'application/json');
+        req.setTimeout(120000);
+        handle(new Http().send(req));
     }
 
     private static HttpRequest baseReq(String method, String path) {
+        Boolean platform = VeleiroCredentialStore.platformAuthReady();
+        assertSafePath(path);
         Veleiro_Config__c c = cfg();
         HttpRequest req = new HttpRequest();
-        req.setEndpoint(baseUrl(c) + path); // el path NO lleva slash final
+        req.setEndpoint(calloutBase(c, platform) + path);
         req.setMethod(method);
-        req.setHeader('Authorization', 'Bearer ' + c.Api_Token__c);
+        // The secure Named Credential injects Authorization. The legacy credential cannot.
+        if (!platform) {
+            // Legacy Named Credentials cannot send this header. Used only until the secure credential probe succeeds.
+            req.setHeader('Authorization', 'Bearer ' + VeleiroCredentialStore.readToken());
+        }
         req.setHeader('Accept', 'application/json');
         req.setTimeout(120000);
         return req;
     }
 
-    // Interpreta la respuesta; si es error, lanza VeleiroApiException con code (+ current_version en 409).
+    private static void assertSafePath(String path) {
+        if (String.isBlank(path) || !path.startsWith('/')) {
+            throw new VeleiroApiException(VeleiroI18n.t('err.requestRejected'));
+        }
+        String pathOnly = path;
+        String query = '';
+        Integer q = path.indexOf('?');
+        if (q >= 0) {
+            pathOnly = path.substring(0, q);
+            query = path.substring(q + 1);
+        }
+        if (pathOnly.contains('..') || !Pattern.matches('/[A-Za-z0-9_./-]+', pathOnly)) {
+            throw new VeleiroApiException(VeleiroI18n.t('err.requestRejected'));
+        }
+        if (String.isNotBlank(query) && !Pattern.matches('[A-Za-z0-9_=&%+.,-]*', query)) {
+            throw new VeleiroApiException(VeleiroI18n.t('err.requestRejected'));
+        }
+    }
+
     private static Map<String, Object> handle(HttpResponse res) {
         Integer status = res.getStatusCode();
         Map<String, Object> body;
         try {
             body = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
         } catch (Exception e) {
-            VeleiroApiException ex = new VeleiroApiException('Respuesta no-JSON (HTTP ' + status + '): ' + res.getBody());
+            VeleiroApiException ex = new VeleiroApiException(
+                VeleiroI18n.t('api.nonJson', new List<Object>{ status }));
             ex.code = 'internal_error';
             throw ex;
         }
-        if (status >= 200 && status < 300) {
-            return body;
-        }
+        if (status >= 200 && status < 300) return body;
+
         VeleiroApiException ex = new VeleiroApiException();
         ex.code = 'internal_error';
-        String msg = res.getBody();
-        Object errObj = (body != null) ? body.get('error') : null;
+        Object errObj = (body == null) ? null : body.get('error');
         if (errObj instanceof Map<String, Object>) {
             Map<String, Object> err = (Map<String, Object>) errObj;
             if (err.get('code') != null) ex.code = (String) err.get('code');
-            if (err.get('message') != null) msg = (String) err.get('message');
             Object det = err.get('detail');
             if (det instanceof Map<String, Object> && ((Map<String, Object>) det).get('current_version') != null) {
                 ex.currentVersion = Integer.valueOf(String.valueOf(((Map<String, Object>) det).get('current_version')));
             }
         }
         if (status == 429) ex.code = 'rate_limited';
-        ex.setMessage(ex.code + ': ' + msg);
+        ex.setMessage(messageFor(ex.code));
         throw ex;
     }
 
-    // ---------- Lectura ----------
+    private static String messageFor(String code) {
+        if (code == 'invalid_token') return VeleiroI18n.t('api.invalid_token');
+        if (code == 'insufficient_scope') return VeleiroI18n.t('api.insufficient_scope');
+        if (code == 'not_found') return VeleiroI18n.t('api.not_found');
+        if (code == 'validation_failed') return VeleiroI18n.t('api.validation_failed');
+        if (code == 'version_conflict') return VeleiroI18n.t('api.version_conflict');
+        if (code == 'invalid_cursor') return VeleiroI18n.t('api.invalid_cursor');
+        if (code == 'rate_limited') return VeleiroI18n.t('api.rate_limited');
+        if (code == 'method_not_allowed') return VeleiroI18n.t('api.method_not_allowed');
+        return VeleiroI18n.t('api.internal_error');
+    }
 
     public static Map<String, Object> doGet(String path, Map<String, String> query) {
         String qs = '';
@@ -157,7 +231,6 @@ public with sharing class VeleiroApiClient {
         return handle(new Http().send(req));
     }
 
-    // Lista completa siguiendo el cursor hasta has_more=false.
     public static List<Object> listAll(String path, Map<String, String> filters) {
         List<Object> all = new List<Object>();
         Map<String, String> q = (filters != null) ? filters.clone() : new Map<String, String>();
@@ -175,9 +248,6 @@ public with sharing class VeleiroApiClient {
         return all;
     }
 
-    // ---------- Escritura ----------
-
-    // POST -> crea. Devuelve el recurso creado (data).
     public static Map<String, Object> doPost(String path, Map<String, Object> payload) {
         HttpRequest req = baseReq('POST', path);
         req.setHeader('Content-Type', 'application/json');
@@ -186,8 +256,6 @@ public with sharing class VeleiroApiClient {
         return (Map<String, Object>) body.get('data');
     }
 
-    // PATCH parcial. Si ifMatchVersion != null, escritura condicional (If-Match).
-    // OJO: additional_fields se REEMPLAZA entero (no se mergea) -> mandar el mapa completo.
     public static Map<String, Object> doPatch(String path, Map<String, Object> payload, Integer ifMatchVersion) {
         HttpRequest req = baseReq('PATCH', path);
         req.setHeader('Content-Type', 'application/json');

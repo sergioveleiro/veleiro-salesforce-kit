@@ -19,6 +19,15 @@ import getTranscript from '@salesforce/apex/VeleiroMeetingService.getTranscript'
 
 const PAGE_SIZE = 5;
 
+// Segunda barrera (la primera es VeleiroApiClient.safeAppUrl): al href solo llega un https de
+// un host de Veleiro. Cualquier otra cosa deja el titulo como texto, sin link.
+const SAFE_HOSTS = ['https://app.veleiro.ai/', 'https://app.beta.veleiro.dev/'];
+function safeLink(url) {
+    if (typeof url !== 'string') return null;
+    const lower = url.toLowerCase();
+    return SAFE_HOSTS.some((h) => lower.startsWith(h)) ? url : null;
+}
+
 export default class VeleiroMeetings extends LightningElement {
     labels = T;
     all = [];
@@ -104,8 +113,11 @@ export default class VeleiroMeetings extends LightningElement {
         const visible = this.showAll ? this.filtered : this.filtered.slice(0, PAGE_SIZE);
         return visible.map((m) => {
             const isOpen = m.id === this.openId;
+            const safeUrl = safeLink(m.url);
             return {
                 ...m,
+                safeUrl,
+                showReadMore: !!safeUrl && isOpen && !!this.transcript && !!this.transcript.truncated,
                 displayTitle: m.title || this.labels.meetingUntitled,
                 isOpen,
                 ariaExpanded: isOpen ? 'true' : 'false',

@@ -65,19 +65,21 @@ private class VeleiroLinkScaleTest {
 
     @isTest
     static void theScanFitsInOneTransaction() {
-        mockClients();
+        System.runAs(VeleiroTestAccess.user()) {
+            mockClients();
 
-        Test.startTest();
-        Integer before = Limits.getCpuTime();
-        VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions(KIT_OBJECT, 'client');
-        Integer spent = Limits.getCpuTime() - before;
-        Test.stopTest();
+            Test.startTest();
+            Integer before = Limits.getCpuTime();
+            VeleiroLinkController.Overview o = VeleiroLinkController.getSuggestions(KIT_OBJECT, 'client');
+            Integer spent = Limits.getCpuTime() - before;
+            Test.stopTest();
 
-        System.debug(LoggingLevel.ERROR, 'CPU del escaneo: ' + spent + ' ms con ' +
-                     RECORDS + ' registros x ' + CLIENTS + ' clientes');
-        System.assertEquals(CLIENTS, o.rows.size(), 'se listan todos los clientes sin vincular');
-        System.assert(spent < CPU_BUDGET_MS,
-            'el escaneo gasto ' + spent + ' ms de CPU (presupuesto ' + CPU_BUDGET_MS +
-            '). En la org del cliente esto es un "Apex CPU time limit exceeded".');
+            System.debug(LoggingLevel.ERROR, 'CPU del escaneo: ' + spent + ' ms con ' +
+                         RECORDS + ' registros x ' + CLIENTS + ' clientes');
+            System.assertEquals(CLIENTS, o.rows.size(), 'se listan todos los clientes sin vincular');
+            System.assert(spent < CPU_BUDGET_MS,
+                'el escaneo gasto ' + spent + ' ms de CPU (presupuesto ' + CPU_BUDGET_MS +
+                '). En la org del cliente esto es un "Apex CPU time limit exceeded".');
+        }
     }
 }

@@ -25,7 +25,7 @@ public with sharing class VeleiroSync {
         }
 
         if (!toUpsert.isEmpty()) {
-            upsert toUpsert Veleiro_Client_Id__c; // upsert por external id
+            VeleiroSecurity.upsertAccounts(toUpsert);
         }
         System.debug('VeleiroSync.syncClients -> ' + toUpsert.size() + ' clients');
         return toUpsert.size();
@@ -53,12 +53,14 @@ public with sharing class VeleiroSync {
 
         Boolean writesName = VeleiroSyncConfig.pullWritesName();
         List<Account> toUpdate = new List<Account>();
-        for (Account a : [
-            SELECT Id, Name, Veleiro_Client_Id__c, Veleiro_Version__c, Veleiro_Additional_Fields__c
-            FROM Account WHERE Veleiro_Client_Id__c != null
-            ORDER BY LastModifiedDate ASC
-            LIMIT 5000
-        ]) {
+        String clientId = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
+        String soql = 'SELECT Id, Name, ' + clientId + ', '
+            + VeleiroSecurity.api(Account.Veleiro_Version__c) + ', '
+            + VeleiroSecurity.api(Account.Veleiro_Additional_Fields__c)
+            + ' FROM Account WHERE ' + clientId + ' != null'
+            + ' ORDER BY LastModifiedDate ASC LIMIT 5000';
+        for (SObject row : VeleiroSecurity.query(soql, new Map<String, Object>())) {
+            Account a = (Account) row;
             Map<String, Object> c = byId.get(a.Veleiro_Client_Id__c);
             if (c == null) continue;
             Integer vVer = (c.get('version') != null) ? Integer.valueOf(String.valueOf(c.get('version'))) : null;
@@ -80,13 +82,15 @@ public with sharing class VeleiroSync {
         if (!toUpdate.isEmpty()) {
             // Parcial a proposito: una regla de validacion del cliente sobre UNA cuenta no
             // debe tumbar el lote completo.
-            List<Database.SaveResult> results = Database.update(toUpdate, false);
+            List<Database.SaveResult> results = VeleiroSecurity.updatePartial(toUpdate);
             String firstError;
             Integer failed = 0;
             for (Database.SaveResult sr : results) {
                 if (sr.isSuccess()) { updated++; continue; }
                 failed++;
-                if (firstError == null && !sr.getErrors().isEmpty()) firstError = sr.getErrors()[0].getMessage();
+                if (firstError == null && !sr.getErrors().isEmpty()) {
+                    firstError = VeleiroSecurity.sanitize(sr.getErrors()[0].getMessage());
+                }
             }
             if (failed > 0) {
                 VeleiroSyncConfig.recordError('Pull: ' + failed + ' account(s) rejected by Salesforce. First: ' + firstError);

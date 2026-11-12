@@ -41,7 +41,8 @@ export default class VeleiroSetupBanner extends NavigationMixin(LightningElement
     }
 
     get show() {
-        return this.ready && this.state && !this.state.complete;
+        // Solo para quien puede terminar el setup: el resto no tiene la pestana a la que lleva.
+        return this.ready && this.state && this.state.canManage && !this.state.complete;
     }
 
     get percent() {

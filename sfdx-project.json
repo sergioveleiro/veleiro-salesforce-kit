@@ -1,13 +1,14 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Veleiro Link ya no se ahoga en orgs grandes",
-      "versionNumber": "1.8.0.NEXT",
+      "versionName": "Security review",
+      "versionNumber": "1.9.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "Arregla el \"Apex CPU time limit exceeded\" al abrir Veleiro Link en orgs con muchos registros. El emparejado recorria todos los registros por cada recurso de Veleiro; ahora usa indices. Medido con 1.200 registros x 150 clientes: 4.367 ms antes, 218 ms despues. Si aun asi el CPU se agota, se dejan de sugerir parecidos pero la pantalla sigue listando todo.",
-      "ancestorVersion": "HIGHEST"
+      "versionDescription": "AppExchange security review for 1.9.0. Callouts stay on the packaged Named Credentials, the API token moves to a protected setting (and an External Credential when the platform accepts it), and setup changes require an administrator. Upgrades from 1.5.0, 1.6.0, and 1.8.0 keep working if the new store cannot be written.",
+      "ancestorVersion": "1.8.0.RELEASED",
+      "postInstallScript": "VeleiroPostInstall"
     }
   ],
   "name": "veleiro-salesforce-kit",
@@ -24,6 +25,8 @@
     "Veleiro Salesforce Kit@1.5.0-1": "04tPe0000010wBVIAY",
     "Veleiro Salesforce Kit@1.6.0-1": "04tPe0000010yrdIAA",
     "Veleiro Salesforce Kit@1.7.0-1": "04tPe0000011T93IAE",
-    "Veleiro Salesforce Kit@1.8.0-1": "04tPe0000011UTJIA2"
+    "Veleiro Salesforce Kit@1.8.0-1": "04tPe0000011UTJIA2",
+    "Veleiro Salesforce Kit@1.9.0-1": "04tPe0000012dSvIAI",
+    "Veleiro Salesforce Kit@1.9.0-2": "04tPe0000012dmHIAQ"
   }
 }

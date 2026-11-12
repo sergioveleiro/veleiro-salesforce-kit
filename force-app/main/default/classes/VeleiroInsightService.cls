@@ -75,7 +75,14 @@ public with sharing class VeleiroInsightService {
     // ---------- API para la Account record page ----------
     @AuraEnabled
     public static ClientInsight getInsightForAccount(Id accountId) {
-        Account a = [SELECT Id, Name, Veleiro_Client_Id__c FROM Account WHERE Id = :accountId LIMIT 1];
+        Account a = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Name, Account.Veleiro_Client_Id__c
+        });
+        if (a == null) {
+            ClientInsight none = new ClientInsight();
+            none.synced = false;
+            return none;
+        }
         if (String.isBlank(a.Veleiro_Client_Id__c)) {
             ClientInsight none = new ClientInsight();
             none.synced = false;
@@ -104,7 +111,9 @@ public with sharing class VeleiroInsightService {
                 Map<String, Object> s = (Map<String, Object>) o;
                 stateType.put((String) s.get('id'), (String) s.get('state_type'));
             }
-        } catch (Exception e) { /* si falla, seguimos sin la senal de bloqueo */ }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.FINE, 'Task states unavailable: ' + e.getTypeName());
+        }
 
         // 2) tasks bloqueadas por client
         Map<String, Integer> blockedByClient = new Map<String, Integer>();
@@ -119,7 +128,9 @@ public with sharing class VeleiroInsightService {
                     blockedByClient.put(cid, (blockedByClient.containsKey(cid) ? blockedByClient.get(cid) : 0) + 1);
                 }
             }
-        } catch (Exception e) { /* sin tasks, seguimos */ }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.FINE, 'Tasks unavailable: ' + e.getTypeName());
+        }
 
         // 3) clients
         Map<String, ClientInsight> byId = new Map<String, ClientInsight>();

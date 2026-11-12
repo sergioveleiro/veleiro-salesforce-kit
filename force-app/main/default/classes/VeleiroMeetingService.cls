@@ -4,7 +4,9 @@
  *
  * Tres cosas que decidieron la forma de esta clase:
  *
- *  1. Cada fila trae su propio `url` al portal de Veleiro. Se muestra TAL CUAL. Armarla aqui
+ *  1. Cada fila trae su propio `url` al portal de Veleiro. Se muestra tal cual llega, pero solo
+ *     si es https y de un host de Veleiro (VeleiroApiClient.safeAppUrl); si no, la reunion se
+ *     lista sin link. Armarla aqui
  *     (app base + /a/partner-portal/meetings/<id>/) funcionaria hoy y se romperia el dia que
  *     ellos cambien la ruta, sin que nadie se entere hasta que un cliente haga clic.
  *  2. Una reunion cuelga SIEMPRE de un client y SOLO A VECES de un project (`project_id` es
@@ -85,7 +87,11 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForOpportunity(Id opportunityId) {
         if (opportunityId == null) return new MeetingList();
         String projectId = null;
-        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1]) {
+        Opportunity loaded = VeleiroSecurity.loadOpportunity(opportunityId, new List<Schema.SObjectField>{
+            Opportunity.Veleiro_Project_Id__c
+        });
+        if (loaded != null) {
+            Opportunity o = loaded;
             projectId = o.Veleiro_Project_Id__c;
         }
         return fetch('project_id', projectId);
@@ -96,7 +102,11 @@ public with sharing class VeleiroMeetingService {
     public static MeetingList getForAccount(Id accountId) {
         if (accountId == null) return new MeetingList();
         String clientId = null;
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId LIMIT 1]) {
+        Account loadedAccount = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Veleiro_Client_Id__c
+        });
+        if (loadedAccount != null) {
+            Account a = loadedAccount;
             clientId = a.Veleiro_Client_Id__c;
         }
         MeetingList out = fetch('client_id', clientId);
@@ -168,7 +178,9 @@ public with sharing class VeleiroMeetingService {
         Meeting m = new Meeting();
         m.id = (String) row.get('id');
         m.title = (String) row.get('title');
-        m.url = (String) row.get('url');
+        // The link goes into an href: only an https URL on a Veleiro host survives. A meeting
+        // whose link is rejected is still listed, just without the link.
+        m.url = VeleiroApiClient.safeAppUrl((String) row.get('url'));
         m.status = (String) row.get('status');
         m.clientId = (String) row.get('client_id');
         m.projectId = (String) row.get('project_id');
@@ -187,7 +199,7 @@ public with sharing class VeleiroMeetingService {
     public static Transcript getTranscript(String meetingId) {
         Transcript t = new Transcript();
         t.meetingId = meetingId;
-        if (String.isBlank(meetingId)) return t;
+        if (String.isBlank(meetingId) || !Pattern.matches('[A-Za-z0-9_]+', meetingId.trim())) return t;
         try {
             Map<String, Object> body = VeleiroApiClient.doGet('/meetings/' + meetingId.trim() + '/transcript', null);
             Map<String, Object> data = (Map<String, Object>) body.get('data');

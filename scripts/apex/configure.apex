@@ -2,9 +2,11 @@
  * One-time configuration of the Veleiro integration — run with:
  *   sf apex run -o <your-org> -f scripts/apex/configure.apex
  *
- * SECURITY: this writes your Veleiro API token as DATA into the Veleiro_Config__c
- * custom setting. Do NOT commit your real token. Edit a LOCAL copy of this file,
- * paste your token, run it, then discard the change (or clear the value).
+ * SECURITY: this writes your Veleiro API token as DATA. Do NOT commit your real token.
+ * Edit a LOCAL copy, paste the token, run it, then discard the change.
+ * The public Api_Token__c field is a legacy fallback. Veleiro Setup (and the 1.9.0
+ * post-install script) copy it into the protected setting and then clear it.
+ * Prefer the Veleiro Setup tab, which stores the token without leaving it on the public field.
  *
  * Get your token + scopes (read/write on clients & projects) from the Veleiro app.
  */

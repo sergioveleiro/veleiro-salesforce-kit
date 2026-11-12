@@ -2,7 +2,7 @@
 
 What the integration relies on. All of this is enforced by `VeleiroApiClient`; read it there before changing behavior.
 
-- **Base / auth.** `Base_Url__c` = `callout:Veleiro_API/api/v1` — routes through the `Veleiro_API` Named Credential, which holds the host (`https://app.veleiro.ai` by default; `https://app.beta.veleiro.dev` for beta). Do NOT use a raw URL. Auth `Authorization: Bearer <token>`, server-to-server only.
+- **Base / auth.** Callouts go only to the packaged Named Credentials: `Veleiro_API` (`https://app.veleiro.ai`) or `Veleiro_API_Beta` (`https://app.beta.veleiro.dev`), and to `Veleiro_API_Secure` / `Veleiro_API_Beta_Secure` once the External Credential principal is in place. A raw URL in `Base_Url__c` is ignored and never receives the token. Auth is server-to-server. The secure Named Credentials send `Authorization` themselves; the legacy credentials still need Apex to send `Bearer` from the protected setting.
 - **Envelope.** Payload under `{"data": …}`. Lists add `has_more` (bool) and `next_cursor` (string).
 - **Pagination.** Cursor-based, no offset. Follow `next_cursor` while `has_more`. Cursors expire (~24h). `VeleiroApiClient.listAll` handles it.
 - **No trailing slash.** Paths must not end in `/` (a trailing slash 301-redirects and drops the body).

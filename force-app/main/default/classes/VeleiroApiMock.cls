@@ -90,6 +90,7 @@ public class VeleiroApiMock implements HttpCalloutMock {
 
     // Helper: inserta el Veleiro_Config__c org-default para que las clases no truenen.
     public static void seedConfig() {
+        VeleiroTestAccess.grant();
         insert new Veleiro_Config__c(
             SetupOwnerId = UserInfo.getOrganizationId(),
             Api_Token__c = 'test-token',

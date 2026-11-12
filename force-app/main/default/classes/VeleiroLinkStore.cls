@@ -36,14 +36,21 @@ public with sharing class VeleiroLinkStore {
         Link l = new Link();
         if (isNative(sobjectName, entity)) {
             List<String> f = nativeFields(sobjectName, entity);
-            l.veleiroId = (String) record.get(f[0]);
-            Object v = record.get(f[1]);
+            String idField = resolved(sobjectName, f[0]);
+            String versionField = resolved(sobjectName, f[1]);
+            if (idField == null) return l;
+            l.veleiroId = (String) record.get(idField);
+            Object v = versionField == null ? null : record.get(versionField);
             l.version = (v == null) ? null : Integer.valueOf(String.valueOf(v));
         } else {
-            for (Veleiro_Link__c row : [
-                SELECT Veleiro_Id__c, Veleiro_Version__c FROM Veleiro_Link__c
-                WHERE Link_Key__c = :linkKey(record.Id, entity) LIMIT 1
-            ]) {
+            String soql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Id__c) + ', '
+                + VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Version__c)
+                + ' FROM ' + VeleiroSecurity.api(Veleiro_Link__c.SObjectType)
+                + ' WHERE ' + VeleiroSecurity.api(Veleiro_Link__c.Link_Key__c) + ' = :linkKey LIMIT 1';
+            for (SObject raw : VeleiroSecurity.query(soql, new Map<String, Object>{
+                'linkKey' => linkKey(record.Id, entity)
+            })) {
+                Veleiro_Link__c row = (Veleiro_Link__c) raw;
                 l.veleiroId = row.Veleiro_Id__c;
                 l.version = (row.Veleiro_Version__c == null) ? null : Integer.valueOf(row.Veleiro_Version__c);
             }
@@ -56,8 +63,10 @@ public with sharing class VeleiroLinkStore {
     public static SObject apply(SObject record, String sobjectName, String entity, String veleiroId, Integer version) {
         if (isNative(sobjectName, entity)) {
             List<String> f = nativeFields(sobjectName, entity);
-            record.put(f[0], veleiroId);
-            record.put(f[1], version);
+            String idField = resolved(sobjectName, f[0]);
+            String versionField = resolved(sobjectName, f[1]);
+            if (idField != null) record.put(idField, veleiroId);
+            if (versionField != null) record.put(versionField, version);
             return record;
         }
         Veleiro_Link__c row = new Veleiro_Link__c(
@@ -75,15 +84,21 @@ public with sharing class VeleiroLinkStore {
     public static Set<String> linkedIds(String sobjectName, String entity) {
         Set<String> ids = new Set<String>();
         if (isNative(sobjectName, entity)) {
-            String field = nativeFields(sobjectName, entity)[0];
-            String soql = 'SELECT ' + field + ' FROM ' + String.escapeSingleQuotes(sobjectName) +
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+            String field = VeleiroSecurity.safeField(described, nativeFields(sobjectName, entity)[0]);
+            if (described == null || field == null) return ids;
+            String soql = 'SELECT ' + field + ' FROM ' + described.getName() +
                           ' WHERE ' + field + ' != null';
-            for (SObject r : Database.query(soql)) ids.add((String) r.get(field));
+            for (SObject r : VeleiroSecurity.query(soql, new Map<String, Object>())) ids.add((String) r.get(field));
         } else {
-            for (Veleiro_Link__c row : [
-                SELECT Veleiro_Id__c FROM Veleiro_Link__c
-                WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
-            ]) {
+            String linkSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Id__c)
+                + ' FROM ' + VeleiroSecurity.api(Veleiro_Link__c.SObjectType)
+                + ' WHERE ' + VeleiroSecurity.api(Veleiro_Link__c.SObject__c) + ' = :sobjectName'
+                + ' AND ' + VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Entity__c) + ' = :entity';
+            for (SObject raw : VeleiroSecurity.query(linkSoql, new Map<String, Object>{
+                'sobjectName' => sobjectName, 'entity' => entity
+            })) {
+                Veleiro_Link__c row = (Veleiro_Link__c) raw;
                 ids.add(row.Veleiro_Id__c);
             }
         }
@@ -94,19 +109,29 @@ public with sharing class VeleiroLinkStore {
     public static Set<Id> linkedRecords(String sobjectName, String entity) {
         Set<Id> ids = new Set<Id>();
         if (isNative(sobjectName, entity)) {
-            String field = nativeFields(sobjectName, entity)[0];
-            String soql = 'SELECT Id FROM ' + String.escapeSingleQuotes(sobjectName) +
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+            String field = VeleiroSecurity.safeField(described, nativeFields(sobjectName, entity)[0]);
+            if (described == null || field == null) return ids;
+            String soql = 'SELECT Id FROM ' + described.getName() +
                           ' WHERE ' + field + ' != null';
-            for (SObject r : Database.query(soql)) ids.add(r.Id);
+            for (SObject r : VeleiroSecurity.query(soql, new Map<String, Object>())) ids.add(r.Id);
         } else {
-            for (Veleiro_Link__c row : [
-                SELECT Record_Id__c FROM Veleiro_Link__c
-                WHERE SObject__c = :sobjectName AND Veleiro_Entity__c = :entity
-            ]) {
+            String linkSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Link__c.Record_Id__c)
+                + ' FROM ' + VeleiroSecurity.api(Veleiro_Link__c.SObjectType)
+                + ' WHERE ' + VeleiroSecurity.api(Veleiro_Link__c.SObject__c) + ' = :sobjectName'
+                + ' AND ' + VeleiroSecurity.api(Veleiro_Link__c.Veleiro_Entity__c) + ' = :entity';
+            for (SObject raw : VeleiroSecurity.query(linkSoql, new Map<String, Object>{
+                'sobjectName' => sobjectName, 'entity' => entity
+            })) {
+                Veleiro_Link__c row = (Veleiro_Link__c) raw;
                 ids.add((Id) row.Record_Id__c);
             }
         }
         return ids;
+    }
+
+    private static String resolved(String sobjectName, String localName) {
+        return VeleiroSecurity.safeField(VeleiroSecurity.describeObject(sobjectName), localName);
     }
 
     private static String linkKey(Id recordId, String entity) {

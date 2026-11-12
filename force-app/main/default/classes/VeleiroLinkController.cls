@@ -113,20 +113,24 @@ public with sharing class VeleiroLinkController {
     @AuraEnabled(cacheable=true)
     public static List<Pair> getPairs() {
         Map<String, Pair> pairs = new Map<String, Pair>();
-        for (AggregateResult ar : [
-            SELECT SObject__c so, Veleiro_Entity__c ent
-            FROM Veleiro_Field_Mapping__c
-            WHERE Active__c = true AND SObject__c != null AND Veleiro_Entity__c != null
-            GROUP BY SObject__c, Veleiro_Entity__c
-        ]) {
+        String pairSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' so, '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' ent'
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' != null'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' != null'
+            + ' GROUP BY ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c);
+        for (SObject raw : VeleiroSecurity.query(pairSoql, new Map<String, Object>())) {
+            AggregateResult ar = (AggregateResult) raw;
             String so = (String) ar.get('so');
             String ent = (String) ar.get('ent');
-            Schema.SObjectType type = Schema.getGlobalDescribe().get(so);
-            if (type == null) continue; // el objeto ya no existe en la org
+            Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
+            if (described == null) continue; // el objeto ya no existe en la org
 
             Pair p = new Pair();
             p.sobjectName = so;
-            p.sobjectLabel = type.getDescribe().getLabel();
+            p.sobjectLabel = described.getLabel();
             p.entity = ent;
             p.label = p.sobjectLabel + ' -> ' + ent;
             p.value = so + '|' + ent;
@@ -150,15 +154,17 @@ public with sharing class VeleiroLinkController {
         String ent = String.isNotBlank(entity) ? entity : o.pairs[0].entity;
         o.sobjectName = so;
         o.entity = ent;
-        Schema.SObjectType type = Schema.getGlobalDescribe().get(so);
-        if (type == null || !VeleiroSyncService.hasMappings(so, ent)) return o;
-        o.sobjectLabel = type.getDescribe().getLabel();
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
+        if (described == null || !VeleiroSyncService.hasMappings(described.getName(), ent)) return o;
+        so = described.getName();
+        o.sobjectName = so;
+        o.sobjectLabel = described.getLabel();
 
         List<Object> resources;
         try {
             resources = VeleiroApiClient.listAll(ent == 'client' ? '/clients' : '/projects', null);
         } catch (Exception e) {
-            o.connectionError = e.getMessage();
+            o.connectionError = VeleiroSecurity.forUi(e);
             return o;
         }
         Set<String> linkedVeleiroIds = VeleiroLinkStore.linkedIds(so, ent);
@@ -168,18 +174,18 @@ public with sharing class VeleiroLinkController {
         // Campos con los que comparar: el mapeado a 'name' (o Name) y el del sitio web.
         String nameField = mappedField(so, ent, new Set<String>{ 'name' });
         String siteField = mappedField(so, ent, new Set<String>{ 'website_url', 'sf_website', 'website' });
-        if (String.isBlank(nameField) && hasField(so, 'Name')) nameField = 'Name';
-        if (String.isBlank(siteField) && hasField(so, 'Website')) siteField = 'Website';
+        if (String.isBlank(nameField)) nameField = VeleiroSecurity.safeField(described, 'Name');
+        if (String.isBlank(siteField)) siteField = VeleiroSecurity.safeField(described, 'Website');
 
         List<SObject> unlinked = new List<SObject>();
         if (String.isNotBlank(nameField)) {
             Set<String> cols = new Set<String>{ 'Id', nameField };
             if (String.isNotBlank(siteField)) cols.add(siteField);
             String soql = 'SELECT ' + String.join(new List<String>(cols), ', ') +
-                          ' FROM ' + String.escapeSingleQuotes(so) +
+                          ' FROM ' + described.getName() +
                           ' WHERE Id NOT IN :linkedRecordIds' +
                           ' ORDER BY ' + nameField + ' LIMIT 20001';
-            unlinked = Database.query(soql);
+            unlinked = VeleiroSecurity.query(soql, new Map<String, Object>{ 'linkedRecordIds' => linkedRecordIds });
         }
         o.recordsUnlinked = unlinked.size();
         if (unlinked.size() > maxRecords) {
@@ -345,24 +351,27 @@ public with sharing class VeleiroLinkController {
     public static List<RecordOption> searchRecords(String sobjectName, String entity, String term) {
         List<RecordOption> out = new List<RecordOption>();
         if (String.isBlank(sobjectName) || String.isBlank(term) || term.trim().length() < 2) return out;
-        Schema.SObjectType type = Schema.getGlobalDescribe().get(sobjectName);
-        if (type == null) return out;
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(sobjectName);
+        if (described == null || !VeleiroSyncService.hasMappings(described.getName(), entity)) return out;
+        sobjectName = described.getName();
 
         String nameField = mappedField(sobjectName, entity, new Set<String>{ 'name' });
-        if (String.isBlank(nameField) && hasField(sobjectName, 'Name')) nameField = 'Name';
+        if (String.isBlank(nameField)) nameField = VeleiroSecurity.safeField(described, 'Name');
         if (String.isBlank(nameField)) return out;
         String siteField = mappedField(sobjectName, entity, new Set<String>{ 'website_url', 'sf_website', 'website' });
-        if (String.isBlank(siteField) && hasField(sobjectName, 'Website')) siteField = 'Website';
+        if (String.isBlank(siteField)) siteField = VeleiroSecurity.safeField(described, 'Website');
 
         Set<Id> linked = VeleiroLinkStore.linkedRecords(sobjectName, entity);
         Set<String> cols = new Set<String>{ 'Id', nameField };
         if (String.isNotBlank(siteField)) cols.add(siteField);
         String pattern = '%' + String.escapeSingleQuotes(term.trim()) + '%';
         String soql = 'SELECT ' + String.join(new List<String>(cols), ', ') +
-                      ' FROM ' + String.escapeSingleQuotes(sobjectName) +
+                      ' FROM ' + described.getName() +
                       ' WHERE ' + nameField + ' LIKE :pattern AND Id NOT IN :linked' +
                       ' ORDER BY ' + nameField + ' LIMIT 20';
-        for (SObject r : Database.query(soql)) {
+        for (SObject r : VeleiroSecurity.query(soql, new Map<String, Object>{
+            'pattern' => pattern, 'linked' => linked
+        })) {
             RecordOption op = new RecordOption();
             op.recordId = r.Id;
             op.name = str(r.get(nameField));
@@ -394,6 +403,9 @@ public with sharing class VeleiroLinkController {
     // pairsJson: [{"recordId":"001...","veleiroId":"org_..."}]
     private static LinkResult link(String so, String ent, String pairsJson, Boolean pushAfter) {
         LinkResult result = new LinkResult();
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
+        if (described == null || String.isBlank(pairsJson)) return result;
+        so = described.getName();
         List<Object> rows = (List<Object>) JSON.deserializeUntyped(pairsJson);
         Set<String> usedVeleiroIds = VeleiroLinkStore.linkedIds(so, ent);
         Set<Id> usedRecordIds = VeleiroLinkStore.linkedRecords(so, ent);
@@ -408,6 +420,10 @@ public with sharing class VeleiroLinkController {
             String veleiroId = str(row.get('veleiroId'));
             if (String.isBlank(recordId) || String.isBlank(veleiroId)
                 || recordId == 'null' || veleiroId == 'null') continue;
+            if (!Pattern.matches('[A-Za-z0-9_]+', veleiroId)) {
+                result.skipped++;
+                continue;
+            }
             // Un recurso, un registro (y viceversa): lo ya vinculado no se toca.
             if (usedVeleiroIds.contains(veleiroId) || usedRecordIds.contains((Id) recordId)) {
                 result.skipped++;
@@ -417,14 +433,14 @@ public with sharing class VeleiroLinkController {
             usedRecordIds.add((Id) recordId);
             toPush.add((Id) recordId);
 
-            SObject record = Schema.getGlobalDescribe().get(so).newSObject((Id) recordId);
+            SObject record = described.getSObjectType().newSObject((Id) recordId);
             SObject applied = VeleiroLinkStore.apply(record, so, ent, veleiroId, null);
             if (applied instanceof Veleiro_Link__c) linkRows.add((Veleiro_Link__c) applied);
             else nativeUpdates.put(record.Id, applied);
         }
 
-        if (!nativeUpdates.isEmpty()) update nativeUpdates.values();
-        if (!linkRows.isEmpty()) upsert linkRows Link_Key__c;
+        if (!nativeUpdates.isEmpty()) VeleiroSecurity.updateRecords(nativeUpdates.values());
+        if (!linkRows.isEmpty()) VeleiroSecurity.upsertLinks(linkRows);
         result.linked = toPush.size();
 
         // El push va aparte: hace callouts, y aqui acabamos de hacer DML.
@@ -449,6 +465,9 @@ public with sharing class VeleiroLinkController {
             throw new VeleiroApiClient.VeleiroApiException(VeleiroI18n.t('err.pushDisabled'));
         }
         if (String.isBlank(sobjectName) || String.isBlank(entity)) return out;
+        if (VeleiroSecurity.describeObject(sobjectName) == null) {
+            throw new VeleiroApiClient.VeleiroApiException(VeleiroI18n.t('err.objectUnavailable'));
+        }
         if (!VeleiroSyncService.hasMappings(sobjectName, entity)) {
             throw new VeleiroApiClient.VeleiroApiException(
                 VeleiroI18n.t('err.noMapping', new List<Object>{ sobjectName, entity }));
@@ -495,7 +514,11 @@ public with sharing class VeleiroLinkController {
 
         Set<Id> watching = new Set<Id>();
         for (Object o : (List<Object>) JSON.deserializeUntyped(recordIdsJson)) {
-            try { watching.add(Id.valueOf(String.valueOf(o))); } catch (Exception e) { /* ignorar */ }
+            try {
+                watching.add(Id.valueOf(String.valueOf(o)));
+            } catch (Exception e) {
+                System.debug(LoggingLevel.FINE, 'Skipped a progress id: ' + e.getTypeName());
+            }
         }
         p.total = watching.size();
 
@@ -520,19 +543,22 @@ public with sharing class VeleiroLinkController {
 
     // Campo de Salesforce mapeado a alguno de esos targets de Veleiro.
     private static String mappedField(String so, String ent, Set<String> targets) {
-        for (Veleiro_Field_Mapping__c m : [
-            SELECT SF_Field__c, Veleiro_Target__c FROM Veleiro_Field_Mapping__c
-            WHERE SObject__c = :so AND Veleiro_Entity__c = :ent AND Active__c = true
-        ]) {
-            if (targets.contains(m.Veleiro_Target__c) && hasField(so, m.SF_Field__c)) return m.SF_Field__c;
+        Schema.DescribeSObjectResult described = VeleiroSecurity.describeObject(so);
+        String mapSoql = 'SELECT ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SF_Field__c) + ', '
+            + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Target__c)
+            + ' FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType)
+            + ' WHERE ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObject__c) + ' = :so'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Veleiro_Entity__c) + ' = :ent'
+            + ' AND ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.Active__c) + ' = true';
+        for (SObject raw : VeleiroSecurity.query(mapSoql, new Map<String, Object>{
+            'so' => so, 'ent' => ent
+        })) {
+            Veleiro_Field_Mapping__c m = (Veleiro_Field_Mapping__c) raw;
+            if (!targets.contains(m.Veleiro_Target__c)) continue;
+            String safe = VeleiroSecurity.safeField(described, m.SF_Field__c);
+            if (safe != null) return safe;
         }
         return null;
-    }
-
-    private static Boolean hasField(String so, String field) {
-        if (String.isBlank(field)) return false;
-        Schema.SObjectType type = Schema.getGlobalDescribe().get(so);
-        return type != null && type.getDescribe().fields.getMap().containsKey(field.toLowerCase());
     }
 
     private static void addTo(Map<String, List<SObject>> idx, String key, SObject r) {

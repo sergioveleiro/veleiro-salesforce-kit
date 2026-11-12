@@ -1,7 +1,12 @@
 public with sharing class VeleiroSeed {
     public static Integer seed() {
-        delete [SELECT Id FROM Veleiro_Field_Mapping__c];
-        insert defaults();
+        // Borra y reemplaza todos los mapeos: solo quien administra el setup.
+        VeleiroSecurity.assertCanManageSetup();
+        VeleiroSecurity.deleteRecords(VeleiroSecurity.query(
+            'SELECT Id FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType),
+            new Map<String, Object>()
+        ));
+        VeleiroSecurity.insertRecords(defaults());
         return 6;
     }
 

@@ -82,8 +82,8 @@ All config is **data** in the `Veleiro_Config__c` hierarchy custom setting (org 
 
 | Field | Purpose | Example |
 |---|---|---|
-| `Api_Token__c` | Your Veleiro API token (Bearer). **Never commit this.** | `vlr_…` |
-| `Base_Url__c` | API base via the Named Credential (not a raw URL) | `callout:Veleiro_API/api/v1` |
+| `Api_Token__c` | Deprecated public fallback. Veleiro Setup stores the token in a protected setting and clears this field. **Never commit a token.** | `vlr_…` |
+| `Base_Url__c` | Production or beta selector. Only packaged Named Credentials are called. | `callout:Veleiro_API/api/v1` |
 | `App_Base_Url__c` | Human portal base for "Open in Veleiro" links | `https://app.veleiro.ai` |
 
 The `Veleiro_API` **Named Credential** allow-lists the host so Apex can call out without a Remote Site Setting.

@@ -76,11 +76,12 @@ public with sharing class VeleiroSyncConfig {
         try {
             Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
             if (c == null || c.Id == null) c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
-            c.Last_Sync_Error__c = String.isBlank(message) ? null : message.abbreviate(255);
+            String safe = VeleiroSecurity.sanitize(message);
+            c.Last_Sync_Error__c = String.isBlank(safe) ? null : safe.abbreviate(255);
             c.Last_Sync_Error_At__c = System.now();
             upsert c;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getTypeName());
         }
     }
 

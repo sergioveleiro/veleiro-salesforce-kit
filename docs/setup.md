@@ -16,7 +16,9 @@ The script deploys `force-app/` with `RunSpecifiedTests`, running **only the kit
 ## 2. Paste your Veleiro API token (the ONLY thing you configure — it's a secret)
 The custom setting **structure** deploys with the package. The **only mandatory value is your token**; the base URLs default in code to **production** (`Base_Url__c → callout:Veleiro_API/api/v1`, `App_Base_Url__c → https://app.veleiro.ai`), so you don't have to set them.
 
-**Recommended (UI, most secure):** Setup → **Custom Settings** → **Veleiro Config** → **Manage** → **New** (org default) → paste your token into **Api_Token__c** → Save.
+**Recommended:** open the **Veleiro Setup** tab as an administrator and paste the token there. That writes the protected setting and clears the old public `Api_Token__c` field. Do not leave the token in the public custom setting.
+
+**After an upgrade from 1.5.0, 1.6.0, or 1.8.0:** assign **Veleiro Admin** to the person finishing setup, then open Veleiro Setup. If the token is still in the public field, use **Secure the token**. If it is already protected but the secure connection is not ready, use **Finish secure connection setup**. The installer usually cannot write the External Credential during the package upgrade; that click is what finishes it. Opening the page does not write anything.
 
 > The token is **per-partner** and **never** ships in the repo or gets set by anyone but you. Do not commit it, and don't let anyone hand it to you in a script.
 
@@ -37,7 +39,12 @@ Creates the 6 default Account/Opportunity → Veleiro mappings shown in the cons
 ```bash
 sf org assign permset -o <your-org> -n Veleiro_Integration_Access
 ```
-Assign the same permission set to any user who should sync/see Veleiro data. It grants FLS on the Veleiro fields, the mapping object, and the two tabs.
+Assign the same permission set to any user who should sync/see Veleiro data. It grants FLS on the Veleiro fields, read access to the mappings, and the Home and Link tabs.
+
+Whoever sets up the integration (token, sync settings, field mappings) also needs `Veleiro_Admin`. It adds create/edit/delete on the mappings and the Setup and Mappings tabs:
+```bash
+sf org assign permset -o <your-org> -n Veleiro_Admin
+```
 
 ## 5. Put the components on pages (App Builder)
 - **Account record page** → add the **Veleiro** component (`veleiroPanel`) and **Velly Insight** (`veleiroInsight`).

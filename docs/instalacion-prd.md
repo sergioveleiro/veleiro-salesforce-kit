@@ -24,7 +24,7 @@ Guía paso a paso, del ZIP a los flows activos. Escrita para quien instala el ki
 4. Pega esta lista de tests:
 
 ```
-VeleiroApiClientTest, VeleiroAutoSyncGuardTest, VeleiroBulkSendQueueableTest, VeleiroClientMatcherTest, VeleiroConnectionTest, VeleiroDashboardControllerTest, VeleiroI18nTest, VeleiroInsightServiceTest, VeleiroLinkControllerTest, VeleiroLinkScaleTest, VeleiroMappingControllerTest, VeleiroMeetingServiceTest, VeleiroOnboardingControllerTest, VeleiroOppSyncQueueableTest, VeleiroPulseServiceTest, VeleiroRecordSyncTest, VeleiroSeedTest, VeleiroSyncConfigTest, VeleiroSyncServiceTest, VeleiroSyncTest, VeleiroTargetsTest
+VeleiroApiClientTest, VeleiroAutoSyncGuardTest, VeleiroBulkSendQueueableTest, VeleiroClientMatcherTest, VeleiroConnectionTest, VeleiroDashboardControllerTest, VeleiroI18nTest, VeleiroInsightServiceTest, VeleiroLinkControllerTest, VeleiroLinkScaleTest, VeleiroMappingControllerTest, VeleiroMeetingServiceTest, VeleiroOnboardingControllerTest, VeleiroOppSyncQueueableTest, VeleiroPulseServiceTest, VeleiroRecordSyncTest, VeleiroSecurityTest, VeleiroSeedTest, VeleiroSyncConfigTest, VeleiroSyncServiceTest, VeleiroSyncTest, VeleiroTargetsTest
 ```
 
 5. Deja **Rollback on error** activado y **Deploy all metadata**.
@@ -43,7 +43,13 @@ scripts/deploy.sh <alias-org>              # deploy real
 sf org assign permset -o <alias-org> -n Veleiro_Integration_Access
 ```
 
-O en Setup → **Permission Sets** → **Veleiro Integration Access** → **Manage Assignments**. Asígnalo a todos los usuarios que vayan a ver o sincronizar datos de Veleiro.
+O en Setup → **Permission Sets** → **Veleiro Integration Access** → **Manage Assignments**. Asígnalo a todos los usuarios que vayan a ver o sincronizar datos de Veleiro. Da lectura de los mapeos, no edición.
+
+Quien configure la integración (token, ajustes de sync, mapeos) necesita además **Veleiro Admin**: es el que da crear/editar/borrar mapeos y las pestañas Veleiro Setup y Veleiro Mappings.
+
+```bash
+sf org assign permset -o <alias-org> -n Veleiro_Admin
+```
 
 ## 4. Conectar con Veleiro
 

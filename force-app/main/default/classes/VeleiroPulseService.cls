@@ -46,7 +46,11 @@ public with sharing class VeleiroPulseService {
         Pulse p = new Pulse();
         if (opportunityId == null) return p;
         String projectId = null;
-        for (Opportunity o : [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :opportunityId LIMIT 1]) {
+        Opportunity loaded = VeleiroSecurity.loadOpportunity(opportunityId, new List<Schema.SObjectField>{
+            Opportunity.Veleiro_Project_Id__c
+        });
+        if (loaded != null) {
+            Opportunity o = loaded;
             projectId = o.Veleiro_Project_Id__c;
         }
         if (String.isBlank(projectId)) return p;
@@ -73,7 +77,11 @@ public with sharing class VeleiroPulseService {
         Pulse p = new Pulse();
         if (accountId == null) return p;
         String clientId = null;
-        for (Account a : [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :accountId LIMIT 1]) {
+        Account loadedAccount = VeleiroSecurity.loadAccount(accountId, new List<Schema.SObjectField>{
+            Account.Veleiro_Client_Id__c
+        });
+        if (loadedAccount != null) {
+            Account a = loadedAccount;
             clientId = a.Veleiro_Client_Id__c;
         }
         if (String.isBlank(clientId)) return p;
