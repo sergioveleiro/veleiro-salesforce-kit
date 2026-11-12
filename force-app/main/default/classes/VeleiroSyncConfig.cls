@@ -81,7 +81,7 @@ public with sharing class VeleiroSyncConfig {
             c.Last_Sync_Error_At__c = System.now();
             upsert c;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getTypeName());
         }
     }
 

@@ -8,7 +8,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void seedAndGetMappings() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             Integer seeded = VeleiroSeed.seed();
             System.assertEquals(6, seeded);
 
@@ -60,7 +60,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void saveThenReadThenDelete() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroMappingController.MappingRow r1 = new VeleiroMappingController.MappingRow();
             r1.sfField = 'Subject'; r1.target = 'name'; r1.type = 'Standard';
             VeleiroMappingController.MappingRow r2 = new VeleiroMappingController.MappingRow();
@@ -86,7 +86,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void saveIsIdempotentNoDuplicates() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroMappingController.MappingRow n = new VeleiroMappingController.MappingRow();
             n.sfField = 'Name'; n.target = 'name';
             VeleiroMappingController.MappingRow w = new VeleiroMappingController.MappingRow();
@@ -107,7 +107,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void saveUpdatesExistingRow() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroMappingController.MappingRow r = new VeleiroMappingController.MappingRow();
             r.sfField = 'Name'; r.target = 'name'; r.type = 'Standard';
             VeleiroMappingController.saveMappings('Account', 'client',
@@ -169,7 +169,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void statusTokenAndConfigRoundTrip() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroApiMock.seedConfig(); // base https que el mock intercepta (callout: no resuelve en test)
             VeleiroApiMock mock = new VeleiroApiMock();
             Test.setMock(HttpCalloutMock.class, mock);
@@ -190,7 +190,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void saveNormalizesTargetAndInfersType() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroMappingController.MappingRow messy = new VeleiroMappingController.MappingRow();
             messy.sfField = 'Website'; messy.target = '  Web Site '; // se normaliza
             VeleiroMappingController.MappingRow std = new VeleiroMappingController.MappingRow();
@@ -214,7 +214,7 @@ private class VeleiroMappingControllerTest {
 
     @isTest
     static void saveAllInvalidRowsThrowsAndPreservesExisting() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             // Existe un mapping valido.
             VeleiroMappingController.MappingRow good = new VeleiroMappingController.MappingRow();
             good.sfField = 'Name'; good.target = 'name';

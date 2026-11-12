@@ -108,6 +108,18 @@ public with sharing class VeleiroApiClient {
         return null;
     }
 
+    /**
+     * A link received from the API, safe to use as an href: https only, on one of the two
+     * Veleiro hosts, with no whitespace, control characters or backslashes. Anything else
+     * (javascript:, data:, http://, another host, user@host tricks) returns null.
+     */
+    public static String safeAppUrl(String url) {
+        if (String.isBlank(url)) return null;
+        String u = url.trim();
+        if (u.length() > 2000 || !Pattern.matches('[\\x21-\\x7E]+', u) || u.contains('\\')) return null;
+        return allowedAppBase(u) == null ? null : u;
+    }
+
     private static Boolean matchesHost(String url, String host) {
         if (!url.startsWith(host)) return false;
         String rest = url.substring(host.length());

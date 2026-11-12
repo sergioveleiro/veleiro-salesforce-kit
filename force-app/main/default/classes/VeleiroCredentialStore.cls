@@ -33,6 +33,11 @@ public with sharing class VeleiroCredentialStore {
         return readLegacyToken();
     }
 
+    /** True while a token is still in the public Veleiro_Config__c field. Read only. */
+    public static Boolean hasLegacyToken() {
+        return String.isNotBlank(readLegacyToken());
+    }
+
     public static Boolean platformAuthReady() {
         Veleiro_Secret__c secret = Veleiro_Secret__c.getOrgDefaults();
         return secret != null && secret.Platform_Auth__c == true && String.isNotBlank(secret.Api_Token__c);

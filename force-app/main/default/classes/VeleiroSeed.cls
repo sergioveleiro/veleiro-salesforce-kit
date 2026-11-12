@@ -1,6 +1,7 @@
 public with sharing class VeleiroSeed {
     public static Integer seed() {
-        if (Test.isRunningTest()) VeleiroTestAccess.grant();
+        // Borra y reemplaza todos los mapeos: solo quien administra el setup.
+        VeleiroSecurity.assertCanManageSetup();
         VeleiroSecurity.deleteRecords(VeleiroSecurity.query(
             'SELECT Id FROM ' + VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType),
             new Map<String, Object>()

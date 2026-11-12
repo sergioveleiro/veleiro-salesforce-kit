@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Veleiro Integration Access</label>
+    <description>For everyone who uses the integration: sync and link records, see the dashboard and insights. Field mappings are read only here. Changing mappings, the token or sync settings needs the Veleiro Admin permission set as well.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <applicationVisibilities>
         <application>Veleiro</application>
@@ -10,13 +11,13 @@
     <fieldPermissions><field>Account.Veleiro_Slug__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Account.Veleiro_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Account.Veleiro_Additional_Fields__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.SObject__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.SF_Field__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Target__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.Target_Type__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.Is_Standard__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.Active__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
-    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Entity__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SObject__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SF_Field__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Target__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Target_Type__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Is_Standard__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Active__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Entity__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
     <fieldPermissions><field>Opportunity.Veleiro_Project_Id__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions><field>Opportunity.Veleiro_Project_Version__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
     <fieldPermissions>
@@ -49,23 +50,15 @@
     </objectPermissions>
     <objectPermissions>
         <object>Veleiro_Field_Mapping__c</object>
-        <allowCreate>true</allowCreate><allowRead>true</allowRead><allowEdit>true</allowEdit><allowDelete>true</allowDelete>
-        <viewAllRecords>true</viewAllRecords><modifyAllRecords>true</modifyAllRecords>
+        <allowCreate>false</allowCreate><allowRead>true</allowRead><allowEdit>false</allowEdit><allowDelete>false</allowDelete>
+        <viewAllRecords>false</viewAllRecords><modifyAllRecords>false</modifyAllRecords>
     </objectPermissions>
-    <tabSettings>
-        <tab>Veleiro_Setup</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
     <tabSettings>
         <tab>Veleiro_Home</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
         <tab>Veleiro_Link</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Veleiro_Mappings</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>

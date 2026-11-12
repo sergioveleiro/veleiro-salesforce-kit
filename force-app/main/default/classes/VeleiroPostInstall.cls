@@ -2,9 +2,12 @@
  * Upgrade hook for 1.9.0. Copies an existing API token into the protected setting
  * before the subscriber org is used again. Never fails the install: a failed copy
  * leaves Api_Token__c where it was, and callouts keep using it.
+ *
+ * Public, not global: nothing outside the package calls it, and the AppExchange
+ * rules reject global install handlers. The platform runs it by name.
  */
-global class VeleiroPostInstall implements InstallHandler {
-    global void onInstall(InstallContext context) {
+public with sharing class VeleiroPostInstall implements InstallHandler {
+    public void onInstall(InstallContext context) {
         try {
             Boolean moved = VeleiroCredentialStore.migrateLegacyToken();
             if (!moved || VeleiroCredentialStore.platformAuthReady()) return;

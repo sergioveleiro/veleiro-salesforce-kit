@@ -202,7 +202,7 @@ private class VeleiroSecurityTest {
 
     @isTest
     static void saveTokenStoresItOutsideThePublicSetting() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroMappingController.saveToken('vlr_saved');
             System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
             System.assertEquals('vlr_saved', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
@@ -282,6 +282,148 @@ private class VeleiroSecurityTest {
                 VeleiroI18n.t('err.generic'),
                 VeleiroSecurity.forUi(new CalloutException('Bearer vlr_abc'))
             );
+        }
+    }
+
+    // ---- AppExchange review: page-load methods are read only ----
+
+    @isTest
+    static void pageLoadMethodsNeverWrite() {
+        System.runAs(VeleiroTestAccess.user()) {
+            insert orgConfig('vlr_legacy', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            Test.setMock(HttpCalloutMock.class, new CaptureMock());
+
+            Test.startTest();
+            Integer before = Limits.getDmlStatements();
+            Map<String, String> status = VeleiroMappingController.getStatus();
+            VeleiroOnboardingController.State withPing = VeleiroOnboardingController.getState(true);
+            VeleiroOnboardingController.State noPing = VeleiroOnboardingController.getState(false);
+            Integer dml = Limits.getDmlStatements() - before;
+            Test.stopTest();
+
+            System.assertEquals(0, dml, 'getStatus and getState run on page load and must not write');
+            System.assertEquals('vlr_legacy', Veleiro_Config__c.getOrgDefaults().Api_Token__c,
+                'the legacy token is not moved by opening a page');
+            System.assertEquals(null, Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals('true', status.get('legacyToken'));
+            System.assertEquals(true, withPing.legacyToken);
+            System.assertEquals(true, noPing.legacyToken);
+        }
+    }
+
+    @isTest
+    static void adminButtonMovesTheLegacyToken() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            insert orgConfig('vlr_legacy', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            System.assertEquals(true, VeleiroCredentialStore.hasLegacyToken());
+
+            Test.startTest();
+            System.assertEquals(true, VeleiroMappingController.secureLegacyToken());
+            Test.stopTest();
+
+            System.assertEquals('vlr_legacy', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(false, VeleiroCredentialStore.hasLegacyToken());
+            System.assertEquals(true, VeleiroApiClient.hasToken());
+        }
+    }
+
+    @isTest
+    static void anAdminSaveFinishesAPendingMigration() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            insert orgConfig('vlr_legacy', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            Test.startTest();
+            VeleiroMappingController.saveEnvironment('Production');
+            Test.stopTest();
+            System.assertEquals('vlr_legacy', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+        }
+    }
+
+    @isTest
+    static void standardUserCannotMoveTokenSkipStepsOrSeed() {
+        System.runAs(VeleiroTestAccess.user()) {
+            insert orgConfig('vlr_legacy', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            User u = standardUser();
+            System.runAs(u) {
+                Integer blocked = 0;
+                try { VeleiroMappingController.secureLegacyToken(); } catch (AuraHandledException e) { blocked++; }
+                try { VeleiroOnboardingController.skipStep('link', true); } catch (AuraHandledException e) { blocked++; }
+                try { VeleiroSeed.seed(); } catch (AuraHandledException e) { blocked++; }
+                System.assertEquals(3, blocked, 'all three need an administrator');
+            }
+            System.assertEquals('vlr_legacy', Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Onboarding_Skipped__c);
+        }
+    }
+
+    // ---- AppExchange review: least privilege on the permission sets ----
+
+    @isTest
+    static void integrationAccessCannotChangeMappings() {
+        String objectName = VeleiroSecurity.api(Veleiro_Field_Mapping__c.SObjectType);
+        Integer seen = 0;
+        for (ObjectPermissions op : [
+            SELECT PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
+                   PermissionsViewAllRecords, PermissionsModifyAllRecords, Parent.Name, Parent.NamespacePrefix
+            FROM ObjectPermissions
+            WHERE SobjectType = :objectName
+            AND Parent.Name IN ('Veleiro_Integration_Access', 'Veleiro_Admin')
+        ]) {
+            if (op.Parent.NamespacePrefix != VeleiroSyncConfig.namespacePrefix().removeEnd('__')
+                && !(String.isBlank(op.Parent.NamespacePrefix) && String.isBlank(VeleiroSyncConfig.namespacePrefix()))) continue;
+            System.assertEquals(true, op.PermissionsRead, op.Parent.Name);
+            System.assertEquals(false, op.PermissionsViewAllRecords, op.Parent.Name);
+            System.assertEquals(false, op.PermissionsModifyAllRecords, op.Parent.Name);
+            Boolean admin = op.Parent.Name == 'Veleiro_Admin';
+            System.assertEquals(admin, op.PermissionsCreate, op.Parent.Name);
+            System.assertEquals(admin, op.PermissionsEdit, op.Parent.Name);
+            System.assertEquals(admin, op.PermissionsDelete, op.Parent.Name);
+            seen++;
+        }
+        System.assertEquals(2, seen, 'both permission sets carry the mapping object');
+    }
+
+    @isTest
+    static void integrationUserReadsMappingsButCannotWriteThem() {
+        System.runAs(VeleiroTestAccess.user()) {
+            insert new Veleiro_Field_Mapping__c(
+                Name = 'Account Name', SObject__c = 'Account', Veleiro_Entity__c = 'client',
+                SF_Field__c = 'Name', Veleiro_Target__c = 'name', Target_Type__c = 'Standard',
+                Is_Standard__c = true, Active__c = true
+            );
+            User u = standardUser();
+            PermissionSet access = [SELECT Id FROM PermissionSet WHERE Name = 'Veleiro_Integration_Access' LIMIT 1];
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = access.Id);
+            System.runAs(u) {
+                // The sync reads mappings in user mode: read access has to be enough for that.
+                System.assertEquals(1, VeleiroMappingController.getMappings().size());
+                Schema.DescribeSObjectResult d = Veleiro_Field_Mapping__c.SObjectType.getDescribe();
+                System.assertEquals(true, d.isAccessible());
+                System.assertEquals(false, d.isCreateable());
+                System.assertEquals(false, d.isUpdateable());
+                System.assertEquals(false, d.isDeletable());
+            }
+        }
+    }
+
+    // ---- AppExchange review: links received from the API ----
+
+    @isTest
+    static void onlyHttpsVeleiroLinksSurvive() {
+        String ok = 'https://app.veleiro.ai/a/partner-portal/meetings/bot_1/';
+        System.assertEquals(ok, VeleiroApiClient.safeAppUrl(ok));
+        System.assertEquals(ok, VeleiroApiClient.safeAppUrl('  ' + ok + ' '));
+        System.assertEquals('https://app.beta.veleiro.dev/x', VeleiroApiClient.safeAppUrl('https://app.beta.veleiro.dev/x'));
+        for (String bad : new List<String>{
+            null, '', 'javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>1</script>',
+            'http://app.veleiro.ai/a/partner-portal/meetings/bot_1/',
+            'https://zoom.us/j/123', 'https://evil.example/https://app.veleiro.ai/',
+            'https://app.veleiro.ai.evil.example/x', 'https://app.veleiro.ai@evil.example/x',
+            'https://app.veleiro.ai:8443/x', 'https://app.veleiro.ai\\@evil.example/x',
+            'https://app.veleiro.ai/a b', '//app.veleiro.ai/x', '/a/partner-portal/meetings/bot_1/'
+        }) {
+            System.assertEquals(null, VeleiroApiClient.safeAppUrl(bad), 'rejected: ' + bad);
         }
     }
 }

@@ -32,11 +32,11 @@ private class VeleiroMeetingServiceTest {
     // Dos reuniones del mismo project, la vieja primero, para que el orden del panel se note.
     private static String twoMeetings() {
         return '{"data":[' +
-            '{"id":"bot_old","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_old/",' +
+            '{"id":"bot_old","url":"https://app.veleiro.ai/a/partner-portal/meetings/bot_old/",' +
             '"title":"Kickoff","status":"done","client_id":"org_test","project_id":"prjct_test",' +
             '"start_time":"2026-01-10T15:00:00+00:00","end_time":"2026-01-10T16:00:00+00:00",' +
             '"is_archived":false,"version":3,"transcript_status":"none","transcript_id":null},' +
-            '{"id":"bot_new","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_new/",' +
+            '{"id":"bot_new","url":"https://app.veleiro.ai/a/partner-portal/meetings/bot_new/",' +
             '"title":"Revision semanal","status":"done","client_id":"org_test","project_id":"prjct_test",' +
             '"start_time":"2026-03-02T15:00:00+00:00","end_time":null,' +
             '"is_archived":false,"version":1,"transcript_status":"available","transcript_id":"trn_1"}' +
@@ -80,7 +80,7 @@ private class VeleiroMeetingServiceTest {
             Test.stopTest();
 
             System.assertEquals(
-                'https://app.test.veleiro.local/a/partner-portal/meetings/bot_new/',
+                'https://app.veleiro.ai/a/partner-portal/meetings/bot_new/',
                 r.meetings[0].url,
                 'se guarda tal cual: armarla aqui se rompe cuando el portal cambie de ruta');
         }
@@ -149,7 +149,7 @@ private class VeleiroMeetingServiceTest {
             // Una fila sin url (no aporta un link) y una fecha ilegible.
             mock.meetingsBody = '{"data":[' +
                 '{"id":"bot_nourl","title":"Sin link","status":"done"},' +
-                '{"id":"bot_baddate","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_baddate/",' +
+                '{"id":"bot_baddate","url":"https://app.veleiro.ai/a/partner-portal/meetings/bot_baddate/",' +
                 '"title":"Fecha rara","status":"done","start_time":"ayer","transcript_status":"processing"}' +
                 '],"has_more":false}';
             Test.setMock(HttpCalloutMock.class, mock);
@@ -172,7 +172,7 @@ private class VeleiroMeetingServiceTest {
         System.runAs(VeleiroTestAccess.user()) {
             List<String> rows = new List<String>();
             for (Integer i = 0; i < 6; i++) {
-                rows.add('{"id":"bot_' + i + '","url":"https://app.test.veleiro.local/a/partner-portal/meetings/bot_' + i + '/",' +
+                rows.add('{"id":"bot_' + i + '","url":"https://app.veleiro.ai/a/partner-portal/meetings/bot_' + i + '/",' +
                          '"title":"R' + i + '","status":"done","start_time":"2026-0' + (i + 1) + '-01T15:00:00+00:00"}');
             }
             VeleiroApiMock mock = new VeleiroApiMock();
@@ -242,6 +242,36 @@ private class VeleiroMeetingServiceTest {
 
             System.assertEquals(true, t.scopeMissing);
             System.assertEquals(null, empty.text, 'sin id no se pregunta');
+        }
+    }
+
+    // Un link que no es https de un host de Veleiro nunca llega al href: la reunion se lista sin link.
+    @isTest
+    static void unsafeMeetingLinksAreDropped() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.meetingsBody = '{"data":[' +
+                '{"id":"bot_js","url":"javascript:alert(document.cookie)","title":"JS","status":"done",' +
+                '"start_time":"2026-03-05T15:00:00+00:00"},' +
+                '{"id":"bot_http","url":"http://app.veleiro.ai/a/partner-portal/meetings/bot_http/","title":"HTTP",' +
+                '"status":"done","start_time":"2026-03-04T15:00:00+00:00"},' +
+                '{"id":"bot_other","url":"https://evil.example/a/partner-portal/meetings/bot_other/","title":"Otro host",' +
+                '"status":"done","start_time":"2026-03-03T15:00:00+00:00"},' +
+                '{"id":"bot_ok","url":"https://app.beta.veleiro.dev/a/partner-portal/meetings/bot_ok/","title":"Bien",' +
+                '"status":"done","start_time":"2026-03-02T15:00:00+00:00"}' +
+                '],"has_more":false}';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Account a = newAccount('org_test');
+
+            Test.startTest();
+            VeleiroMeetingService.MeetingList r = VeleiroMeetingService.getForAccount(a.Id);
+            Test.stopTest();
+
+            System.assertEquals(4, r.meetings.size(), 'la reunion se sigue listando, solo pierde el link');
+            System.assertEquals(null, r.meetings[0].url, 'javascript:');
+            System.assertEquals(null, r.meetings[1].url, 'http://');
+            System.assertEquals(null, r.meetings[2].url, 'otro host');
+            System.assertEquals('https://app.beta.veleiro.dev/a/partner-portal/meetings/bot_ok/', r.meetings[3].url);
         }
     }
 }

@@ -267,6 +267,7 @@ public with sharing class VeleiroMappingController {
         VeleiroSecurity.assertCanManageSetup();
         VeleiroSyncConfig.save(direction, winner, frequency, triggerMode, autoAccount, autoOpportunity,
                                pullWritesName, opportunityMode);
+        migrateOnSave();
     }
 
     // ---- conexion: guardar token + verificar estado (para el panel) ----
@@ -297,6 +298,7 @@ public with sharing class VeleiroMappingController {
             c.App_Base_Url__c = 'https://app.veleiro.ai';
         }
         upsert c;
+        migrateOnSave();
     }
 
     // Estado en vivo: token puesto? conectado (callout real)? frecuencia + proximo run.
@@ -338,13 +340,31 @@ public with sharing class VeleiroMappingController {
             if (ct.NextFireTime != null) nextRun = ct.NextFireTime.format();
         }
         s.put('nextRun', nextRun);
-        // After the callout (or when there was none): move a legacy public token out of the public field.
+        // Read only: this method runs when the page loads, so it never writes. A token still
+        // sitting in the public field is reported, and an admin moves it with secureLegacyToken().
+        s.put('legacyToken', String.valueOf(VeleiroCredentialStore.hasLegacyToken()));
+        s.put('canManage', String.valueOf(VeleiroSecurity.canManageSetup()));
+        return s;
+    }
+
+    /**
+     * Moves a token left in the public Veleiro_Config__c field (1.5.0 - 1.8.0) into the
+     * protected setting. The post-install script does this on upgrade; this is the explicit
+     * button for an org where that copy did not happen. Never called on page load.
+     */
+    @AuraEnabled
+    public static Boolean secureLegacyToken() {
+        VeleiroSecurity.assertCanManageSetup();
+        return VeleiroCredentialStore.migrateLegacyToken();
+    }
+
+    // An admin pressed Save: a good moment to finish a pending migration. Never blocks the save.
+    private static void migrateOnSave() {
         try {
             VeleiroCredentialStore.migrateLegacyToken();
         } catch (Exception e) {
             System.debug(LoggingLevel.WARN, 'Token migration skipped: ' + e.getTypeName());
         }
-        return s;
     }
 
     public class OptionComparator implements Comparator<Option> {

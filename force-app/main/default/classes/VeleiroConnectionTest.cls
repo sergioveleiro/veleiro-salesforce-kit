@@ -32,7 +32,7 @@ private class VeleiroConnectionTest {
 
     @isTest
     static void saveTokenPersists() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             Test.startTest();
             VeleiroMappingController.saveToken('vlr_abc123');
             Test.stopTest();

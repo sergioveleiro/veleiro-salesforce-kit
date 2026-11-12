@@ -40,9 +40,14 @@
 
                         <div class="veleiro-tl-body">
                             <div class="veleiro-tl-head">
-                                <a href={m.url} target="_blank" rel="noopener" class="veleiro-tl-title">
-                                    {m.displayTitle}
-                                </a>
+                                <template if:true={m.safeUrl}>
+                                    <a href={m.safeUrl} target="_blank" rel="noopener" class="veleiro-tl-title">
+                                        {m.displayTitle}
+                                    </a>
+                                </template>
+                                <template if:false={m.safeUrl}>
+                                    <span class="veleiro-tl-title veleiro-tl-title_plain">{m.displayTitle}</span>
+                                </template>
                                 <template if:true={m.startTime}>
                                     <span class="veleiro-tl-date">
                                         <lightning-formatted-date-time
@@ -91,9 +96,9 @@
 
                                         <template if:true={m.transcript.hasText}>
                                             <pre class="veleiro-tl-text">{m.transcript.text}</pre>
-                                            <template if:true={m.transcript.truncated}>
+                                            <template if:true={m.showReadMore}>
                                                 <a
-                                                    href={m.url}
+                                                    href={m.safeUrl}
                                                     target="_blank"
                                                     rel="noopener"
                                                     class="veleiro-tl-readmore"

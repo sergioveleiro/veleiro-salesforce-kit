@@ -13,6 +13,7 @@ import getSyncConfig from '@salesforce/apex/VeleiroMappingController.getSyncConf
 import saveSyncConfig from '@salesforce/apex/VeleiroMappingController.saveSyncConfig';
 import getStatus from '@salesforce/apex/VeleiroMappingController.getStatus';
 import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
+import secureLegacyToken from '@salesforce/apex/VeleiroMappingController.secureLegacyToken';
 import saveEnvironment from '@salesforce/apex/VeleiroMappingController.saveEnvironment';
 
 const ENTITY_OPTIONS = [
@@ -81,6 +82,7 @@ export default class VeleiroMappingHome extends LightningElement {
     // ---- connection status ----
     connected = false;
     tokenSet = false;
+    legacyToken = false;   // token de una version anterior, todavia en el campo publico
     statusMessage = 'Checking connection…';
     nextRun = '';
     tokenInput = '';
@@ -108,6 +110,7 @@ export default class VeleiroMappingHome extends LightningElement {
         return getStatus()
             .then((s) => {
                 this.tokenSet = s.tokenSet === 'true';
+                this.legacyToken = s.legacyToken === 'true' && s.canManage === 'true';
                 this.connected = s.connected === 'true';
                 this.statusMessage = s.message || '';
                 this.nextRun = s.nextRun || '';
@@ -122,6 +125,25 @@ export default class VeleiroMappingHome extends LightningElement {
     }
 
     handleTokenChange(event) { this.tokenInput = event.detail.value; }
+
+    // Mueve el token viejo al almacenamiento protegido. Es un clic del admin, nunca la carga.
+    handleSecureToken() {
+        this.checking = true;
+        secureLegacyToken()
+            .then(() => this.loadStatus())
+            .then(() => {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: this.legacyToken ? 'Token not moved' : 'Token moved to protected storage',
+                    message: this.legacyToken ? 'Try again, or paste the token again to replace it.' : '',
+                    variant: this.legacyToken ? 'warning' : 'success'
+                }));
+            })
+            .catch((e) => {
+                this.checking = false;
+                const msg = e && e.body && e.body.message ? e.body.message : 'Could not move the token';
+                this.dispatchEvent(new ShowToastEvent({ title: 'Token not moved', message: msg, variant: 'error' }));
+            });
+    }
 
     handleSaveToken() {
         this.checking = true;

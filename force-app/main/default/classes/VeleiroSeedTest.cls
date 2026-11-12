@@ -3,7 +3,7 @@ private class VeleiroSeedTest {
 
     @isTest
     static void seedInsertsDefaultMappings() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             Test.startTest();
             Integer n = VeleiroSeed.seed();
             Test.stopTest();
@@ -17,7 +17,7 @@ private class VeleiroSeedTest {
 
     @isTest
     static void seedIsIdempotent() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroSeed.seed();
             Test.startTest();
             VeleiroSeed.seed(); // corre 2 veces -> borra e inserta, no acumula

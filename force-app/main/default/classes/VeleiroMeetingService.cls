@@ -4,7 +4,9 @@
  *
  * Tres cosas que decidieron la forma de esta clase:
  *
- *  1. Cada fila trae su propio `url` al portal de Veleiro. Se muestra TAL CUAL. Armarla aqui
+ *  1. Cada fila trae su propio `url` al portal de Veleiro. Se muestra tal cual llega, pero solo
+ *     si es https y de un host de Veleiro (VeleiroApiClient.safeAppUrl); si no, la reunion se
+ *     lista sin link. Armarla aqui
  *     (app base + /a/partner-portal/meetings/<id>/) funcionaria hoy y se romperia el dia que
  *     ellos cambien la ruta, sin que nadie se entere hasta que un cliente haga clic.
  *  2. Una reunion cuelga SIEMPRE de un client y SOLO A VECES de un project (`project_id` es
@@ -176,7 +178,9 @@ public with sharing class VeleiroMeetingService {
         Meeting m = new Meeting();
         m.id = (String) row.get('id');
         m.title = (String) row.get('title');
-        m.url = (String) row.get('url');
+        // The link goes into an href: only an https URL on a Veleiro host survives. A meeting
+        // whose link is rejected is still listed, just without the link.
+        m.url = VeleiroApiClient.safeAppUrl((String) row.get('url'));
         m.status = (String) row.get('status');
         m.clientId = (String) row.get('client_id');
         m.projectId = (String) row.get('project_id');

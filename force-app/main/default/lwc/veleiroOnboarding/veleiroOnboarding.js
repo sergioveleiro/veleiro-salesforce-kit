@@ -6,6 +6,7 @@ import { T, fmt } from 'c/veleiroI18n';
 import getState from '@salesforce/apex/VeleiroOnboardingController.getState';
 import skipStep from '@salesforce/apex/VeleiroOnboardingController.skipStep';
 import saveToken from '@salesforce/apex/VeleiroMappingController.saveToken';
+import secureLegacyToken from '@salesforce/apex/VeleiroMappingController.secureLegacyToken';
 import saveEnvironment from '@salesforce/apex/VeleiroMappingController.saveEnvironment';
 import getSyncConfig from '@salesforce/apex/VeleiroMappingController.getSyncConfig';
 import saveSyncConfig from '@salesforce/apex/VeleiroMappingController.saveSyncConfig';
@@ -82,7 +83,7 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
                 isDone: done,
                 isToken: s.inline === 'token',
                 isConfig: s.inline === 'config',
-                canSkip: s.optional && !done,
+                canSkip: s.optional && !done && !!this.state.canManage,
                 skipLabel: skipped ? T.unskipStep : T.skipStep,
                 skipNext: !skipped,
                 pillLabel: this.pillLabel(s.state),
@@ -152,6 +153,28 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
     handleEnvChange(event) { this.environment = event.detail.value; }
     handleDirectionChange(event) { this.direction = event.detail.value; }
     handleTriggerChange(event) { this.syncTrigger = event.detail.value; }
+
+    // Token de una version anterior, todavia en el campo publico: lo mueve un admin, con un clic.
+    get showLegacyToken() {
+        return !!(this.state && this.state.legacyToken && this.state.canManage);
+    }
+
+    async handleSecureToken() {
+        this.saving = true;
+        try {
+            const moved = await secureLegacyToken();
+            await this.load(false);
+            if (moved) {
+                this.toast(T.legacyTokenDone, '', 'success');
+            } else {
+                this.toast(T.couldNotSaveToken, T.tryAgain, 'warning');
+            }
+        } catch (e) {
+            this.toast(T.couldNotSaveToken, this.messageOf(e, ''), 'error');
+        } finally {
+            this.saving = false;
+        }
+    }
 
     async handleSaveToken() {
         if (!this.tokenInput) {

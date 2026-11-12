@@ -162,7 +162,7 @@ private class VeleiroOnboardingControllerTest {
     // Los pasos opcionales se pueden marcar como "no aplica" y volver atras.
     @isTest
     static void optionalStepsCanBeSkippedAndRestored() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroApiMock.seedConfig();
             System.assertEquals(VeleiroOnboardingController.TODO,
                 step(VeleiroOnboardingController.getState(false), 'link').state);
@@ -255,7 +255,7 @@ private class VeleiroOnboardingControllerTest {
     // Con acceso propio pero sin equipo, es un consejo: funciona, y se puede saltar.
     @isTest
     static void accessIsAdviceOnceTheAdminHasIt() {
-        System.runAs(VeleiroTestAccess.user()) {
+        System.runAs(VeleiroTestAccess.admin()) {
             VeleiroApiMock.seedConfig();
             VeleiroOnboardingController.Step team = teamStep(1, 0);
             System.assertEquals(VeleiroOnboardingController.TODO, team.state);

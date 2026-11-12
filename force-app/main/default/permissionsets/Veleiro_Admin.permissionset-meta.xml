@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Veleiro Admin</label>
-    <description>Lets a delegated admin save the Veleiro token, switch production or beta, and edit sync settings and field mappings without Customize Application. System administrators do not need this set.</description>
+    <description>For whoever sets up the integration: save the Veleiro token, switch production or beta, edit sync settings and create, edit or delete field mappings. Opens the Veleiro Setup and Veleiro Mappings tabs. Assign it together with Veleiro Integration Access.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <customPermissions>
         <enabled>true</enabled>
@@ -11,4 +11,28 @@
         <enabled>true</enabled>
         <externalCredentialPrincipal>veleiro__Veleiro_External-VeleiroPrincipal</externalCredentialPrincipal>
     </externalCredentialPrincipalAccesses>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SObject__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.SF_Field__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Target__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Target_Type__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Is_Standard__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Active__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <fieldPermissions><field>Veleiro_Field_Mapping__c.Veleiro_Entity__c</field><readable>true</readable><editable>true</editable></fieldPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Veleiro_Field_Mapping__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <tabSettings>
+        <tab>Veleiro_Mappings</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Veleiro_Setup</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>

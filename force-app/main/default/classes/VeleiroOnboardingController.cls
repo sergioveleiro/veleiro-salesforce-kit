@@ -68,6 +68,9 @@ public with sharing class VeleiroOnboardingController {
         @AuraEnabled public Integer syncedCount = 0;
         @AuraEnabled public String lastError;
         @AuraEnabled public String lastErrorAt;
+        // token viejo todavia en el campo publico (lo mueve un admin con un boton, nunca la carga)
+        @AuraEnabled public Boolean legacyToken = false;
+        @AuraEnabled public Boolean canManage = false;
     }
 
     /**
@@ -182,18 +185,17 @@ public with sharing class VeleiroOnboardingController {
             if (st.state == DONE) s.done++;
         }
         s.complete = s.done == s.total;
-        // No callout on this path when verifyConnection is false. When it is true, the callout already ran.
-        try {
-            VeleiroCredentialStore.migrateLegacyToken();
-        } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'Token migration skipped: ' + e.getTypeName());
-        }
+        // Read only: this runs when the page loads, so it never writes. A legacy public token is
+        // only reported; an admin moves it with VeleiroMappingController.secureLegacyToken().
+        s.legacyToken = VeleiroCredentialStore.hasLegacyToken();
+        s.canManage = VeleiroSecurity.canManageSetup();
         return s;
     }
 
     // Marca un paso opcional como "no aplica" (o lo devuelve a pendiente).
     @AuraEnabled
     public static void skipStep(String key, Boolean skip) {
+        VeleiroSecurity.assertCanManageSetup();
         if (String.isBlank(key)) return;
         Set<String> keys = skippedKeys();
         if (skip == false) { keys.remove(key); } else { keys.add(key); }

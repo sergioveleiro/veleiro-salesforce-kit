@@ -38,6 +38,14 @@
                 </div>
             </div>
 
+            <template if:true={legacyToken}>
+                <div class="veleiro-conn-row">
+                    <span class="veleiro-status-sub">Your API token is still stored the way older versions kept it.</span>
+                    <lightning-button label="Secure the token" onclick={handleSecureToken}
+                        disabled={checking}></lightning-button>
+                </div>
+            </template>
+
             <!-- Editor: solo primera vez (sin conexión) o al presionar Editar -->
             <template if:true={showConnEditor}>
                 <div class="veleiro-conn-row">
