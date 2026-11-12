@@ -18,6 +18,8 @@ The custom setting **structure** deploys with the package. The **only mandatory 
 
 **Recommended:** open the **Veleiro Setup** tab as an administrator and paste the token there. That writes the protected setting and clears the old public `Api_Token__c` field. Do not leave the token in the public custom setting.
 
+**After an upgrade from 1.5.0, 1.6.0, or 1.8.0:** assign **Veleiro Admin** to the person finishing setup, then open Veleiro Setup. If the token is still in the public field, use **Secure the token**. If it is already protected but the secure connection is not ready, use **Finish secure connection setup**. The installer usually cannot write the External Credential during the package upgrade; that click is what finishes it. Opening the page does not write anything.
+
 > The token is **per-partner** and **never** ships in the repo or gets set by anyone but you. Do not commit it, and don't let anyone hand it to you in a script.
 
 **Optional (CLI):** if you prefer, edit a **local** copy of `scripts/apex/configure.apex` (paste your token, run `sf apex run -f ...`), then discard the change. Only do this in your own org.

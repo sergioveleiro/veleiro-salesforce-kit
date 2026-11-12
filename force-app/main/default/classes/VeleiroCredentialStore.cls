@@ -77,9 +77,22 @@ public with sharing class VeleiroCredentialStore {
         clearLegacyTokens();
     }
 
+    /**
+     * Best-effort write of the token into the External Credential principal.
+     * The post-install user usually does not have principal access, so this
+     * often fails during upgrade. The admin action retries it. Failures are
+     * recorded by exception type only — never with the token or a response body.
+     */
     public static Boolean writePlatformCredential(String token) {
         if (String.isBlank(token)) return false;
-        if (Test.isRunningTest()) return platformWriteOverride == true;
+        if (Test.isRunningTest()) {
+            if (platformWriteOverride == true) return true;
+            if (platformWriteOverride == false) {
+                recordPlatformFailure(new VeleiroApiClient.VeleiroApiException('Platform credential write failed.'));
+                return false;
+            }
+            return false;
+        }
         try {
             String externalName = VeleiroSyncConfig.namespacePrefix() + EXTERNAL_CREDENTIAL;
             ConnectApi.CredentialInput input = credentialInput(externalName, token);
@@ -90,7 +103,38 @@ public with sharing class VeleiroCredentialStore {
             }
             return true;
         } catch (Exception e) {
+            recordPlatformFailure(e);
             return false;
+        }
+    }
+
+    /**
+     * Copies the stored token into the External Credential and confirms it
+     * with GET /clients. Returns true only when platform auth is ready.
+     * A failed write or probe leaves the protected token in place and records
+     * the exception type. Never called from a page-load method.
+     */
+    public static Boolean finishPlatformAuth() {
+        if (platformAuthReady()) return true;
+        String token = readToken();
+        if (String.isBlank(token)) return false;
+        if (!writePlatformCredential(token)) return false;
+        try {
+            VeleiroApiClient.probeSecureCredential();
+        } catch (Exception e) {
+            recordPlatformFailure(e);
+            return false;
+        }
+        markPlatformAuth();
+        return true;
+    }
+
+    private static void recordPlatformFailure(Exception e) {
+        try {
+            String kind = (e == null) ? 'UnknownException' : e.getTypeName();
+            VeleiroSyncConfig.recordError('External Credential setup skipped: ' + kind);
+        } catch (Exception ignored) {
+            System.debug(LoggingLevel.ERROR, 'Could not record platform setup failure: ' + ignored.getTypeName());
         }
     }
 

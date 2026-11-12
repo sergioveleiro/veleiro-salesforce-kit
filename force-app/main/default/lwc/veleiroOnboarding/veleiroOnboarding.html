@@ -106,9 +106,9 @@
                                     disabled={saving} class="vo-inline-btn"></lightning-button>
                             </div>
                             <p class="vo-note">{labels.tokenNote}</p>
-                            <template if:true={showLegacyToken}>
-                                <p class="vo-note">{labels.legacyTokenNote}</p>
-                                <lightning-button label={labels.legacyTokenAction} onclick={handleSecureToken}
+                            <template if:true={showSecureAction}>
+                                <p class="vo-note">{secureActionNote}</p>
+                                <lightning-button label={secureActionLabel} onclick={handleSecureToken}
                                     disabled={saving} class="vo-inline-btn"></lightning-button>
                             </template>
                         </template>

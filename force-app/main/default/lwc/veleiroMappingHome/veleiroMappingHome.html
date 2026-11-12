@@ -38,10 +38,10 @@
                 </div>
             </div>
 
-            <template if:true={legacyToken}>
+            <template if:true={showSecureAction}>
                 <div class="veleiro-conn-row">
-                    <span class="veleiro-status-sub">Your API token is still stored the way older versions kept it.</span>
-                    <lightning-button label="Secure the token" onclick={handleSecureToken}
+                    <span class="veleiro-status-sub">{secureActionNote}</span>
+                    <lightning-button label={secureActionLabel} onclick={handleSecureToken}
                         disabled={checking}></lightning-button>
                 </div>
             </template>

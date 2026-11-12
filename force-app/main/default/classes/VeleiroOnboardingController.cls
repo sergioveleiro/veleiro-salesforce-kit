@@ -68,8 +68,11 @@ public with sharing class VeleiroOnboardingController {
         @AuraEnabled public Integer syncedCount = 0;
         @AuraEnabled public String lastError;
         @AuraEnabled public String lastErrorAt;
-        // token viejo todavia en el campo publico (lo mueve un admin con un boton, nunca la carga)
+        // token viejo todavia en el campo publico, or protected but not yet in the External Credential
+        // (an admin finishes both with a button, never on page load)
         @AuraEnabled public Boolean legacyToken = false;
+        @AuraEnabled public Boolean platformAuthReady = false;
+        @AuraEnabled public Boolean needsPlatformSetup = false;
         @AuraEnabled public Boolean canManage = false;
     }
 
@@ -185,9 +188,12 @@ public with sharing class VeleiroOnboardingController {
             if (st.state == DONE) s.done++;
         }
         s.complete = s.done == s.total;
-        // Read only: this runs when the page loads, so it never writes. A legacy public token is
-        // only reported; an admin moves it with VeleiroMappingController.secureLegacyToken().
+        // Read only: this runs when the page loads, so it never writes. A leftover public token
+        // or a pending External Credential setup is only reported; an admin finishes it with
+        // VeleiroMappingController.secureLegacyToken().
         s.legacyToken = VeleiroCredentialStore.hasLegacyToken();
+        s.platformAuthReady = VeleiroCredentialStore.platformAuthReady();
+        s.needsPlatformSetup = VeleiroApiClient.hasToken() && !s.platformAuthReady;
         s.canManage = VeleiroSecurity.canManageSetup();
         return s;
     }

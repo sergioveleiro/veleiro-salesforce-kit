@@ -341,21 +341,32 @@ public with sharing class VeleiroMappingController {
         }
         s.put('nextRun', nextRun);
         // Read only: this method runs when the page loads, so it never writes. A token still
-        // sitting in the public field is reported, and an admin moves it with secureLegacyToken().
+        // sitting in the public field, or a protected token that is not yet in the External
+        // Credential, is only reported. An admin finishes that with secureLegacyToken().
         s.put('legacyToken', String.valueOf(VeleiroCredentialStore.hasLegacyToken()));
+        s.put('platformAuthReady', String.valueOf(VeleiroCredentialStore.platformAuthReady()));
+        s.put('needsPlatformSetup', String.valueOf(
+            VeleiroCredentialStore.hasToken() && !VeleiroCredentialStore.platformAuthReady()
+        ));
         s.put('canManage', String.valueOf(VeleiroSecurity.canManageSetup()));
         return s;
     }
 
     /**
      * Moves a token left in the public Veleiro_Config__c field (1.5.0 - 1.8.0) into the
-     * protected setting. The post-install script does this on upgrade; this is the explicit
-     * button for an org where that copy did not happen. Never called on page load.
+     * protected setting, then retries the External Credential write and probe when
+     * platform auth is not ready yet. The post-install script does the protected copy
+     * on upgrade, but the install user usually cannot write the External Credential.
+     * This is the explicit admin button for that remaining step. Never called on page load.
+     * Returns true when a token is stored in the protected setting (or was already there).
+     * A failed platform probe does not undo that copy.
      */
     @AuraEnabled
     public static Boolean secureLegacyToken() {
         VeleiroSecurity.assertCanManageSetup();
-        return VeleiroCredentialStore.migrateLegacyToken();
+        Boolean migrated = VeleiroCredentialStore.migrateLegacyToken();
+        VeleiroCredentialStore.finishPlatformAuth();
+        return migrated && VeleiroCredentialStore.hasToken();
     }
 
     // An admin pressed Save: a good moment to finish a pending migration. Never blocks the save.

@@ -306,8 +306,12 @@ private class VeleiroSecurityTest {
                 'the legacy token is not moved by opening a page');
             System.assertEquals(null, Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
             System.assertEquals('true', status.get('legacyToken'));
+            System.assertEquals('false', status.get('platformAuthReady'));
+            System.assertEquals('true', status.get('needsPlatformSetup'));
             System.assertEquals(true, withPing.legacyToken);
             System.assertEquals(true, noPing.legacyToken);
+            System.assertEquals(true, noPing.needsPlatformSetup);
+            System.assertEquals(false, noPing.platformAuthReady);
         }
     }
 
@@ -325,6 +329,66 @@ private class VeleiroSecurityTest {
             System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
             System.assertEquals(false, VeleiroCredentialStore.hasLegacyToken());
             System.assertEquals(true, VeleiroApiClient.hasToken());
+        }
+    }
+
+    @isTest
+    static void adminButtonFinishesPlatformAuthWhenProtectedTokenExists() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            insert orgConfig('vlr_legacy', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            System.assertEquals(true, VeleiroCredentialStore.migrateLegacyToken());
+            System.assertEquals(false, VeleiroCredentialStore.hasLegacyToken());
+            System.assertEquals(false, VeleiroCredentialStore.platformAuthReady());
+
+            VeleiroCredentialStore.platformWriteOverride = true;
+            Test.setMock(HttpCalloutMock.class, new CaptureMock());
+            Test.startTest();
+            System.assertEquals(true, VeleiroMappingController.secureLegacyToken());
+            Test.stopTest();
+
+            System.assertEquals(true, VeleiroCredentialStore.platformAuthReady());
+            System.assertEquals('vlr_legacy', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(true, VeleiroApiClient.hasToken());
+        }
+    }
+
+    @isTest
+    static void adminButtonRecordsAPlatformWriteFailureWithoutTheToken() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            insert orgConfig('vlr_secret_token', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            VeleiroCredentialStore.platformWriteOverride = false;
+
+            Test.startTest();
+            System.assertEquals(true, VeleiroMappingController.secureLegacyToken());
+            Test.stopTest();
+
+            System.assertEquals('vlr_secret_token', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(false, VeleiroCredentialStore.platformAuthReady());
+            String err = Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c;
+            System.assert(err != null && err.contains('External Credential setup skipped:'), err);
+            System.assert(err.contains('VeleiroApiException'), err);
+            System.assert(!err.contains('vlr_secret_token'), err);
+        }
+    }
+
+    @isTest
+    static void queueableRecordsAPlatformWriteFailureWithoutTheToken() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            insert orgConfig('vlr_secret_token', 'callout:Veleiro_API/api/v1', 'https://app.veleiro.ai');
+            System.assertEquals(true, VeleiroCredentialStore.migrateLegacyToken());
+            VeleiroCredentialStore.platformWriteOverride = false;
+
+            Test.startTest();
+            new VeleiroCredentialMigration().execute(null);
+            Test.stopTest();
+
+            System.assertEquals('vlr_secret_token', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(false, VeleiroCredentialStore.platformAuthReady());
+            String err = Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c;
+            System.assert(err != null && err.contains('External Credential setup skipped:'), err);
+            System.assert(!err.contains('vlr_secret_token'), err);
         }
     }
 

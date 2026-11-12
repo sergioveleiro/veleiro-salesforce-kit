@@ -159,12 +159,35 @@ export default class VeleiroOnboarding extends NavigationMixin(LightningElement)
         return !!(this.state && this.state.legacyToken && this.state.canManage);
     }
 
+    // Token already protected, but the External Credential is not ready yet.
+    get showPlatformSetup() {
+        return !!(this.state && this.state.canManage && this.state.needsPlatformSetup && !this.state.legacyToken);
+    }
+
+    get showSecureAction() {
+        return this.showLegacyToken || this.showPlatformSetup;
+    }
+
+    get secureActionLabel() {
+        return this.showLegacyToken ? T.legacyTokenAction : T.platformSetupAction;
+    }
+
+    get secureActionNote() {
+        return this.showLegacyToken ? T.legacyTokenNote : T.platformSetupNote;
+    }
+
     async handleSecureToken() {
         this.saving = true;
         try {
             const moved = await secureLegacyToken();
             await this.load(false);
-            if (moved) {
+            if (this.state && this.state.platformAuthReady) {
+                this.toast(T.platformSetupDone, '', 'success');
+            } else if (this.state && this.state.legacyToken) {
+                this.toast(T.couldNotSaveToken, T.tryAgain, 'warning');
+            } else if (this.state && this.state.needsPlatformSetup) {
+                this.toast(T.platformSetupPartial, '', 'warning');
+            } else if (moved) {
                 this.toast(T.legacyTokenDone, '', 'success');
             } else {
                 this.toast(T.couldNotSaveToken, T.tryAgain, 'warning');

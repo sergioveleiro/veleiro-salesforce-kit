@@ -83,6 +83,8 @@ export default class VeleiroMappingHome extends LightningElement {
     connected = false;
     tokenSet = false;
     legacyToken = false;   // token de una version anterior, todavia en el campo publico
+    needsPlatformSetup = false; // token protegido, External Credential todavia no listo
+    platformAuthReady = false;
     statusMessage = 'Checking connection…';
     nextRun = '';
     tokenInput = '';
@@ -111,6 +113,8 @@ export default class VeleiroMappingHome extends LightningElement {
             .then((s) => {
                 this.tokenSet = s.tokenSet === 'true';
                 this.legacyToken = s.legacyToken === 'true' && s.canManage === 'true';
+                this.platformAuthReady = s.platformAuthReady === 'true';
+                this.needsPlatformSetup = s.needsPlatformSetup === 'true' && s.canManage === 'true' && !this.legacyToken;
                 this.connected = s.connected === 'true';
                 this.statusMessage = s.message || '';
                 this.nextRun = s.nextRun || '';
@@ -124,19 +128,42 @@ export default class VeleiroMappingHome extends LightningElement {
             .finally(() => { this.checking = false; });
     }
 
+    get showSecureAction() {
+        return this.legacyToken || this.needsPlatformSetup;
+    }
+
+    get secureActionLabel() {
+        return this.legacyToken ? 'Secure the token' : 'Finish secure connection setup';
+    }
+
+    get secureActionNote() {
+        return this.legacyToken
+            ? 'Your API token is still stored the way older versions kept it.'
+            : 'The API token is in protected storage, but the secure connection is not ready yet.';
+    }
+
     handleTokenChange(event) { this.tokenInput = event.detail.value; }
 
-    // Mueve el token viejo al almacenamiento protegido. Es un clic del admin, nunca la carga.
+    // Mueve el token viejo y/o termina la External Credential. Es un clic del admin, nunca la carga.
     handleSecureToken() {
         this.checking = true;
         secureLegacyToken()
             .then(() => this.loadStatus())
             .then(() => {
-                this.dispatchEvent(new ShowToastEvent({
-                    title: this.legacyToken ? 'Token not moved' : 'Token moved to protected storage',
-                    message: this.legacyToken ? 'Try again, or paste the token again to replace it.' : '',
-                    variant: this.legacyToken ? 'warning' : 'success'
-                }));
+                let title = 'Token moved to protected storage';
+                let message = '';
+                let variant = 'success';
+                if (this.platformAuthReady) {
+                    title = 'Secure connection is ready';
+                } else if (this.legacyToken) {
+                    title = 'Token not moved';
+                    message = 'Try again, or paste the token again to replace it.';
+                    variant = 'warning';
+                } else if (this.needsPlatformSetup) {
+                    title = 'The token is protected. The secure connection could not be finished yet.';
+                    variant = 'warning';
+                }
+                this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
             })
             .catch((e) => {
                 this.checking = false;
