@@ -37,7 +37,12 @@ Creates the 6 default Account/Opportunity → Veleiro mappings shown in the cons
 ```bash
 sf org assign permset -o <your-org> -n Veleiro_Integration_Access
 ```
-Assign the same permission set to any user who should sync/see Veleiro data. It grants FLS on the Veleiro fields, the mapping object, and the two tabs.
+Assign the same permission set to any user who should sync/see Veleiro data. It grants FLS on the Veleiro fields, read access to the mappings, and the Home and Link tabs.
+
+Whoever sets up the integration (token, sync settings, field mappings) also needs `Veleiro_Admin`. It adds create/edit/delete on the mappings and the Setup and Mappings tabs:
+```bash
+sf org assign permset -o <your-org> -n Veleiro_Admin
+```
 
 ## 5. Put the components on pages (App Builder)
 - **Account record page** → add the **Veleiro** component (`veleiroPanel`) and **Velly Insight** (`veleiroInsight`).

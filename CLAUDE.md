@@ -95,7 +95,10 @@ Org aliases live in the untracked `.sf/`.
 - `@AuraEnabled(cacheable=true)` methods can't make callouts. Anything that calls Veleiro is non-cacheable and is called imperatively from the LWC.
 - Branding (logo and mascot) is base64 in the `c/veleiroBrand` LWC module. `force-app/` has **no static resources or binaries**, so keep it that way (the images under `docs/descargas/assets/` belong to the public download page, not the package).
 - `Veleiro_Config__c` must stay `<visibility>Public</visibility>`. `Protected` deploys to sandboxes but fails in production ("You can't set the visibility for a Custom Setting to Protected…"), and every class that uses the setting then fails with it. Always validate against production with `sf project deploy validate`.
-- Access is granted only through the `Veleiro_Integration_Access` permission set (profiles are in `.forceignore`). Add new fields, classes and tabs to that permission set.
+- Access is granted only through permission sets (profiles are in `.forceignore`). `Veleiro_Integration_Access` is for everyone and is least privilege on purpose: mappings are **read only** there, with no View All / Modify All and no Setup or Mappings tab. `Veleiro_Admin` carries mapping create/edit/delete, the two setup tabs and the `Veleiro_Manage_Setup` custom permission. Add new runtime fields, classes and tabs to the first; anything that changes configuration goes to the second. `VeleiroSecurityTest` asserts the split.
+- **No DML on page load.** Anything an LWC calls from `connectedCallback` or `@wire` (`getStatus`, `getState`, …) is read only — the AppExchange review treats a write there as CSRF. The legacy token migration runs from `VeleiroPostInstall`, from an admin Save, or from the "Secure the token" button (`secureLegacyToken`). `VeleiroSecurityTest.pageLoadMethodsNeverWrite` is the guard.
+- **A URL from the API never goes straight into an `href`.** Pass it through `VeleiroApiClient.safeAppUrl` (https + Veleiro hosts only); a rejected link renders as plain text.
+- Tests run as `VeleiroTestAccess.user()` (integration access only). Use `VeleiroTestAccess.admin()` only where the test saves mappings or setup.
 
 ## Conventions
 - Code comments and user-facing labels/messages are often in **Spanish**. API names and identifiers are English. Follow the file you're editing.

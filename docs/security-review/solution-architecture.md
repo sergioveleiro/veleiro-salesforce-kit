@@ -47,7 +47,7 @@ All Veleiro traffic is server-to-server from Apex. The browser never receives th
 | API token, after a successful platform write | External Credential principal `Veleiro_External` / `VeleiroPrincipal` | The platform. Apex cannot read it back |
 | Legacy API token | `Veleiro_Config__c.Api_Token__c` | Public custom setting. Cleared after the protected copy succeeds. If that copy fails, the value stays so the org keeps working |
 | Environment, sync direction, pull schedule, last error | `Veleiro_Config__c` (public) | Users with the integration permission set. The error text is sanitized |
-| Field mappings | `Veleiro_Field_Mapping__c` | Users with the integration permission set |
+| Field mappings | `Veleiro_Field_Mapping__c` | Read: users with the integration permission set. Create, edit, delete: `Veleiro Admin` only |
 | Account link | `Account.Veleiro_Client_Id__c`, `Veleiro_Version__c`, `Veleiro_Slug__c`, `Veleiro_Additional_Fields__c` | Users with the integration permission set |
 | Opportunity link | `Opportunity.Veleiro_Project_Id__c`, `Veleiro_Project_Version__c` | Users with the integration permission set |
 | Any other object's link | `Veleiro_Link__c` | Users with the integration permission set |
@@ -66,13 +66,20 @@ Browser links ("Open in Veleiro") allow only `https://app.veleiro.ai` and `https
 
 ## Who can change setup
 
-`saveToken`, `saveEnvironment`, `saveSyncConfig`, and `saveMappings` require Customize Application (so the installing system administrator still can) or the custom permission `Veleiro_Manage_Setup` from the packaged permission set `Veleiro Admin`.
+`saveToken`, `saveEnvironment`, `saveSyncConfig`, `saveMappings`, `secureLegacyToken`, `skipStep`, and `VeleiroSeed.seed()` require Customize Application (so the installing system administrator still can) or the custom permission `Veleiro_Manage_Setup` from the packaged permission set `Veleiro Admin`.
+
+Least privilege is in the permission sets, not only in Apex. `Veleiro Integration Access` reads `Veleiro_Field_Mapping__c` and nothing more: no create, edit, or delete, no View All, no Modify All, and no Veleiro Setup or Veleiro Mappings tab. A sales user cannot change what the sync sends, through the UI, the API, or Data Loader. `Veleiro Admin` carries create, edit, and delete on mappings (still no View All or Modify All), the edit access on the mapping fields, and the two setup tabs.
+
+Nothing writes when a page loads. `getStatus` and `getState` are read only. A token left in the public field by 1.5.0, 1.6.0, or 1.8.0 is moved by the post-install script; if that copy did not happen, the setup screens show an administrator a "Secure the token" button (`secureLegacyToken`), and any administrator Save of the token, environment, or sync settings finishes the move.
+
+Links that come from the API are checked before they reach an `href`. A meeting `url` is kept only when it is `https://` on `app.veleiro.ai` or `app.beta.veleiro.dev` (`VeleiroApiClient.safeAppUrl`, with a second check in the `veleiroMeetings` component). Any other value lists the meeting without a link.
 
 Sync, link, dashboards, meetings, and the pulse stay available to `Veleiro Integration Access`. Queries and DML enforce field access (`WITH USER_MODE` and `Security.stripInaccessible`). The permission set grants the packaged fields that are not required, plus `Account.Website` and `Opportunity.AccountId`. Required fields (`Account.Name`, `Opportunity.Name`, and the required `Veleiro_Link__c` fields) cannot have permission-set entries; anyone who can use the object can use them. Mapped fields that belong to the subscriber are included only when the running user can read them.
 
 ## Admin steps after upgrade
 
 - No token re-entry when the post-install copy succeeds. Confirm Veleiro Setup still shows connected.
-- Assign `Veleiro Admin` only to delegated admins who should change the token or mappings and who do not have Customize Application.
+- Assign `Veleiro Admin`, together with `Veleiro Integration Access`, to whoever changes the token, sync settings, or mappings. After the upgrade, `Veleiro Integration Access` alone no longer edits mappings or shows the Veleiro Setup and Veleiro Mappings tabs.
+- If the public token field was not cleared by the upgrade, an administrator opens Veleiro Setup and presses **Secure the token**.
 - Assign `Veleiro Integration Access` to every user who should sync from a button, a flow, or the scheduled pull. People who already have the permission set receive the new field permissions and the External Credential principal access when the package upgrades.
 - Subscriber fields used in mappings still need field-level security for those users. The package cannot grant fields it does not own. An inaccessible mapped field is skipped; the rest of the sync still runs.

@@ -50,7 +50,7 @@ The install must report an upgrade. A second package in the org is a failure.
 
 Immediately after install, before anyone re-saves the token:
 
-- `Veleiro_Config__c.Api_Token__c` on the org default is blank when the post-install copy succeeded.
+- `Veleiro_Config__c.Api_Token__c` on the org default is blank when the post-install copy succeeded. Opening Veleiro Home, Setup, or Mappings never moves it. If it is still filled, an administrator sees **Secure the token** in Veleiro Setup, and pressing it clears the field.
 - A callout still works (the protected setting holds the token). Opening Veleiro Setup and clicking the connection check is the UI version of this.
 - If the public field is still filled, the protected copy failed. Sync must still work. That is the supported fallback. Do not clear the field by hand.
 
@@ -60,7 +60,7 @@ Immediately after install, before anyone re-saves the token:
 2. **Sync the already linked Account.** The same client id comes back. Version may increase by one. No second client is created in Veleiro.
 3. **Sync the Opportunity.** The same project id comes back. `client_id` is still the Account's client.
 4. **Link.** Open Veleiro Link for Account → client. The unlinked Account is listed. Linking it does not throw and does not duplicate a client that was matched.
-5. **Mappings.** The saved rows are still there. An administrator can save them again. A user who only has `Veleiro Integration Access` (no Customize Application and no `Veleiro Admin`) cannot save the token, the environment, sync settings, or mappings.
+5. **Mappings.** The saved rows are still there. An administrator can save them again. A user who only has `Veleiro Integration Access` (no Customize Application and no `Veleiro Admin`) cannot save the token, the environment, sync settings, or mappings, cannot create, edit, or delete a `Veleiro_Field_Mapping__c` row through the API, and does not see the Veleiro Setup or Veleiro Mappings tabs. Their syncs still read the saved mappings.
 6. **Scheduled pull.** If the org had pull frequency hourly or daily, the `Veleiro Pull Job` is still scheduled. Run it once (or wait) and confirm it does not rename Accounts unless `Pull_Writes_Name__c` was already on.
 7. **1.8.0 org only.** Meetings and the delivery pulse still load for the linked Account and Opportunity.
 
