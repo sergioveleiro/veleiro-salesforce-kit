@@ -21,199 +21,225 @@ private class VeleiroClientMatcherTest {
 
     @isTest
     static void matchesBySfAccountId() {
-        Account a = newAccount('Totally Different Name', null);
-        mockWith('{"data":[{"id":"org_linked","name":"Acme","additional_fields":{"sf_account_id":"' + a.Id + '"}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Totally Different Name', null);
+            mockWith('{"data":[{"id":"org_linked","name":"Acme","additional_fields":{"sf_account_id":"' + a.Id + '"}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(1, r.candidates.size());
-        System.assertEquals('org_linked', r.candidates[0].clientId);
-        System.assertEquals(VeleiroClientMatcher.HIGH, r.candidates[0].confidence);
-        System.assertNotEquals(null, VeleiroClientMatcher.autoLinkable(r), 'coincidencia fuerte -> vincula sola');
+            System.assertEquals(1, r.candidates.size());
+            System.assertEquals('org_linked', r.candidates[0].clientId);
+            System.assertEquals(VeleiroClientMatcher.HIGH, r.candidates[0].confidence);
+            System.assertNotEquals(null, VeleiroClientMatcher.autoLinkable(r), 'coincidencia fuerte -> vincula sola');
+        }
     }
 
     @isTest
     static void matchesByWebsiteDomain() {
-        Account a = newAccount('Acme Colombia', 'https://www.acme.com/es');
-        mockWith('{"data":[{"id":"org_dom","name":"Otra Razon Social","additional_fields":{"sf_website":"http://acme.com"}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme Colombia', 'https://www.acme.com/es');
+            mockWith('{"data":[{"id":"org_dom","name":"Otra Razon Social","additional_fields":{"sf_website":"http://acme.com"}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(1, r.candidates.size());
-        System.assertEquals(VeleiroClientMatcher.HIGH, r.candidates[0].confidence);
-        System.assert(r.candidates[0].reason.contains('acme.com'));
+            System.assertEquals(1, r.candidates.size());
+            System.assertEquals(VeleiroClientMatcher.HIGH, r.candidates[0].confidence);
+            System.assert(r.candidates[0].reason.contains('acme.com'));
+        }
     }
 
     @isTest
     static void matchesByNameOnlyAsMedium() {
-        Account a = newAccount('Acme S.A.', null);
-        mockWith('{"data":[{"id":"org_name","name":"ACME SAS","additional_fields":{}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme S.A.', null);
+            mockWith('{"data":[{"id":"org_name","name":"ACME SAS","additional_fields":{}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(1, r.candidates.size());
-        System.assertEquals(VeleiroClientMatcher.MEDIUM, r.candidates[0].confidence, 'solo el nombre -> se pregunta');
-        System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r), 'por nombre nunca vincula sola');
+            System.assertEquals(1, r.candidates.size());
+            System.assertEquals(VeleiroClientMatcher.MEDIUM, r.candidates[0].confidence, 'solo el nombre -> se pregunta');
+            System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r), 'por nombre nunca vincula sola');
+        }
     }
 
     @isTest
     static void ignoresArchivedAndUnrelated() {
-        Account a = newAccount('Acme', 'acme.com');
-        mockWith('{"data":[' +
-            '{"id":"org_arch","name":"Acme","is_archived":true,"additional_fields":{}},' +
-            '{"id":"org_other","name":"Globex","additional_fields":{"sf_website":"globex.com"}}' +
-            '],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', 'acme.com');
+            mockWith('{"data":[' +
+                '{"id":"org_arch","name":"Acme","is_archived":true,"additional_fields":{}},' +
+                '{"id":"org_other","name":"Globex","additional_fields":{"sf_website":"globex.com"}}' +
+                '],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assert(r.candidates.isEmpty(), 'ni archivados ni ajenos');
+            System.assert(r.candidates.isEmpty(), 'ni archivados ni ajenos');
+        }
     }
 
     @isTest
     static void flagsClientTakenByAnotherAccount() {
-        Account taken = new Account(Name = 'Otro', Veleiro_Client_Id__c = 'org_taken');
-        insert taken;
-        Account a = newAccount('Acme', null);
-        mockWith('{"data":[{"id":"org_taken","name":"Acme","additional_fields":{}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account taken = new Account(Name = 'Otro', Veleiro_Client_Id__c = 'org_taken');
+            insert taken;
+            Account a = newAccount('Acme', null);
+            mockWith('{"data":[{"id":"org_taken","name":"Acme","additional_fields":{}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(true, r.candidates[0].linkedToOtherAccount, 'se muestra pero avisando');
-        System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r), 'no se roba el client de otra cuenta');
+            System.assertEquals(true, r.candidates[0].linkedToOtherAccount, 'se muestra pero avisando');
+            System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r), 'no se roba el client de otra cuenta');
+        }
     }
 
     @isTest
     static void tooManyClientsSkipsMatching() {
-        VeleiroClientMatcher.maxClients = 0; // simula un catalogo enorme
-        Account a = newAccount('Acme', null);
-        mockWith('{"data":[{"id":"org_x","name":"Acme","additional_fields":{}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroClientMatcher.maxClients = 0; // simula un catalogo enorme
+            Account a = newAccount('Acme', null);
+            mockWith('{"data":[{"id":"org_x","name":"Acme","additional_fields":{}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroClientMatcher.forAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(true, r.truncated);
-        System.assert(r.candidates.isEmpty(), 'sin confianza no se sugiere nada');
-        System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r));
+            System.assertEquals(true, r.truncated);
+            System.assert(r.candidates.isEmpty(), 'sin confianza no se sugiere nada');
+            System.assertEquals(null, VeleiroClientMatcher.autoLinkable(r));
+        }
     }
 
     @isTest
     static void syncAccountLinksInsteadOfCreating() {
-        Account a = newAccount('Acme', 'acme.com');
-        VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","version":3,"additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
-        mock.singleClientBody = '{"data":{"id":"org_existing","name":"Acme","version":3,"additional_fields":{"sf_website":"acme.com"}}}';
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', 'acme.com');
+            VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","version":3,"additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
+            mock.singleClientBody = '{"data":{"id":"org_existing","name":"Acme","version":3,"additional_fields":{"sf_website":"acme.com"}}}';
 
-        Test.startTest();
-        VeleiroSyncService.ClientResult r = VeleiroSyncService.syncAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncService.ClientResult r = VeleiroSyncService.syncAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(false, r.created, 'vincula y actualiza, no crea');
-        System.assertEquals('org_existing', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
-        System.assertEquals(null, mock.lastPostBody, 'ningun POST /clients');
+            System.assertEquals(false, r.created, 'vincula y actualiza, no crea');
+            System.assertEquals('org_existing', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+            System.assertEquals(null, mock.lastPostBody, 'ningun POST /clients');
+        }
     }
 
     @isTest
     static void createClientForAccountIgnoresCandidates() {
-        Account a = newAccount('Acme', 'acme.com');
-        VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', 'acme.com');
+            VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroSyncService.ClientResult r = VeleiroSyncService.createClientForAccount(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncService.ClientResult r = VeleiroSyncService.createClientForAccount(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(true, r.created, 'el usuario pidio crear uno nuevo igual');
-        System.assertNotEquals(null, mock.lastPostBody);
+            System.assertEquals(true, r.created, 'el usuario pidio crear uno nuevo igual');
+            System.assertNotEquals(null, mock.lastPostBody);
+        }
     }
 
     @isTest
     static void linkAccountToClientUpdatesExisting() {
-        Account a = newAccount('Acme', null);
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', null);
 
-        Test.startTest();
-        mockWith('{"data":[],"has_more":false}');
-        VeleiroSyncService.ClientResult r = VeleiroSyncService.linkAccountToClient(a.Id, 'org_test');
-        Test.stopTest();
+            Test.startTest();
+            mockWith('{"data":[],"has_more":false}');
+            VeleiroSyncService.ClientResult r = VeleiroSyncService.linkAccountToClient(a.Id, 'org_test');
+            Test.stopTest();
 
-        System.assertEquals(false, r.created);
-        System.assertEquals('org_test', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+            System.assertEquals(false, r.created);
+            System.assertEquals('org_test', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+        }
     }
 
     @isTest
     static void linkRequiresClientId() {
-        Account a = newAccount('Acme', null);
-        Boolean threw = false;
-        try {
-            VeleiroSyncService.linkAccountToClient(a.Id, '   ');
-        } catch (Exception e) {
-            threw = true;
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', null);
+            Boolean threw = false;
+            try {
+                VeleiroSyncService.linkAccountToClient(a.Id, '   ');
+            } catch (Exception e) {
+                threw = true;
+            }
+            System.assertEquals(true, threw);
         }
-        System.assertEquals(true, threw);
     }
 
     @isTest
     static void findClientCandidatesIsExposedToTheLwc() {
-        Account a = newAccount('Acme', null);
-        mockWith('{"data":[{"id":"org_name","name":"Acme","additional_fields":{}}],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Acme', null);
+            mockWith('{"data":[{"id":"org_name","name":"Acme","additional_fields":{}}],"has_more":false}');
 
-        Test.startTest();
-        VeleiroClientMatcher.MatchResult r = VeleiroSyncService.findClientCandidates(a.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroClientMatcher.MatchResult r = VeleiroSyncService.findClientCandidates(a.Id);
+            Test.stopTest();
 
-        System.assertEquals(1, r.candidates.size());
+            System.assertEquals(1, r.candidates.size());
+        }
     }
 
     @isTest
     static void opportunitySyncReusesTheExistingClientInsteadOfDuplicating() {
-        // Caso reportado por el cliente: dos clients con el mismo nombre, uno con proyecto y
-        // otro vacio. Pasaba porque la Opportunity creaba su propio client sin mirar Veleiro.
-        Account a = newAccount('Acme', 'https://acme.com'); // sin vincular
-        Opportunity o = new Opportunity(
-            Name = 'Acme - Implementacion', StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30), AccountId = a.Id
-        );
-        insert o;
+        System.runAs(VeleiroTestAccess.user()) {
+            // Caso reportado por el cliente: dos clients con el mismo nombre, uno con proyecto y
+            // otro vacio. Pasaba porque la Opportunity creaba su propio client sin mirar Veleiro.
+            Account a = newAccount('Acme', 'https://acme.com'); // sin vincular
+            Opportunity o = new Opportunity(
+                Name = 'Acme - Implementacion', StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30), AccountId = a.Id
+            );
+            insert o;
 
-        VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
-        mock.singleClientBody = '{"data":{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}}';
+            VeleiroApiMock mock = mockWith('{"data":[{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}],"has_more":false}');
+            mock.singleClientBody = '{"data":{"id":"org_existing","name":"Acme","version":2,"additional_fields":{"sf_website":"acme.com"}}}';
 
-        Test.startTest();
-        VeleiroSyncService.ProjectResult r = VeleiroSyncService.syncOpportunity(o.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncService.ProjectResult r = VeleiroSyncService.syncOpportunity(o.Id);
+            Test.stopTest();
 
-        System.assertEquals('prjct_test', r.projectId);
-        Map<String, Object> posted = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
-        System.assertEquals('org_existing', posted.get('client_id'), 'el project cuelga del client que ya existia');
-        System.assertEquals('org_existing',
-            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
-            'y la cuenta queda vinculada a ese mismo client');
+            System.assertEquals('prjct_test', r.projectId);
+            Map<String, Object> posted = (Map<String, Object>) JSON.deserializeUntyped(mock.lastPostBody);
+            System.assertEquals('org_existing', posted.get('client_id'), 'el project cuelga del client que ya existia');
+            System.assertEquals('org_existing',
+                [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
+                'y la cuenta queda vinculada a ese mismo client');
+        }
     }
 
     @isTest
     static void opportunitySyncStillCreatesTheClientWhenThereIsNone() {
-        Account a = newAccount('Nueva Cuenta', null);
-        Opportunity o = new Opportunity(
-            Name = 'Nueva', StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30), AccountId = a.Id
-        );
-        insert o;
-        mockWith('{"data":[],"has_more":false}');
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = newAccount('Nueva Cuenta', null);
+            Opportunity o = new Opportunity(
+                Name = 'Nueva', StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30), AccountId = a.Id
+            );
+            insert o;
+            mockWith('{"data":[],"has_more":false}');
 
-        Test.startTest();
-        VeleiroSyncService.syncOpportunity(o.Id);
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncService.syncOpportunity(o.Id);
+            Test.stopTest();
 
-        System.assertEquals('org_test',
-            [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
-            'sin candidato, se crea como siempre');
+            System.assertEquals('org_test',
+                [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c,
+                'sin candidato, se crea como siempre');
+        }
     }
 }

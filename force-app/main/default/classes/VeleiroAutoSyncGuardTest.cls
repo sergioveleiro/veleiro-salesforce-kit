@@ -16,80 +16,95 @@ private class VeleiroAutoSyncGuardTest {
 
     @isTest
     static void normalBatchesGoThrough() {
-        System.assertEquals(false, VeleiroAutoSyncGuard.tooManyForAutoSync(fakeIds(10), 'accounts'));
-        System.assertEquals(false, VeleiroAutoSyncGuard.tooManyForAutoSync(null, 'accounts'));
-        System.assertEquals(null, VeleiroSyncConfig.lastError(), 'nada que reportar');
+        System.runAs(VeleiroTestAccess.user()) {
+            System.assertEquals(false, VeleiroAutoSyncGuard.tooManyForAutoSync(fakeIds(10), 'accounts'));
+            System.assertEquals(false, VeleiroAutoSyncGuard.tooManyForAutoSync(null, 'accounts'));
+            System.assertEquals(null, VeleiroSyncConfig.lastError(), 'nada que reportar');
+        }
     }
 
     @isTest
     static void bulkLoadsAreSkippedAndLeftOnRecord() {
-        VeleiroAutoSyncGuard.maxAutoBatch = 5;
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroAutoSyncGuard.maxAutoBatch = 5;
 
-        Test.startTest();
-        Boolean skipped = VeleiroAutoSyncGuard.tooManyForAutoSync(fakeIds(20), 'accounts');
-        Test.stopTest();
+            Test.startTest();
+            Boolean skipped = VeleiroAutoSyncGuard.tooManyForAutoSync(fakeIds(20), 'accounts');
+            Test.stopTest();
 
-        System.assertEquals(true, skipped, 'una carga masiva no dispara miles de callouts');
-        String err = VeleiroSyncConfig.lastError();
-        System.assert(err != null && err.contains('20'), 'queda anotado cuantos se saltaron: ' + err);
-        System.assertNotEquals(null, VeleiroSyncConfig.lastErrorAt());
+            System.assertEquals(true, skipped, 'una carga masiva no dispara miles de callouts');
+            String err = VeleiroSyncConfig.lastError();
+            System.assert(err != null && err.contains('20'), 'queda anotado cuantos se saltaron: ' + err);
+            System.assertNotEquals(null, VeleiroSyncConfig.lastErrorAt());
+        }
     }
 
     @isTest
     static void failuresAreVisibleInsteadOfSilent() {
-        Account a = new Account(Name = 'Acme');
-        insert a;
+        System.runAs(VeleiroTestAccess.user()) {
+            Account a = new Account(Name = 'Acme');
+            insert a;
 
-        Test.startTest();
-        VeleiroAutoSyncGuard.recordFailure(a.Id, new VeleiroApiClient.VeleiroApiException('invalid_token: el token vencio'));
-        Test.stopTest();
+            Test.startTest();
+            VeleiroAutoSyncGuard.recordFailure(a.Id, new VeleiroApiClient.VeleiroApiException('invalid_token: el token vencio'));
+            Test.stopTest();
 
-        String err = VeleiroSyncConfig.lastError();
-        System.assert(err.contains('invalid_token'), 'el panel puede mostrarlo: ' + err);
+            String err = VeleiroSyncConfig.lastError();
+            System.assert(err.contains('invalid_token'), 'el panel puede mostrarlo: ' + err);
+        }
     }
 
     @isTest
     static void longMessagesAreTrimmedToFitTheField() {
-        Test.startTest();
-        VeleiroSyncConfig.recordError('x'.repeat(400));
-        Test.stopTest();
-        System.assertEquals(255, VeleiroSyncConfig.lastError().length());
+        System.runAs(VeleiroTestAccess.user()) {
+            Test.startTest();
+            VeleiroSyncConfig.recordError('x'.repeat(400));
+            Test.stopTest();
+            System.assertEquals(255, VeleiroSyncConfig.lastError().length());
+        }
     }
 
     @isTest
     static void autoSyncSkipsBulkLoadsEndToEnd() {
-        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
-        VeleiroAutoSyncGuard.maxAutoBatch = 2;
-        List<Account> accounts = new List<Account>{
-            new Account(Name = 'Uno'), new Account(Name = 'Dos'), new Account(Name = 'Tres')
-        };
-        insert accounts;
-        VeleiroApiMock mock = new VeleiroApiMock();
-        Test.setMock(HttpCalloutMock.class, mock);
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
+            VeleiroAutoSyncGuard.maxAutoBatch = 2;
+            List<Account> accounts = new List<Account>{
+                new Account(Name = 'Uno'), new Account(Name = 'Dos'), new Account(Name = 'Tres')
+            };
+            insert accounts;
+            VeleiroApiMock mock = new VeleiroApiMock();
+            Test.setMock(HttpCalloutMock.class, mock);
 
-        Test.startTest();
-        VeleiroSyncAccountAction.syncAccounts(new List<Id>(new Map<Id, Account>(accounts).keySet()));
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncAccountAction.syncAccounts(new List<Id>(new Map<Id, Account>(accounts).keySet()));
+            Test.stopTest();
 
-        System.assertEquals(null, mock.lastPostBody, 'no se llamo a Veleiro por la carga masiva');
+            System.assertEquals(null, mock.lastPostBody, 'no se llamo a Veleiro por la carga masiva');
+        }
     }
 
     @isTest
     static void oneBadRecordDoesNotStopTheRestAndLeavesTheError() {
-        VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
-        Account a = new Account(Name = 'Acme');
-        insert a;
-        VeleiroApiMock mock = new VeleiroApiMock();
-        mock.overrideStatus = 401;
-        mock.overrideBody = '{"error":{"code":"invalid_token","message":"token invalido"}}';
-        Test.setMock(HttpCalloutMock.class, mock);
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
+            Account a = new Account(Name = 'Acme');
+            insert a;
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.overrideStatus = 401;
+            mock.overrideBody = '{"error":{"code":"invalid_token","message":"token invalido"}}';
+            Test.setMock(HttpCalloutMock.class, mock);
 
-        Test.startTest();
-        VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a.Id }); // no relanza
-        Test.stopTest();
+            Test.startTest();
+            VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a.Id }); // no relanza
+            Test.stopTest();
 
-        String err = VeleiroSyncConfig.lastError();
-        System.assert(err != null && err.contains('invalid_token'), 'el fallo queda visible: ' + err);
-        System.assertEquals(null, [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+            // Lo que se guarda es el texto traducido del codigo, nunca el cuerpo de la respuesta.
+            String err = VeleiroSyncConfig.lastError();
+            System.assert(err != null && err.contains(VeleiroI18n.t('api.invalid_token')),
+                'el fallo queda visible: ' + err);
+            System.assert(!err.contains('token invalido'), 'el mensaje crudo de la API no se guarda: ' + err);
+            System.assertEquals(null, [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :a.Id].Veleiro_Client_Id__c);
+        }
     }
 }
