@@ -527,12 +527,19 @@ public with sharing class VeleiroLinkController {
         }
         p.sent = p.doneIds.size();
 
-        p.running = [
-            SELECT COUNT() FROM AsyncApexJob
-            WHERE JobType = 'Queueable'
-              AND ApexClass.Name IN ('VeleiroBulkSendQueueable', 'VeleiroLinkSyncQueueable')
-              AND Status IN ('Queued', 'Processing', 'Preparing', 'Holding')
-        ] > 0;
+        // User mode: a user who cannot read AsyncApexJob just sees "not running".
+        try {
+            p.running = [
+                SELECT COUNT() FROM AsyncApexJob
+                WHERE JobType = 'Queueable'
+                  AND ApexClass.Name IN ('VeleiroBulkSendQueueable', 'VeleiroLinkSyncQueueable')
+                  AND Status IN ('Queued', 'Processing', 'Preparing', 'Holding')
+                WITH USER_MODE
+            ] > 0;
+        } catch (Exception e) {
+            p.running = false;
+            System.debug(LoggingLevel.FINE, 'Job status skipped: ' + e.getTypeName());
+        }
 
         p.lastError = VeleiroSyncConfig.lastError();
         p.lastErrorAt = VeleiroSyncConfig.lastErrorAt() == null ? null : VeleiroSyncConfig.lastErrorAt().format();

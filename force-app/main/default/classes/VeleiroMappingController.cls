@@ -292,10 +292,10 @@ public with sharing class VeleiroMappingController {
         // El nombre de la credencial lleva el prefijo del namespace dentro del paquete administrado.
         if (environment == 'Beta') {
             c.Base_Url__c = VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_BETA) + '/api/v1';
-            c.App_Base_Url__c = 'https://app.beta.veleiro.dev';
+            c.App_Base_Url__c = VeleiroApiClient.APP_BASE_BETA;
         } else { // Production (default)
             c.Base_Url__c = VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_PROD) + '/api/v1';
-            c.App_Base_Url__c = 'https://app.veleiro.ai';
+            c.App_Base_Url__c = VeleiroApiClient.APP_BASE_PROD;
         }
         upsert c;
         migrateOnSave();
@@ -332,12 +332,18 @@ public with sharing class VeleiroMappingController {
 
         s.put('frequency', VeleiroSyncConfig.frequency());
         String nextRun = '';
-        for (CronTrigger ct : [
-            SELECT NextFireTime FROM CronTrigger
-            WHERE CronJobDetail.Name = :VeleiroSyncConfig.JOB_NAME AND NextFireTime != null
-            ORDER BY NextFireTime ASC LIMIT 1
-        ]) {
-            if (ct.NextFireTime != null) nextRun = ct.NextFireTime.format();
+        // User mode: a user who cannot read CronTrigger sees no next run instead of an error.
+        try {
+            for (CronTrigger ct : [
+                SELECT NextFireTime FROM CronTrigger
+                WHERE CronJobDetail.Name = :VeleiroSyncConfig.JOB_NAME AND NextFireTime != null
+                WITH USER_MODE
+                ORDER BY NextFireTime ASC LIMIT 1
+            ]) {
+                if (ct.NextFireTime != null) nextRun = ct.NextFireTime.format();
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.FINE, 'Next run skipped: ' + e.getTypeName());
         }
         s.put('nextRun', nextRun);
         // Read only: this method runs when the page loads, so it never writes. A token still

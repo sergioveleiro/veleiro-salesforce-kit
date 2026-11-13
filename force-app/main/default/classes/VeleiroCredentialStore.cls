@@ -166,7 +166,8 @@ public with sharing class VeleiroCredentialStore {
         Veleiro_Config__c orgLevel = Veleiro_Config__c.getOrgDefaults();
         if (orgLevel != null && String.isNotBlank(orgLevel.Api_Token__c)) return orgLevel.Api_Token__c;
         for (Veleiro_Config__c row : [
-            SELECT Api_Token__c FROM Veleiro_Config__c WHERE Api_Token__c != null LIMIT 1
+            SELECT Api_Token__c FROM Veleiro_Config__c WHERE Api_Token__c != null
+            WITH SYSTEM_MODE LIMIT 1
         ]) {
             return row.Api_Token__c;
         }

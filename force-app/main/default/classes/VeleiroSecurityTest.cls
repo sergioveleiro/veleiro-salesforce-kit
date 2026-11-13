@@ -433,6 +433,7 @@ private class VeleiroSecurityTest {
             FROM ObjectPermissions
             WHERE SobjectType = :objectName
             AND Parent.Name IN ('Veleiro_Integration_Access', 'Veleiro_Admin')
+            WITH USER_MODE
         ]) {
             if (op.Parent.NamespacePrefix != VeleiroSyncConfig.namespacePrefix().removeEnd('__')
                 && !(String.isBlank(op.Parent.NamespacePrefix) && String.isBlank(VeleiroSyncConfig.namespacePrefix()))) continue;

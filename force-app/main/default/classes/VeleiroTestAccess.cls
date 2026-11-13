@@ -7,7 +7,12 @@
  * resolved when the test started, so a user-mode query still hides the fields
  * afterwards. Only System.runAs re-reads them, which is why every test body runs
  * inside System.runAs(VeleiroTestAccess.user()).
+ *
+ * @isTest: this helper is test-only. It is not executable in subscriber orgs and does not
+ * count toward the package's Apex code. Only test classes (and VeleiroApiMock, also @isTest)
+ * call it.
  */
+@isTest
 public with sharing class VeleiroTestAccess {
     private static final String ACCESS = 'Veleiro_Integration_Access';
     private static final String ADMIN = 'Veleiro_Admin';

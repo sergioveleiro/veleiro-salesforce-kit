@@ -26,6 +26,7 @@ public with sharing class VeleiroSecurity {
                 FROM PermissionSetAssignment
                 WHERE AssigneeId = :UserInfo.getUserId()
                 AND PermissionSet.PermissionsCustomizeApplication = true
+                WITH USER_MODE
             ] > 0;
         } catch (Exception e) {
             System.debug(LoggingLevel.FINE, 'Setup check skipped: ' + e.getTypeName());

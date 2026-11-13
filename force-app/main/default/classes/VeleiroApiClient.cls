@@ -22,7 +22,10 @@ public with sharing class VeleiroApiClient {
     public static final String CRED_BETA = 'Veleiro_API_Beta';
     public static final String CRED_PROD_SECURE = 'Veleiro_API_Secure';
     public static final String CRED_BETA_SECURE = 'Veleiro_API_Beta_Secure';
-    private static final String DEFAULT_APP_BASE = 'https://app.veleiro.ai';
+    /** The only two Veleiro web hosts the kit links to. Production is the default. */
+    public static final String APP_BASE_PROD = 'https://app.veleiro.ai';
+    public static final String APP_BASE_BETA = 'https://app.beta.veleiro.dev';
+    private static final String DEFAULT_APP_BASE = APP_BASE_PROD;
 
     /**
      * Callout path for one of our Named Credentials.
@@ -97,14 +100,14 @@ public with sharing class VeleiroApiClient {
         Veleiro_Config__c c = resolveConfig();
         String allowed = allowedAppBase(c == null ? null : c.App_Base_Url__c);
         if (allowed != null) return allowed;
-        return isBeta(c) ? 'https://app.beta.veleiro.dev' : DEFAULT_APP_BASE;
+        return isBeta(c) ? APP_BASE_BETA : DEFAULT_APP_BASE;
     }
 
     private static String allowedAppBase(String url) {
         if (String.isBlank(url)) return null;
         String u = url.trim().toLowerCase();
-        if (matchesHost(u, 'https://app.beta.veleiro.dev')) return 'https://app.beta.veleiro.dev';
-        if (matchesHost(u, 'https://app.veleiro.ai')) return 'https://app.veleiro.ai';
+        if (matchesHost(u, APP_BASE_BETA)) return APP_BASE_BETA;
+        if (matchesHost(u, APP_BASE_PROD)) return APP_BASE_PROD;
         return null;
     }
 
