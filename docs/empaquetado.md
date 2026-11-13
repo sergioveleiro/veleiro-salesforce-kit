@@ -79,7 +79,10 @@ Dos condiciones para que eso ocurra:
 | 1.5.0.1 | `04tPe0000010wBVIAY` | 94% | Released · pantallas a todo lo ancho y controles redondos. Superada por la 1.6.0.1. |
 | 1.6.0.1 | `04tPe0000010yrdIAA` | 94% | Released · el project puede nacer al crear la oportunidad, solo al ganarla, o nunca sola |
 | 1.7.0.1 | `04tPe0000011T93IAE` | 94% | Released · **nunca llego a la pagina publica** · pulso de entrega (tiempo invertido, trabajo abierto y trabado) y linea de tiempo de reuniones con transcripcion. **Pide scopes nuevos en la API key: `meeting` y `task`** |
-| 1.8.0.1 | `04tPe0000011UTJIA2` | 94% | **Released · la que se entrega hoy** · arregla el "Apex CPU time limit exceeded" al abrir Veleiro Link en orgs con muchos registros |
+| 1.8.0.1 | `04tPe0000011UTJIA2` | 94% | Released · **la que apunta la pagina publica hoy** · arregla el "Apex CPU time limit exceeded" al abrir Veleiro Link en orgs con muchos registros |
+| 1.9.0.1 | `04tPe0000012dSvIAI` | 93% | Beta · nunca se promovio; primera build de la revision de seguridad (token en `Veleiro_Secret__c` protegido, setup solo para administradores) |
+| 1.9.0.2 | `04tPe0000012dmHIAQ` | 93% | Released (promovida el 12/11/2026) · revision de seguridad AppExchange; construida desde `8f47f53`, **sin** los arreglos de Checkmarx |
+| 1.10.0.1 | `04tPe0000012ht7IAA` | 93% | **Released (promovida el 13/11/2026)** · ancestro 1.9.0.2 · arreglos de la revision Checkmarx: consultas de setup en user mode, callouts antes del DML en los lotes de auto-sync, escrituras de configuracion propias en system mode con justificacion. **Pendiente: actualizar `docs/descargas/index.html`** (aun apunta a la 1.8.0.1) |
 
 **Verificado el 22/10/2026 (1.6.0.1 → 1.7.0.1):** la org `Pkg_Manual`, que corria la 1.6.0.1, se actualizo por el mismo camino que usaria un cliente. Conservo su identidad de instalacion y las cuatro clases nuevas llegaron con el prefijo `veleiro`. Cobertura 94%, ancestro 1.6.0.1, o sea que Salesforce ofrece *Upgrade* y no *Install*.
 

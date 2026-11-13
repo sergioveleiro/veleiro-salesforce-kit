@@ -1,13 +1,13 @@
 {
   "packageDirectories": [
     {
-      "versionName": "Security review",
-      "versionNumber": "1.9.0.NEXT",
+      "versionName": "Security review fixes",
+      "versionNumber": "1.10.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "Veleiro Salesforce Kit",
-      "versionDescription": "AppExchange security review for 1.9.0. Callouts stay on the packaged Named Credentials, the API token moves to a protected setting (and an External Credential when the platform accepts it), and setup changes require an administrator. Upgrades from 1.5.0, 1.6.0, and 1.8.0 keep working if the new store cannot be written.",
-      "ancestorVersion": "1.8.0.RELEASED",
+      "versionDescription": "Security review fixes on top of 1.9.0: setup queries run in user mode and fail closed, auto-sync batches make every callout before the single DML, and the package's own configuration writes (Veleiro_Config__c, protected Veleiro_Secret__c) declare system mode with a justification at each site. Upgrades from 1.9.0 keep subscriber data and flow activation.",
+      "ancestorVersion": "HIGHEST",
       "postInstallScript": "VeleiroPostInstall"
     }
   ],
@@ -27,6 +27,7 @@
     "Veleiro Salesforce Kit@1.7.0-1": "04tPe0000011T93IAE",
     "Veleiro Salesforce Kit@1.8.0-1": "04tPe0000011UTJIA2",
     "Veleiro Salesforce Kit@1.9.0-1": "04tPe0000012dSvIAI",
-    "Veleiro Salesforce Kit@1.9.0-2": "04tPe0000012dmHIAQ"
+    "Veleiro Salesforce Kit@1.9.0-2": "04tPe0000012dmHIAQ",
+    "Veleiro Salesforce Kit@1.10.0-1": "04tPe0000012ht7IAA"
   }
 }
