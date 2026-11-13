@@ -393,4 +393,177 @@ private class VeleiroSyncServiceTest {
                 [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :open.Id].Veleiro_Project_Id__c);
         }
     }
+
+    // ---- lotes: todos los callouts primero y UN solo DML ----
+    // Antes, syncOpportunity por registro dentro del bucle guardaba entre callouts y el segundo
+    // registro del lote tronaba con "uncommitted work pending": de un flow bulkificado solo se
+    // sincronizaba el primero.
+
+    @isTest
+    static void invocableSyncsEveryOpportunityOfTheBatch() {
+        System.runAs(VeleiroTestAccess.user()) {
+            // Account en manual: ninguna oportunidad se difiere esperando al auto-sync de su cuenta.
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', false, true);
+            Account fresh = newAccount(null);            // sin client: lo crea la primera oportunidad
+            Account linked = newAccount('org_existing');
+            Opportunity o1 = newOpp(fresh.Id, null);
+            Opportunity o2 = newOpp(fresh.Id, null);
+            Opportunity o3 = newOpp(linked.Id, null);
+            List<Id> ids = new List<Id>{ o1.Id, o2.Id, o3.Id };
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.distinctIds = true;
+            Test.setMock(HttpCalloutMock.class, mock);
+
+            Test.startTest();
+            VeleiroSyncService.syncOpportunitiesInvocable(ids);
+            Test.stopTest();
+
+            System.assertEquals(3, mock.projectPosts, 'un project por oportunidad, las tres en la misma transaccion');
+            System.assertEquals(1, mock.clientPosts, 'las dos oportunidades de la cuenta nueva comparten UN client');
+            System.assertEquals(3, [SELECT COUNT() FROM Opportunity WHERE Id IN :ids AND Veleiro_Project_Id__c != null]);
+            System.assertEquals('org_test_1', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :fresh.Id].Veleiro_Client_Id__c);
+            System.assertEquals('org_existing', [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :linked.Id].Veleiro_Client_Id__c);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c);
+        }
+    }
+
+    // El client se crea para la primera oportunidad y su project falla; la segunda, de la misma
+    // cuenta, reutiliza ese client. El vinculo del Account se guarda igual: el client ya existe
+    // en Veleiro y sin el vinculo el siguiente sync lo crearia otra vez.
+    private class FirstProjectFailsMock implements HttpCalloutMock {
+        Integer projectPosts = 0;
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            String url = req.getEndpoint();
+            if (req.getMethod() == 'POST' && url.contains('/projects')) {
+                projectPosts++;
+                if (projectPosts == 1) {
+                    res.setStatusCode(500);
+                    res.setBody('{"error":{"code":"internal_error","message":"boom"}}');
+                } else {
+                    res.setStatusCode(201);
+                    res.setBody('{"data":{"id":"prjct_' + projectPosts + '","name":"P","progress":0,"version":1}}');
+                }
+            } else if (req.getMethod() == 'POST' && url.contains('/clients')) {
+                res.setStatusCode(201);
+                res.setBody('{"data":{"id":"org_shared","name":"Acme","version":1}}');
+            } else {
+                res.setStatusCode(200);
+                res.setBody('{"data":[],"has_more":false}');
+            }
+            return res;
+        }
+    }
+
+    @isTest
+    static void batchSavesTheAccountLinkEvenWhenItsFirstProjectFails() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', false, true);
+            Account fresh = newAccount(null);
+            Opportunity o1 = newOpp(fresh.Id, null);
+            Opportunity o2 = newOpp(fresh.Id, null);
+            Test.setMock(HttpCalloutMock.class, new FirstProjectFailsMock());
+
+            Test.startTest();
+            VeleiroSyncService.syncOpportunities(new List<Id>{ o1.Id, o2.Id });
+            Test.stopTest();
+
+            System.assertEquals('org_shared',
+                [SELECT Veleiro_Client_Id__c FROM Account WHERE Id = :fresh.Id].Veleiro_Client_Id__c,
+                'el client creado para la primera queda vinculado aunque su project haya fallado');
+            System.assertEquals(null, [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :o1.Id].Veleiro_Project_Id__c);
+            System.assertEquals('prjct_2', [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :o2.Id].Veleiro_Project_Id__c,
+                'la segunda reutiliza el client y sincroniza');
+            String err = Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c;
+            System.assert(err != null && err.contains(String.valueOf(o1.Id)), err);
+        }
+    }
+
+    @isTest
+    static void batchRecordsFailuresAfterTheDmlAndKeepsTheRest() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', false, true);
+            Account linked = newAccount('org_existing');
+            Opportunity orphan1 = newOpp(null, null);   // sin Account: falla antes del callout
+            Opportunity good = newOpp(linked.Id, null);
+            Opportunity orphan2 = newOpp(null, null);
+            Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+
+            Test.startTest();
+            List<Id> rest = VeleiroSyncService.syncOpportunities(new List<Id>{ orphan1.Id, good.Id, orphan2.Id });
+            Test.stopTest();
+
+            System.assert(rest.isEmpty(), 'todo cupo en la transaccion');
+            System.assertEquals('prjct_test',
+                [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :good.Id].Veleiro_Project_Id__c,
+                'el fallo de una no frena a las demas');
+            String err = Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c;
+            System.assert(err != null && err.startsWith('2 failed.'), err);
+            System.assert(err.contains(String.valueOf(orphan1.Id)) && err.contains(String.valueOf(orphan2.Id)), err);
+        }
+    }
+
+    @isTest
+    static void batchLeavesForAnotherTransactionWhatDoesNotFitTheCalloutBudget() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', false, true);
+            Account linked = newAccount('org_existing');
+            Opportunity o = newOpp(linked.Id, null);
+            VeleiroApiMock mock = new VeleiroApiMock();
+            Test.setMock(HttpCalloutMock.class, mock);
+            VeleiroSyncService.calloutHeadroom = Limits.getLimitCallouts() + 1; // no cabe ni una
+
+            Test.startTest();
+            VeleiroSyncService.syncOpportunitiesInvocable(new List<Id>{ o.Id });
+            Test.stopTest();
+
+            System.assertEquals(0, mock.projectPosts, 'sin presupuesto no se hace ni un callout');
+            System.assertEquals(1, [
+                SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'VeleiroOppSyncQueueable'
+            ], 'lo que no cupo sigue en otra transaccion');
+            System.assertEquals(null,
+                [SELECT Veleiro_Project_Id__c FROM Opportunity WHERE Id = :o.Id].Veleiro_Project_Id__c);
+        }
+    }
+
+    @isTest
+    static void accountInvocableSyncsEveryAccountOfTheBatch() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
+            Account a1 = newAccount(null);
+            Account a2 = newAccount(null);
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.distinctIds = true;
+            Test.setMock(HttpCalloutMock.class, mock);
+
+            Test.startTest();
+            VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a1.Id, a2.Id });
+            Test.stopTest();
+
+            System.assertEquals(2, mock.clientPosts, 'las dos cuentas en la misma transaccion');
+            System.assertEquals(2, [SELECT COUNT() FROM Account WHERE Id IN :new List<Id>{ a1.Id, a2.Id }
+                AND Veleiro_Client_Id__c != null]);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c);
+        }
+    }
+
+    @isTest
+    static void accountInvocableReportsWhatDidNotFitTheCalloutBudget() {
+        System.runAs(VeleiroTestAccess.user()) {
+            VeleiroSyncConfig.save('bidirectional', 'salesforce', 'off', 'auto', true, true);
+            Account a = newAccount(null);
+            VeleiroApiMock mock = new VeleiroApiMock();
+            Test.setMock(HttpCalloutMock.class, mock);
+            VeleiroSyncService.calloutHeadroom = Limits.getLimitCallouts() + 1;
+
+            Test.startTest();
+            VeleiroSyncAccountAction.syncAccounts(new List<Id>{ a.Id });
+            Test.stopTest();
+
+            System.assertEquals(0, mock.clientPosts);
+            String err = Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c;
+            System.assert(err != null && err.contains('Callout limit reached'), err);
+        }
+    }
 }

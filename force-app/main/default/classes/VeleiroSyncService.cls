@@ -348,6 +348,130 @@ public with sharing class VeleiroSyncService {
 
     @AuraEnabled
     public static ProjectResult syncOpportunity(Id opportunityId) {
+        ProjectPush p = pushProject(opportunityId, new Map<Id, Account>(), new Set<Id>());
+        // DML al final (despues de los callouts)
+        List<SObject> toUpdate = new List<SObject>{ p.opportunity };
+        if (p.account != null) toUpdate.add(p.account);
+        VeleiroSecurity.updateRecords(toUpdate);
+        return p.result;
+    }
+
+    // Margen de callouts que se deja libre en un lote: un update gasta 2 (GET + PATCH), un
+    // create 1, y asegurar el client puede sumar el listado del matcher.
+    @TestVisible private static Integer calloutHeadroom = 4;
+
+    /**
+     * Sincroniza varias Opportunities en UNA transaccion: todos los callouts primero y un solo
+     * DML al final. Antes se llamaba a syncOpportunity por registro dentro de un bucle, y como
+     * cada llamada guarda en Salesforce, el callout del segundo registro tronaba con
+     * "uncommitted work pending": de un lote solo se sincronizaba el primero.
+     *
+     *  - Dos Opportunities del mismo Account sin client crean UN client: el Account ya
+     *    resuelto se reutiliza en memoria (accountsInFlight) en vez de releerse de la base.
+     *  - El DML es parcial: una validation rule del cliente sobre una oportunidad no tumba el
+     *    lote, y el fallo queda anotado con el id del project para poder rescatarlo.
+     *  - Los fallos se anotan DESPUES del DML (recordError tambien escribe).
+     *
+     * Devuelve las que no cupieron en el presupuesto de callouts de la transaccion, para que
+     * quien llama las mande a otra transaccion.
+     */
+    public static List<Id> syncOpportunities(List<Id> opportunityIds) {
+        List<Id> rest = new List<Id>();
+        if (opportunityIds == null || opportunityIds.isEmpty()) return rest;
+
+        Map<Id, Account> accountsInFlight = new Map<Id, Account>();
+        Set<Id> changedAccounts = new Set<Id>();   // client creado o vinculado en este lote
+        Map<Id, Opportunity> opps = new Map<Id, Opportunity>();
+        Map<Id, String> projectFor = new Map<Id, String>();
+        VeleiroAutoSyncGuard.Failures failures = new VeleiroAutoSyncGuard.Failures();
+
+        for (Id oid : opportunityIds) {
+            if (Limits.getCallouts() + calloutHeadroom > Limits.getLimitCallouts()) {
+                rest.add(oid);
+                continue;
+            }
+            try {
+                ProjectPush p = pushProject(oid, accountsInFlight, changedAccounts);
+                opps.put(p.opportunity.Id, p.opportunity);
+                projectFor.put(p.opportunity.Id, p.result.projectId);
+            } catch (Exception e) {
+                failures.add(oid, e);
+            }
+        }
+
+        // Un solo DML, por tipo (Opportunities y luego Accounts), ya sin callouts pendientes.
+        // El Account se guarda aunque su project haya fallado despues: el client ya existe en
+        // Veleiro y el vinculo es lo que evita crearlo dos veces.
+        List<SObject> rows = new List<SObject>();
+        rows.addAll(opps.values());
+        for (Id aid : changedAccounts) rows.add(accountsInFlight.get(aid));
+        List<Database.SaveResult> results = VeleiroSecurity.updatePartial(rows);
+        for (Integer i = 0; i < results.size(); i++) {
+            if (results[i].isSuccess()) continue;
+            Id failedId = rows[i].Id;
+            String why = results[i].getErrors().isEmpty()
+                ? 'unknown'
+                : VeleiroSecurity.sanitize(results[i].getErrors()[0].getMessage());
+            String what = projectFor.containsKey(failedId)
+                ? 'Veleiro project ' + projectFor.get(failedId) + ' exists but Salesforce could not save the link: '
+                : 'Salesforce could not save the Veleiro client link: ';
+            failures.add(failedId, what + why);
+        }
+        failures.flush();
+        return rest;
+    }
+
+    /**
+     * Misma idea para Accounts (flow de auto-sync): callouts primero, un DML parcial al final,
+     * fallos anotados despues. Con autoLink, como syncAccount: un client ya existente se
+     * vincula en vez de duplicarse.
+     */
+    public static List<Id> syncAccounts(List<Id> accountIds) {
+        List<Id> rest = new List<Id>();
+        if (accountIds == null || accountIds.isEmpty()) return rest;
+
+        List<Account> toSave = new List<Account>();
+        VeleiroAutoSyncGuard.Failures failures = new VeleiroAutoSyncGuard.Failures();
+        for (Id aid : accountIds) {
+            if (Limits.getCallouts() + calloutHeadroom > Limits.getLimitCallouts()) {
+                rest.add(aid);
+                continue;
+            }
+            try {
+                toSave.add(pushAccount(aid, true, null).account);
+            } catch (Exception e) {
+                failures.add(aid, e);
+            }
+        }
+
+        List<Database.SaveResult> results = VeleiroSecurity.updatePartial(toSave);
+        for (Integer i = 0; i < results.size(); i++) {
+            if (results[i].isSuccess()) continue;
+            String why = results[i].getErrors().isEmpty()
+                ? 'unknown'
+                : VeleiroSecurity.sanitize(results[i].getErrors()[0].getMessage());
+            failures.add(toSave[i].Id, 'Veleiro client ' + toSave[i].Veleiro_Client_Id__c
+                + ' exists but Salesforce could not save the link: ' + why);
+        }
+        failures.flush();
+        return rest;
+    }
+
+    private class ProjectPush {
+        ProjectResult result;
+        Opportunity opportunity; // con el id/version del project ya puestos, listo para guardar
+        Account account;         // solo cuando el Account tambien cambio (client nuevo o vinculado)
+    }
+
+    /**
+     * Empuja la Opportunity a Veleiro SIN guardar en Salesforce (el DML lo hace quien llama,
+     * despues de TODOS los callouts). accountsInFlight guarda los Accounts ya resueltos en este
+     * lote: asi dos Opportunities de la misma cuenta comparten el client recien creado en vez
+     * de crear dos. changedAccounts recibe el id del Account cuando hubo que crear o vincular su
+     * client, para que quien llama lo guarde aunque el project falle despues.
+     */
+    private static ProjectPush pushProject(Id opportunityId, Map<Id, Account> accountsInFlight,
+                                           Set<Id> changedAccounts) {
         if (!VeleiroSyncConfig.pushEnabled()) {
             throw new VeleiroApiClient.VeleiroApiException('Push to Veleiro is disabled by the integration config (Veleiro to Salesforce only). Change the direction in the Veleiro Mappings panel.');
         }
@@ -365,9 +489,13 @@ public with sharing class VeleiroSyncService {
         if (!mp.topLevel.containsKey('name')) mp.topLevel.put('name', o.Name);
 
         // Asegurar el client (crearlo si el Account aun no esta sincronizado) - callout
-        Account a = loadAccount(o.AccountId, new List<Schema.SObjectField>{
-            Account.Name, Account.Veleiro_Client_Id__c, Account.Veleiro_Version__c
-        });
+        Account a = accountsInFlight.get(o.AccountId);
+        if (a == null) {
+            a = loadAccount(o.AccountId, new List<Schema.SObjectField>{
+                Account.Name, Account.Veleiro_Client_Id__c, Account.Veleiro_Version__c
+            });
+            accountsInFlight.put(a.Id, a);
+        }
         String clientId = a.Veleiro_Client_Id__c;
         Boolean accountNeedsUpdate = false;
         if (String.isBlank(clientId)) {
@@ -381,6 +509,7 @@ public with sharing class VeleiroSyncService {
                 a.Veleiro_Client_Id__c = clientId;
                 a.Veleiro_Version__c = null; // version desconocida: la toma del proximo sync
                 accountNeedsUpdate = true;
+                changedAccounts.add(a.Id);
             }
         }
 
@@ -394,6 +523,7 @@ public with sharing class VeleiroSyncService {
             a.Veleiro_Client_Id__c = clientId;
             if (cRes.get('version') != null) a.Veleiro_Version__c = Integer.valueOf(String.valueOf(cRes.get('version')));
             accountNeedsUpdate = true;
+            changedAccounts.add(a.Id);
         }
 
         Map<String, Object> result;
@@ -410,12 +540,9 @@ public with sharing class VeleiroSyncService {
                         o.Veleiro_Project_Version__c != null ? Integer.valueOf(o.Veleiro_Project_Version__c) : null);
         }
 
-        // DML al final (despues de los callouts)
+        // Id + version del project sobre el registro (el DML lo hace quien llama).
         o.Veleiro_Project_Id__c = (String) result.get('id');
         if (result.get('version') != null) o.Veleiro_Project_Version__c = Integer.valueOf(String.valueOf(result.get('version')));
-        List<SObject> toUpdate = new List<SObject>{ o };
-        if (accountNeedsUpdate) toUpdate.add(a);
-        VeleiroSecurity.updateRecords(toUpdate);
 
         ProjectResult r = new ProjectResult();
         r.projectId = (String) result.get('id');
@@ -425,7 +552,12 @@ public with sharing class VeleiroSyncService {
         r.created = created;
         r.synced = true;
         r.veleiroUrl = appBase() + '/a/partner-portal/projects/' + r.projectId;
-        return r;
+
+        ProjectPush out = new ProjectPush();
+        out.result = r;
+        out.opportunity = o;
+        out.account = accountNeedsUpdate ? a : null;
+        return out;
     }
 
     @AuraEnabled(cacheable=true)
@@ -694,16 +826,18 @@ public with sharing class VeleiroSyncService {
         // Si el Account se creo en la misma operacion (conversion de Lead), su propio auto-sync
         // esta creando el client: esperamos a ese en vez de crear un duplicado.
         Set<Id> waiting = VeleiroOppSyncQueueable.waitingForAccountSync(opportunityIds);
+        List<Id> ready = new List<Id>();
         for (Id oid : opportunityIds) {
-            if (waiting.contains(oid)) continue;
-            try {
-                syncOpportunity(oid);
-            } catch (Exception e) {
-                VeleiroAutoSyncGuard.recordFailure(oid, e);
-            }
+            if (!waiting.contains(oid)) ready.add(oid);
         }
+        // Todos los callouts y un solo DML (ver syncOpportunities). Lo que no cupo en el
+        // presupuesto de callouts de esta transaccion se sincroniza en la siguiente.
+        List<Id> rest = syncOpportunities(ready);
         if (!waiting.isEmpty()) {
             VeleiroOppSyncQueueable.defer(waiting, 1);
+        }
+        if (!rest.isEmpty()) {
+            VeleiroOppSyncQueueable.defer(new Set<Id>(rest), VeleiroOppSyncQueueable.MAX_ATTEMPTS);
         }
     }
 }

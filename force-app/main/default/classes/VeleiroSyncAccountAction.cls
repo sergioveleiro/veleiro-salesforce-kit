@@ -9,12 +9,12 @@ public with sharing class VeleiroSyncAccountAction {
         // El flow ya filtro por el trigger global; aqui manda el interruptor de este par.
         if (!VeleiroSyncConfig.autoSyncAccount()) return;
         if (VeleiroAutoSyncGuard.tooManyForAutoSync(accountIds, 'accounts')) return;
-        for (Id aid : accountIds) {
-            try {
-                VeleiroSyncService.syncAccount(aid);
-            } catch (Exception e) {
-                VeleiroAutoSyncGuard.recordFailure(aid, e);
-            }
+        // Todos los callouts y un solo DML al final: syncAccount por registro guardaba entre
+        // callouts y el segundo Account del lote tronaba con "uncommitted work pending".
+        List<Id> rest = VeleiroSyncService.syncAccounts(accountIds);
+        if (!rest.isEmpty()) {
+            VeleiroSyncConfig.recordError('Callout limit reached: ' + rest.size()
+                + ' account(s) not synced. Sync them with the button or the Veleiro Link tab.');
         }
     }
 }

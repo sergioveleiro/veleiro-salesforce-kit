@@ -54,6 +54,7 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
         Boolean lastAttempt = attempt >= MAX_ATTEMPTS || Test.isRunningTest();
 
         Set<Id> stillWaiting = new Set<Id>();
+        List<Id> ready = new List<Id>();
         String clientField = VeleiroSecurity.api(Account.Veleiro_Client_Id__c);
         for (SObject raw : VeleiroSecurity.query(
             'SELECT Id, Account.' + clientField + ' FROM Opportunity WHERE Id IN :opportunityIds',
@@ -63,16 +64,20 @@ public with sharing class VeleiroOppSyncQueueable implements Queueable, Database
             if (String.isBlank(o.Account.Veleiro_Client_Id__c) && !lastAttempt) {
                 stillWaiting.add(o.Id);
             } else {
-                try {
-                    VeleiroSyncService.syncOpportunity(o.Id);
-                } catch (Exception e) {
-                    VeleiroAutoSyncGuard.recordFailure(o.Id, e);
-                }
+                ready.add(o.Id);
             }
         }
+        // Todos los callouts primero y un solo DML al final (syncOpportunity por registro
+        // tronaba con "uncommitted work pending" a partir del segundo).
+        List<Id> rest = VeleiroSyncService.syncOpportunities(ready);
+
         // Encolar despues de los callouts (un callout despues de encolar truena).
         if (!stillWaiting.isEmpty()) {
             defer(stillWaiting, attempt + 1);
+        }
+        // Lo que no cupo en el presupuesto de callouts sigue en otra transaccion, ya sin esperar.
+        if (!rest.isEmpty() && !Test.isRunningTest()) {
+            defer(new Set<Id>(rest), MAX_ATTEMPTS);
         }
     }
 }

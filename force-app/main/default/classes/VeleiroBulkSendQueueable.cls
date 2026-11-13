@@ -46,6 +46,8 @@ public with sharing class VeleiroBulkSendQueueable implements Queueable, Databas
         List<Id> rest = new List<Id>();
         List<Account> toSave = new List<Account>();
         Map<Id, String> createdFor = new Map<Id, String>();   // para explicar un DML fallido
+        // Los fallos se anotan al final: anotar (DML) entre callouts tumbaba el resto del lote.
+        VeleiroAutoSyncGuard.Failures failures = new VeleiroAutoSyncGuard.Failures();
 
         for (Integer i = 0; i < recordIds.size(); i++) {
             Id recordId = recordIds[i];
@@ -67,7 +69,7 @@ public with sharing class VeleiroBulkSendQueueable implements Queueable, Databas
                     VeleiroSyncService.syncRecord(recordId, entity);
                 }
             } catch (Exception e) {
-                VeleiroAutoSyncGuard.recordFailure(recordId, e);
+                failures.add(recordId, e);
             }
         }
 
@@ -81,11 +83,11 @@ public with sharing class VeleiroBulkSendQueueable implements Queueable, Databas
                     ? 'unknown'
                     : VeleiroSecurity.sanitize(results[i].getErrors()[0].getMessage());
                 // El client SI existe en Veleiro: lo decimos con su id para poder rescatarlo.
-                VeleiroAutoSyncGuard.recordFailure(failedId, new VeleiroApiClient.VeleiroApiException(
-                    'Veleiro client ' + createdFor.get(failedId) + ' was created but Salesforce could not'
-                    + ' save the link: ' + why));
+                failures.add(failedId, 'Veleiro client ' + createdFor.get(failedId)
+                    + ' was created but Salesforce could not save the link: ' + why);
             }
         }
+        failures.flush();
 
         if (!rest.isEmpty() && !Test.isRunningTest()) {
             System.enqueueJob(new VeleiroBulkSendQueueable(rest, entity, linkTo));

@@ -92,4 +92,26 @@ private class VeleiroOppSyncQueueableTest {
             System.assertEquals('org_from_account', after.Account.Veleiro_Client_Id__c);
         }
     }
+
+    // Dos oportunidades listas en el mismo job: todos los callouts y un solo DML. Antes, la
+    // segunda tronaba con "uncommitted work pending" por el DML de la primera.
+    @isTest
+    static void syncsEveryReadyOpportunityInOneTransaction() {
+        System.runAs(VeleiroTestAccess.user()) {
+            Opportunity o1 = newOpp('org_a');
+            Opportunity o2 = newOpp('org_b');
+            List<Id> ids = new List<Id>{ o1.Id, o2.Id };
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.distinctIds = true;
+            Test.setMock(HttpCalloutMock.class, mock);
+
+            Test.startTest();
+            new VeleiroOppSyncQueueable(ids, 1).execute(null);
+            Test.stopTest();
+
+            System.assertEquals(2, mock.projectPosts, 'las dos se sincronizan en la misma transaccion');
+            System.assertEquals(2, [SELECT COUNT() FROM Opportunity WHERE Id IN :ids AND Veleiro_Project_Id__c != null]);
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Last_Sync_Error__c);
+        }
+    }
 }

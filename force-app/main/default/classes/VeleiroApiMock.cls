@@ -37,6 +37,12 @@ public class VeleiroApiMock implements HttpCalloutMock {
     // Captura del ultimo body enviado (para aseverar el payload en los tests).
     public String lastPostBody;
     public String lastPatchBody;
+    // Cuantos POST por recurso: para probar que un lote crea UN client y N projects.
+    public Integer clientPosts = 0;
+    public Integer projectPosts = 0;
+    // Veleiro_Client_Id__c y Veleiro_Project_Id__c son unicos: un lote de verdad necesita un id
+    // distinto por create (org_test_1, prjct_test_2, ...). Los GET/PATCH por id siguen respondiendo.
+    public Boolean distinctIds = false;
 
     public HttpResponse respond(HttpRequest req) {
         HttpResponse res = new HttpResponse();
@@ -63,11 +69,13 @@ public class VeleiroApiMock implements HttpCalloutMock {
         if (url.contains('/tasks/states')) {
             res.setBody(statesBody);
         } else if (m == 'POST' && url.contains('/clients')) {
+            clientPosts++;
             res.setStatusCode(201);
-            res.setBody(postClientBody);
+            res.setBody(distinctIds ? postClientBody.replace('"org_test"', '"org_test_' + clientPosts + '"') : postClientBody);
         } else if (m == 'POST' && url.contains('/projects')) {
+            projectPosts++;
             res.setStatusCode(201);
-            res.setBody(postProjectBody);
+            res.setBody(distinctIds ? postProjectBody.replace('"prjct_test"', '"prjct_test_' + projectPosts + '"') : postProjectBody);
         } else if (url.contains('/clients/org')) {          // GET/PATCH single client
             res.setBody(singleClientBody);
         } else if (url.contains('/projects/prjct')) {       // GET/PATCH single project
