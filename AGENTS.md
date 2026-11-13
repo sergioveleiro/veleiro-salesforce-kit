@@ -33,7 +33,7 @@ Two businesses, one link:
 | File | Responsibility |
 |---|---|
 | `classes/VeleiroApiClient.cls` | HTTP client. `doGet`, `listAll` (cursor pagination), `doPost`, `doPatch(ifMatchVersion)`, error routing by `code`, `appBaseUrl()`. The one place that talks HTTP. |
-| `classes/VeleiroSyncService.cls` | **Write** path. `syncAccount` (Account→client), `syncOpportunity` (Opp→project, creates the client first if needed), `getClientSummary`/`getProjectSummary` (cacheable, no callout), `getProjectLive` (callout), `@InvocableMethod` for the flow. |
+| `classes/VeleiroSyncService.cls` | **Write** path. `syncAccount` (Account→client), `syncOpportunity` (Opp→project, creates the client first if needed), `syncAccounts`/`syncOpportunities` (batches: every callout first, one partial-success DML, failures recorded after it), `getClientSummary`/`getProjectSummary` (cacheable, no callout), `getProjectLive` (callout), `@InvocableMethod` for the flow. |
 | `classes/VeleiroSync.cls` | **Pull** path. `syncClients()` upserts Veleiro clients into Accounts by external id. |
 | `classes/VeleiroInsightService.cls` | **Velly** — health scoring + next-best-action. `getBriefing()` (dashboard), `getInsightForAccount()` (Account page). Rules in `score()`. |
 | `classes/VeleiroDashboardController.cls` | `getOverview()` — clients + projects + completion, aggregated per client. |
@@ -52,13 +52,14 @@ Two businesses, one link:
 | `flowDefinitions/*` | Pin each flow's active version. **Required**: production deploys leave flows inactive otherwise. |
 | `classes/VeleiroLinkStore.cls` | Where a record's Veleiro link lives: the native fields on Account/Opportunity, `Veleiro_Link__c` for every other object. |
 | `classes/VeleiroSyncRecordAction.cls` | Generic `@InvocableMethod` (record id + entity) so a partner automates any mapped object from their own flow. |
-| `classes/VeleiroLinkSyncQueueable.cls` | Pushes the mapped fields of freshly linked accounts to Veleiro, 20 per transaction (callouts first, one DML at the end), chaining the rest. |
+| `classes/VeleiroLinkSyncQueueable.cls` | Pushes the mapped fields of freshly linked records to Veleiro through `syncRecord`, one per transaction (that method saves after its callouts), chaining the rest. |
 | `classes/VeleiroLinkController.cls` / `lwc/veleiroLinkHome` | **Veleiro Link** tab, two directions off **one** Veleiro listing per scan. *Send to Veleiro* (`sendToVeleiro`, `getSendProgress`): pick Salesforce records and create them in Veleiro — the quick start for an org whose Veleiro is empty. *Match existing* (`linkAll`, `linkAndSync`): for records that existed on both sides before the kit. The matches found while scanning warn a send candidate that it may already exist over there, so the user links instead of duplicating. |
 | `classes/VeleiroBulkSendQueueable.cls` | Runs the bulk send. `Account -> client` goes dozens per transaction via `pushAccountWithoutSaving` (all callouts, then one partial-success DML); any other pair falls back to `syncRecord`, one per transaction. Batching matters because chaining Queueables is capped at 5 hops in Developer and trial orgs. |
 | `classes/VeleiroPulseService.cls` / `lwc/veleiroPulse` | El pulso de la entrega arriba de los paneles: tiempo invertido (`logged_minutes` de las tasks), trabajo abierto y trabajo trabado. La Opportunity mide **su** project; la Account suma los del client y se corta en `maxProjectsPerClient` (lo dice con `partial`). Sin el scope `task` devuelve `scopeMissing`. |
 | `classes/VeleiroMeetingService.cls` / `lwc/veleiroMeetings` | Reuniones de Veleiro como enlaces, dentro de los paneles de Account (`getForAccount`) y Opportunity (`getForOpportunity`). Solo lectura. Sin vínculo no gasta callout; sin el scope `meeting` devuelve `scopeMissing` y el componente lo explica en una línea en vez de romperse. |
 | `classes/VeleiroClientMatcher.cls` | Finds a Veleiro client that already represents an Account (by `sf_account_id`, website domain, or normalized name) so a first sync links instead of duplicating. |
-| `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. |
+| `classes/VeleiroOppSyncQueueable.cls` | Defers an Opportunity sync while its just-created Account (e.g. Lead conversion) is still being synced, so only one Veleiro client is created. Also takes the Opportunities a flow batch could not fit in its callout budget. Syncs through `syncOpportunities` (callouts first, one DML). |
+| `classes/VeleiroAutoSyncGuard.cls` | Brakes for the automatic routes: skips batches over 50 records and records the last failure in `Veleiro_Config__c`. `Failures` collects per-record errors during a batch of callouts and writes them once after the DML. |
 | `objects/Veleiro_Config__c` | Public hierarchy custom setting for non-secret sync settings. `Api_Token__c` is deprecated and cleared after migration. `Base_Url__c` only selects the packaged production or beta Named Credential. |
 | `objects/Veleiro_Field_Mapping__c` | The mapping model (see `docs/field-mapping.md`). |
 

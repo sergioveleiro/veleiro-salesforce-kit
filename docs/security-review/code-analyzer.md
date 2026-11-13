@@ -54,3 +54,38 @@ Re-scanned with `pmd:ApexCRUDViolation`, `pmd:ApexSuggestUsingNamedCred`, `pmd:E
 2. The protected custom setting is hidden from subscribers and is not platform-encrypted. The External Credential is the encrypted store, and it cannot be filled from the post-install script because that context cannot call out.
 3. A mapped subscriber field the running user cannot read is omitted instead of failing the whole sync. The package cannot grant field access to fields it does not own.
 4. System administrators pass the setup gate through Customize Application, so an upgrade does not require a new permission-set assignment before they can save the token. Users with only `Veleiro Integration Access` cannot.
+
+## Run of 13 Nov 2026 (Checkmarx fixes for 1.9.0.2, branch `fix/checkmarx-1.9.0.2`)
+
+Salesforce CLI 2.146.3, Code Analyzer plugin 5.14.0, PMD 7.25.0, with a temporary JRE 17 passed
+through `engines.*.java_command` (the machine has no system Java). Baseline is commit `1020025`,
+the exact source the Source Scanner analyzed. The Graph Engine (`sfge`) ran as well. Counts exclude
+the `UninstantiableEngineError` row that an engine without Java produces.
+
+| Rule selector | Baseline (1020025) | After | Notes |
+|---|---|---|---|
+| `Security` | 29 (24 High, 5 Moderate) | 11 (6 High, 5 Moderate) | 18 `ApexCRUDViolation` cleared |
+| `AppExchange` | 5 Moderate | 5 Moderate | unchanged, see below |
+| `sfge` (Graph Engine) | 4 (1 High, 3 Moderate) | 4 (1 High, 3 Moderate) | no `ApexFlsViolation` before or after |
+| `Recommended` | 2,031 (31 High) | 2,056 (13 High) | the increase is style noise on new code (`IfStmtsMustUseBraces`, `ApexDoc`, naming of new test methods) |
+
+What cleared the 18 security findings: the package's own configuration rows are now written with an
+explicit `AccessLevel.SYSTEM_MODE` and a justification comment (`VeleiroCredentialStore`,
+`VeleiroSyncConfig.save`/`recordError`, `VeleiroMappingController.saveEnvironment`,
+`VeleiroOnboardingController.skipStep`), the setup gate query in `VeleiroSecurity` is
+`WITH USER_MODE`, and `VeleiroTestAccess` is `@isTest`.
+
+Remaining `Security` findings, all accepted:
+
+| Rule | Where | Verdict |
+|---|---|---|
+| `ApexCRUDViolation` | `VeleiroApiClient.resolveConfig` (`Veleiro_Config__c` read of the two URL fields) | False positive: hierarchy custom setting, non-sensitive, the value is re-validated against the packaged Named Credentials and two fixed hosts. Not reported by the Source Scanner. |
+| `ApexCRUDViolation` | `VeleiroOnboardingController` (`PermissionSetAssignment`, `FlowDefinitionView`) | False positive: setup objects read to tell the admin whether the permission set is assigned and the flows are active. A permissions failure is caught and shown as "unknown". |
+| `ApexCRUDViolation` | `VeleiroSyncConfig.reschedule` (`CronTrigger`) | False positive: finds the kit's own scheduled job to abort it before rescheduling; gated by `assertCanManageSetup` in its caller. |
+| `ApexSuggestUsingNamedCred` | `VeleiroApiClient` | Accepted residual, as before: the header is only sent while platform auth is not ready, and only to the packaged Named Credentials. |
+| `AvoidHardcodedCredentialsIn*Decls`, `ProtectSensitiveData` | Constants named `CREDENTIAL` / `TOKEN_PARAMETER`, the deprecated `Api_Token__c` field, `Link_Key__c` | Name-based matches. The constants are metadata names, not secrets; `Api_Token__c` is the released legacy field that cannot be deleted and is cleared after migration; `Link_Key__c` is a record-to-resource correlation key. |
+
+The Graph Engine's four findings are pre-existing (`ApexNullPointerException` on `VeleiroApiClient`
+query helpers and `AvoidMultipleMassSchemaLookups` through `VeleiroSecurity.resolveType`) and were
+not part of the Source Scanner report. The scanner's own findings and responses are in
+[`false-positives.md`](false-positives.md).

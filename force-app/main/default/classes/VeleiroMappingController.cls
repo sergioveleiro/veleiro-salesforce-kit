@@ -297,7 +297,9 @@ public with sharing class VeleiroMappingController {
             c.Base_Url__c = VeleiroApiClient.calloutTo(VeleiroApiClient.CRED_PROD) + '/api/v1';
             c.App_Base_Url__c = VeleiroApiClient.APP_BASE_PROD;
         }
-        upsert c;
+        // System mode on purpose: gated by assertCanManageSetup above, and the only values
+        // written are the two packaged Named Credentials and the two fixed Veleiro hosts.
+        Database.upsert(c, true, AccessLevel.SYSTEM_MODE);
         migrateOnSave();
     }
 

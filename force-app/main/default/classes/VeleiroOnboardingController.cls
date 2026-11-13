@@ -208,7 +208,9 @@ public with sharing class VeleiroOnboardingController {
         Veleiro_Config__c c = Veleiro_Config__c.getOrgDefaults();
         if (c == null || c.Id == null) c = new Veleiro_Config__c(SetupOwnerId = UserInfo.getOrganizationId());
         c.Onboarding_Skipped__c = keys.isEmpty() ? null : String.join(new List<String>(keys), ',').abbreviate(255);
-        upsert c;
+        // System mode on purpose: gated by assertCanManageSetup above; the only field written is
+        // the list of skipped onboarding steps on the package's own configuration row.
+        Database.upsert(c, true, AccessLevel.SYSTEM_MODE);
     }
 
     // ---- señales ----

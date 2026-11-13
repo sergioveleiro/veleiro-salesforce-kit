@@ -211,6 +211,44 @@ private class VeleiroSecurityTest {
     }
 
     @isTest
+    static void saveTokenFinishesPlatformAuthWhenTheProbeSucceeds() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            VeleiroCredentialStore.platformWriteOverride = true;
+            Test.setMock(HttpCalloutMock.class, new VeleiroApiMock());
+
+            // startTest: the permission set assignment above is a DML, and a callout after it
+            // in the same context fails with "uncommitted work pending".
+            Test.startTest();
+            VeleiroMappingController.saveToken('vlr_saved');
+            Test.stopTest();
+
+            System.assertEquals('vlr_saved', Veleiro_Secret__c.getOrgDefaults().Api_Token__c);
+            System.assertEquals(true, VeleiroCredentialStore.platformAuthReady(),
+                'the External Credential took the token and GET /clients answered: platform auth is on');
+        }
+    }
+
+    @isTest
+    static void saveTokenKeepsTheProtectedCopyWhenTheProbeFails() {
+        System.runAs(VeleiroTestAccess.admin()) {
+            VeleiroCredentialStore.platformWriteOverride = true;
+            VeleiroApiMock mock = new VeleiroApiMock();
+            mock.overrideStatus = 401;
+            mock.overrideBody = '{"error":{"code":"invalid_token"}}';
+            Test.setMock(HttpCalloutMock.class, mock);
+
+            Test.startTest();
+            VeleiroMappingController.saveToken('vlr_saved');
+            Test.stopTest();
+
+            System.assertEquals('vlr_saved', Veleiro_Secret__c.getOrgDefaults().Api_Token__c,
+                'the token is stored even when the secure credential does not answer yet');
+            System.assertEquals(false, VeleiroCredentialStore.platformAuthReady());
+            System.assertEquals(null, Veleiro_Config__c.getOrgDefaults().Api_Token__c);
+        }
+    }
+
+    @isTest
     static void standardUserCannotChangeSetup() {
         System.runAs(VeleiroTestAccess.user()) {
             User u = standardUser();

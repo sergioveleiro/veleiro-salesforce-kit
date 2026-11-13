@@ -165,13 +165,14 @@ public with sharing class VeleiroCredentialStore {
         if (userLevel != null && String.isNotBlank(userLevel.Api_Token__c)) return userLevel.Api_Token__c;
         Veleiro_Config__c orgLevel = Veleiro_Config__c.getOrgDefaults();
         if (orgLevel != null && String.isNotBlank(orgLevel.Api_Token__c)) return orgLevel.Api_Token__c;
-        for (Veleiro_Config__c row : [
+        // System mode on purpose: the deprecated token field is read only to authenticate the
+        // packaged Named Credential callout for orgs upgraded from 1.5.0-1.8.0 until the copy
+        // to the protected setting succeeds. The value never reaches the UI.
+        List<Veleiro_Config__c> rows = [
             SELECT Api_Token__c FROM Veleiro_Config__c WHERE Api_Token__c != null
             WITH SYSTEM_MODE LIMIT 1
-        ]) {
-            return row.Api_Token__c;
-        }
-        return null;
+        ];
+        return rows.isEmpty() ? null : rows[0].Api_Token__c;
     }
 
     private static void writeProtected(String token, Boolean platform) {
@@ -184,16 +185,21 @@ public with sharing class VeleiroCredentialStore {
         }
         secret.Api_Token__c = token;
         secret.Platform_Auth__c = platform == true;
-        upsert secret;
+        // System mode on purpose: Veleiro_Secret__c is a protected setting that only this
+        // package can reach. Subscribers cannot be granted access to it, which is the point.
+        Database.upsert(secret, true, AccessLevel.SYSTEM_MODE);
     }
 
     private static void clearLegacyTokens() {
         List<Veleiro_Config__c> rows = [
             SELECT Id, Api_Token__c FROM Veleiro_Config__c WHERE Api_Token__c != null
+            WITH SYSTEM_MODE
         ];
         if (rows.isEmpty()) return;
         for (Veleiro_Config__c row : rows) row.Api_Token__c = null;
-        update rows;
+        // System mode on purpose: this removes a secret from the deprecated public field after
+        // it was copied to the protected setting, and must not depend on the user's FLS.
+        Database.update(rows, true, AccessLevel.SYSTEM_MODE);
     }
 
     private static ConnectApi.CredentialInput credentialInput(String externalName, String token) {

@@ -79,7 +79,10 @@ public with sharing class VeleiroSyncConfig {
             String safe = VeleiroSecurity.sanitize(message);
             c.Last_Sync_Error__c = String.isBlank(safe) ? null : safe.abbreviate(255);
             c.Last_Sync_Error_At__c = System.now();
-            upsert c;
+            // System mode on purpose: this is the package's own configuration row, written from
+            // background jobs and flows that run as users without rights on the setting. Only
+            // the two sanitized error fields are written.
+            Database.upsert(c, true, AccessLevel.SYSTEM_MODE);
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'No se pudo registrar el error: ' + e.getTypeName());
         }
@@ -146,7 +149,10 @@ public with sharing class VeleiroSyncConfig {
         // El checkbox se mantiene en sintonia: hay orgs con la version anterior leyendolo.
         c.Auto_Sync_Opportunity__c = (mode != OPP_MANUAL);
         c.Pull_Writes_Name__c = pullWritesName == true; // por defecto NO se pisa el nombre
-        upsert c;
+        // System mode on purpose: the authorization check is VeleiroSecurity.assertCanManageSetup
+        // in the only caller (saveSyncConfig). Hierarchy custom settings carry no object CRUD a
+        // permission set could grant, and every value above is normalized to a fixed pick-list.
+        Database.upsert(c, true, AccessLevel.SYSTEM_MODE);
         reschedule(c.Pull_Frequency__c);
     }
 
